@@ -21,9 +21,9 @@ const NavBar = () => {
           
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
             <Link to="/" className="nav-item nav-item-active">Home</Link>
-            <Link to="Services" className="nav-item">Partnaire Services</Link>
-            <Link to="Tours" className="nav-item">Book Tours</Link>
-            <Link to="Donate" className="nav-item">Make Donations</Link>
+            <Link to="/services" className="nav-item">Partnaire Services</Link>
+            <Link to="/book-tour" className="nav-item">Book Tours</Link>
+            <Link to="/donate" className="nav-item">Make Donations</Link>
           </div>
           
           <div className="hidden sm:ml-6 sm:flex sm:items-center">

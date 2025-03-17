@@ -9,11 +9,6 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <Link to="/" className="flex items-center mb-4">
-              <img
-                className="h-10 w-auto"
-                src="/lovable-uploads/24180fbb-b0a4-45f4-8f3b-9e59d0deb0de.png"
-                alt="Park Conservation Hub"
-              />
               <span className="ml-2 text-xl font-semibold">
                 Park Conservation Hub
               </span>
@@ -40,11 +35,10 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2 text-conservation-200">
-              <li><Link to="/" className="hover:text-white">Home</Link></li>
-              <li><Link to="#" className="hover:text-white">About Us</Link></li>
-              <li><Link to="#" className="hover:text-white">Our Parks</Link></li>
-              <li><Link to="/book-tour" className="hover:text-white">Book a Tour</Link></li>
-              <li><Link to="/donate" className="hover:text-white">Make a Donation</Link></li>
+              <li><Link to="/" className="nav-item nav-item-active">Home</Link></li>
+              <li><Link to="Services" className="nav-item">Partnaire Services</Link></li>
+              <li><Link to="Tours" className="nav-item">Book Tours</Link></li>
+              <li><Link to="Donate" className="nav-item">Make Donations</Link></li>
             </ul>
           </div>
           
@@ -64,11 +58,11 @@ const Footer = () => {
             <ul className="space-y-4 text-conservation-200">
               <li className="flex items-start">
                 <MapPin className="mr-2 h-5 w-5 flex-shrink-0 text-conservation-400" />
-                <span>123 Conservation Way, National Park, CA 94025</span>
+                <span>622 Avenue du Colonel Parant, Centre Ville</span>
               </li>
               <li className="flex items-center">
                 <Phone className="mr-2 h-5 w-5 flex-shrink-0 text-conservation-400" />
-                <span>(555) 123-4567</span>
+                <span>(+250) 781 846 877</span>
               </li>
               <li className="flex items-center">
                 <Mail className="mr-2 h-5 w-5 flex-shrink-0 text-conservation-400" />
