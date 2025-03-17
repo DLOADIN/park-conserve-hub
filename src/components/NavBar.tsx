@@ -13,22 +13,17 @@ const NavBar = () => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <img
-                className="h-10 w-auto"
-                src="/lovable-uploads/24180fbb-b0a4-45f4-8f3b-9e59d0deb0de.png"
-                alt="Park Conservation Hub"
-              />
               <span className="ml-2 text-xl font-semibold text-conservation-800">
-                Park Conservation Hub
+                PARK CONSERVATION HUB
               </span>
             </Link>
           </div>
           
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
             <Link to="/" className="nav-item nav-item-active">Home</Link>
-            <Link to="#" className="nav-item">About</Link>
-            <Link to="#" className="nav-item">Parks</Link>
-            <Link to="#" className="nav-item">Contact</Link>
+            <Link to="Services" className="nav-item">Partnaire Services</Link>
+            <Link to="Tours" className="nav-item">Book Tours</Link>
+            <Link to="Donate" className="nav-item">Make Donations</Link>
           </div>
           
           <div className="hidden sm:ml-6 sm:flex sm:items-center">

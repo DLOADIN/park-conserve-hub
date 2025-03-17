@@ -5,21 +5,21 @@ import { Button } from '@/components/ui/button';
 const parks = [
   {
     id: 1,
-    name: 'Evergreen National Park',
+    name: 'Akanda National Park',
     description: 'Ancient forests and stunning mountain vistas with diverse wildlife.',
-    image: '/lovable-uploads/3cda8714-88f1-4e5a-b524-bca279f23ef1.png',
+    image: '/lovable-uploads/pexels-elena-blessing-355784-2674050.jpg',
   },
   {
     id: 2,
-    name: 'Azure Lakes Reserve',
+    name: 'Moukalaba-Doudou National Park',
     description: 'Crystal clear waters surrounded by pristine wilderness and rare bird species.',
-    image: '/lovable-uploads/07b6e0a0-cf59-4458-b3ec-4e14ef579d3e.png',
+    image: '/lovable-uploads/pexels-freestockpro-321525.jpg',
   },
   {
     id: 3,
-    name: 'Granite Mountain Park',
+    name: 'Ivindo National Park',
     description: 'Dramatic rock formations and high-altitude trails with panoramic views.',
-    image: '/lovable-uploads/8abceb12-cf1f-4d98-916f-551a0bad8130.png',
+    image: '/lovable-uploads/pexels-pixabay-55814.jpg',
   },
 ];
 
@@ -29,7 +29,7 @@ const ParkHighlights = () => {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight text-conservation-900 sm:text-4xl">
-            Explore Our Parks
+            Explore Other Parks
           </h2>
           <p className="mt-6 text-lg leading-8 text-conservation-700">
             Discover the natural beauty and biodiversity of our conservation areas.
