@@ -1,5 +1,4 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,6 +6,9 @@
 
 @layer base {
   :root {
+    font-family: 'Poppins',sans-serif;
+    font-weight: 600;
+    font-style: italic;
     --background: 140 38% 97%;
     --foreground: 144 30% 15%;
 

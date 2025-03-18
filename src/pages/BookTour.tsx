@@ -113,26 +113,6 @@ const BookTour = () => {
                     </Select>
                   </div>
                   
-                  <div className="sm:col-span-2">
-                    <Label htmlFor="tour">Select Tour</Label>
-                    <Select 
-                      value={selectedTour} 
-                      onValueChange={setSelectedTour}
-                      disabled={!selectedPark}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a tour" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedPark && parkTours.find(p => p.id.toString() === selectedPark)?.tours.map(tour => (
-                          <SelectItem key={tour} value={tour}>
-                            {tour}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
                   <div>
                     <Label htmlFor="date">Date</Label>
                     <div className="relative">
