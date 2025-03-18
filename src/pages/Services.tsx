@@ -73,8 +73,8 @@ const Services = () => {
     // Simulate API call
     setTimeout(() => {
       setIsSubmitting(false);
-      toast({ title: 'Application submitted!', description: 'You will receive an update soon.' });
-      navigate('/dashboard');
+      toast({ title: 'Application submitted!', description: 'You will receive an update soon via email.' });
+      navigate('/services');
     }, 1500);
   };
 
@@ -96,7 +96,6 @@ const Services = () => {
 
             <CardContent>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                {/* Personal Information */}
                 <div className="sm:col-span-2 border-b pb-2">
                   <h3 className="text-lg font-medium text-conservation-700">Personal Information</h3>
                 </div>

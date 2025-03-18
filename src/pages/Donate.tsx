@@ -14,10 +14,10 @@ import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 
 const parks = [
-  { id: 1, name: 'Evergreen National Park' },
-  { id: 2, name: 'Azure Lakes Reserve' },
-  { id: 3, name: 'Granite Mountain Park' },
-  { id: 4, name: 'All Parks (General Fund)' },
+  { id: 1, name: 'Akanda National Park', tours: ['Wildlife Safari', 'Forest Hike', 'Bird Watching'] },
+  { id: 2, name: 'Moukalaba-Doudou National Park', tours: ['Kayaking Adventure', 'Fishing Tour', 'Lake Cruise'] },
+  { id: 3, name: 'Ivindo National Park', tours: ['Rock Climbing', 'Mountain Trail', 'Scenic Drive'] },
+  { id: 4, name: 'All parks', tours: ['Rock Climbing', 'Mountain Trail', 'Scenic Drive'] }
 ];
 
 const donationAmounts = [25, 50, 100, 250, 500];
@@ -153,45 +153,16 @@ const Donate = () => {
                       onValueChange={handleAmountChange}
                       className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2"
                     >
-                      {donationAmounts.map((amt) => (
-                        <div key={amt} className="flex items-center">
-                          <RadioGroupItem 
-                            value={amt.toString()} 
-                            id={`amount-${amt}`} 
-                            className="hidden"
-                          />
-                          <Label 
-                            htmlFor={`amount-${amt}`}
-                            className={`w-full cursor-pointer text-center py-2 px-4 border rounded-md ${
-                              amount === amt.toString() 
-                                ? 'bg-conservation-600 text-white border-conservation-700' 
-                                : 'border-conservation-300 hover:border-conservation-400'
-                            }`}
-                          >
-                            ${amt}
-                          </Label>
-                        </div>
-                      ))}
                       <div className="flex items-center col-span-3 sm:col-span-5 mt-2">
                         <RadioGroupItem 
                           value="custom" 
                           id="amount-custom" 
                           className="hidden"
-                          checked={amount === 'custom'}
                         />
-                        <div className="flex items-center w-full border rounded-md overflow-hidden">
-                          <Label 
-                            htmlFor="amount-custom"
-                            className={`py-2 px-4 cursor-pointer ${
-                              amount === 'custom' 
-                                ? 'bg-conservation-600 text-white' 
-                                : 'bg-conservation-100 text-conservation-700 hover:bg-conservation-200'
-                            }`}
-                          >
-                            Custom
-                          </Label>
+                        <div className="items-center w-full border rounded-md overflow-hidden">
+                          
                           <Input
-                            type="text"
+                            type="number"
                             value={customAmount}
                             onChange={handleCustomAmountChange}
                             onClick={() => setAmount('custom')}
