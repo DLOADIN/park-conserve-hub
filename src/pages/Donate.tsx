@@ -265,17 +265,6 @@ const Donate = () => {
                     />
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="anonymous"
-                      checked={isAnonymous}
-                      onChange={() => setIsAnonymous(!isAnonymous)}
-                      className="rounded border-conservation-300 text-conservation-600 focus:ring-conservation-500"
-                    />
-                    <Label htmlFor="anonymous" className="cursor-pointer">Make this donation anonymous</Label>
-                  </div>
-                  
                   <div className="flex items-start space-x-2 mt-6 rounded-lg bg-conservation-100 p-4 text-sm text-conservation-800">
                     <HelpCircle className="h-5 w-5 flex-shrink-0 text-conservation-600" />
                     <div>

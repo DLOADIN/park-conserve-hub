@@ -165,6 +165,7 @@ const Payment = () => {
                           <Label htmlFor="expiryDate">Expiry Date</Label>
                           <Input
                             id="expiryDate"
+                            type="date"
                             value={expiryDate}
                             onChange={handleExpiryDateChange}
                             placeholder="MM/YY"

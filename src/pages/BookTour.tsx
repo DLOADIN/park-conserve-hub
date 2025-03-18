@@ -13,9 +13,9 @@ import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 
 const parkTours = [
-  { id: 1, name: 'Evergreen National Park', tours: ['Wildlife Safari', 'Forest Hike', 'Bird Watching'] },
-  { id: 2, name: 'Azure Lakes Reserve', tours: ['Kayaking Adventure', 'Fishing Tour', 'Lake Cruise'] },
-  { id: 3, name: 'Granite Mountain Park', tours: ['Rock Climbing', 'Mountain Trail', 'Scenic Drive'] },
+  { id: 1, name: 'Akanda National Park', tours: ['Wildlife Safari', 'Forest Hike', 'Bird Watching'] },
+  { id: 2, name: 'Moukalaba-Doudou National Park', tours: ['Kayaking Adventure', 'Fishing Tour', 'Lake Cruise'] },
+  { id: 3, name: 'Ivindo National Park', tours: ['Rock Climbing', 'Mountain Trail', 'Scenic Drive'] },
 ];
 
 const BookTour = () => {
@@ -39,16 +39,6 @@ const BookTour = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedPark || !selectedTour || !date || !time || !firstName || !lastName || !email) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     setIsSubmitting(true);
     
     // Simulate API call for booking
@@ -125,20 +115,6 @@ const BookTour = () => {
                         className="pl-10"
                       />
                       <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-conservation-500" />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="time">Time</Label>
-                    <div className="relative">
-                      <Input
-                        id="time"
-                        type="time"
-                        value={time}
-                        onChange={(e) => setTime(e.target.value)}
-                        className="pl-10"
-                      />
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-conservation-500" />
                     </div>
                   </div>
                   

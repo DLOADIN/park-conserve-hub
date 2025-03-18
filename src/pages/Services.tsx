@@ -81,11 +81,11 @@ const Services = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <NavBar />
-      <div className="flex-grow py-10 px-4 sm:px-6 lg:px-8 bg-gray-100">
+      <div className="flex-grow py-10 px-4 sm:px-6 lg:px-8 bg-conservation-50">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold text-gray-900">Partners & Services Form</h1>
-            <p className="mt-3 text-gray-700">Fill in the details below to collaborate with us.</p>
+            <h1 className="text-3xl font-bold text-conservation-900">Partners & Services Form</h1>
+            <p className="mt-3 text-conservation-700">Fill in the details below to collaborate with us.</p>
           </div>
 
           <Card>
@@ -98,7 +98,7 @@ const Services = () => {
               <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 {/* Personal Information */}
                 <div className="sm:col-span-2 border-b pb-2">
-                  <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
+                  <h3 className="text-lg font-medium text-conservation-700">Personal Information</h3>
                 </div>
 
                 <div>
@@ -123,7 +123,7 @@ const Services = () => {
 
                 {/* Company Information */}
                 <div className="sm:col-span-2 border-b pb-2 pt-4">
-                  <h3 className="text-lg font-medium text-gray-900">Company Information</h3>
+                  <h3 className="text-lg font-medium text-conservation-700">Company Information</h3>
                 </div>
 
                 <div>
@@ -179,7 +179,7 @@ const Services = () => {
                 <div className="sm:col-span-2 flex items-start space-x-2 mt-6 text-sm text-gray-700">
                   <Info className="h-5 w-5 flex-shrink-0 text-gray-500" />
                   <p>
-                    By submitting, you agree to our <a href="#" className="text-blue-600 underline">terms and conditions</a>.
+                    By submitting, you agree to our <a href="#" className="text-conservation-700 underline">terms and conditions</a>.
                   </p>
                 </div>
               </form>
