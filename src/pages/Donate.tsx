@@ -26,14 +26,14 @@ const Donate = () => {
   const [donationType, setDonationType] = useState('oneTime');
   const [amount, setAmount] = useState('');
   const [customAmount, setCustomAmount] = useState('');
-  const [selectedPark, setSelectedPark] = useState('4');
+  const [parkName, setParkName] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -59,9 +59,9 @@ const Donate = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const donationAmount = getDonationAmount();
-    
+
     if (!donationAmount || donationAmount <= 0) {
       toast({
         title: "Invalid donation amount",
@@ -70,8 +70,8 @@ const Donate = () => {
       });
       return;
     }
-    
-    if (!firstName || !lastName || !email) {
+
+    if (!firstName || !lastName || !email || !parkName) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields.",
@@ -79,30 +79,57 @@ const Donate = () => {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
-    // Simulate API call for donation
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast({
-        title: "Thank you for your donation!",
-        description: "You'll receive an email confirmation shortly.",
-      });
-      navigate('/payment', { 
-        state: { 
-          type: 'donation',
+
+    try {
+      const response = await fetch('http://localhost:5000/api/donate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          donationType,
           amount: donationAmount,
-          details: {
-            donationType,
-            park: parks.find(p => p.id.toString() === selectedPark)?.name,
-            name: isAnonymous ? 'Anonymous' : `${firstName} ${lastName}`,
-            email,
-            message
-          }
-        } 
+          parkName,
+          firstName,
+          lastName,
+          email,
+          message,
+          isAnonymous,
+        }),
       });
-    }, 1500);
+
+      if (response.ok) {
+        toast({
+          title: "Thank you for your donation!",
+          description: "You'll receive an email confirmation shortly.",
+        });
+        navigate('/payment', {
+          state: {
+            type: 'donation',
+            amount: donationAmount,
+            details: {
+              donationType,
+              parkName,
+              name: isAnonymous ? 'Anonymous' : `${firstName} ${lastName}`,
+              email,
+              message,
+            },
+          },
+        });
+      } else {
+        throw new Error('Failed to submit donation');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit donation. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -114,7 +141,7 @@ const Donate = () => {
             <h1 className="text-3xl font-bold text-conservation-900">Support Our Conservation Efforts</h1>
             <p className="mt-3 text-conservation-700">Your donation helps us protect natural habitats for future generations</p>
           </div>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Make a Donation</CardTitle>
@@ -125,8 +152,8 @@ const Donate = () => {
                 <div className="space-y-6">
                   <div>
                     <Label>Donation Type</Label>
-                    <RadioGroup 
-                      defaultValue="oneTime" 
+                    <RadioGroup
+                      defaultValue="oneTime"
                       value={donationType}
                       onValueChange={setDonationType}
                       className="flex space-x-4 mt-2"
@@ -145,22 +172,27 @@ const Donate = () => {
                       </div>
                     </RadioGroup>
                   </div>
-                  
+
                   <div>
                     <Label>Donation Amount</Label>
-                    <RadioGroup 
-                      value={amount} 
+                    <RadioGroup
+                      value={amount}
                       onValueChange={handleAmountChange}
                       className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-2"
                     >
+                      {[25, 50, 100, 250, 500].map((amt) => (
+                        <div key={amt} className="flex items-center space-x-2">
+                          <RadioGroupItem value={amt.toString()} id={`amount-${amt}`} />
+                          <Label htmlFor={`amount-${amt}`} className="cursor-pointer">${amt}</Label>
+                        </div>
+                      ))}
                       <div className="flex items-center col-span-3 sm:col-span-5 mt-2">
-                        <RadioGroupItem 
-                          value="custom" 
-                          id="amount-custom" 
+                        <RadioGroupItem
+                          value="custom"
+                          id="amount-custom"
                           className="hidden"
                         />
                         <div className="items-center w-full border rounded-md overflow-hidden">
-                          
                           <Input
                             type="number"
                             value={customAmount}
@@ -173,23 +205,18 @@ const Donate = () => {
                       </div>
                     </RadioGroup>
                   </div>
-                  
+
                   <div>
-                    <Label htmlFor="park">Designate Your Gift</Label>
-                    <Select value={selectedPark} onValueChange={setSelectedPark}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a park" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {parks.map((park) => (
-                          <SelectItem key={park.id} value={park.id.toString()}>
-                            {park.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="parkName">Park Name</Label>
+                    <Input
+                      id="parkName"
+                      value={parkName}
+                      onChange={(e) => setParkName(e.target.value)}
+                      placeholder="Enter park name"
+                      required
+                    />
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
                       <Label htmlFor="firstName">First Name</Label>
@@ -201,7 +228,7 @@ const Donate = () => {
                         disabled={isAnonymous}
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="lastName">Last Name</Label>
                       <Input
@@ -213,7 +240,7 @@ const Donate = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -224,7 +251,7 @@ const Donate = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="message">Message (Optional)</Label>
                     <Textarea
@@ -235,7 +262,7 @@ const Donate = () => {
                       rows={3}
                     />
                   </div>
-                  
+
                   <div className="flex items-start space-x-2 mt-6 rounded-lg bg-conservation-100 p-4 text-sm text-conservation-800">
                     <HelpCircle className="h-5 w-5 flex-shrink-0 text-conservation-600" />
                     <div>
@@ -247,7 +274,7 @@ const Donate = () => {
               </form>
             </CardContent>
             <CardFooter>
-              <Button 
+              <Button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
                 className="w-full bg-conservation-600 hover:bg-conservation-700"

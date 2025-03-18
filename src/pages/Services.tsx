@@ -57,8 +57,7 @@ const Services = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate required fields
+  
     if (!personalInfo.firstName || !personalInfo.lastName || !personalInfo.email || !companyInfo.companyType || !companyInfo.companyName || !companyInfo.taxID || !files.companyRegistration) {
       toast({
         title: 'Missing information',
@@ -67,15 +66,46 @@ const Services = () => {
       });
       return;
     }
-
+  
     setIsSubmitting(true);
-
-    // Simulate API call
-    setTimeout(() => {
+  
+    const formData = new FormData();
+    formData.append('firstName', personalInfo.firstName);
+    formData.append('lastName', personalInfo.lastName);
+    formData.append('email', personalInfo.email);
+    formData.append('phone', personalInfo.phone);
+    formData.append('companyType', companyInfo.companyType);
+    formData.append('providedService', companyInfo.providedService);
+    formData.append('companyName', companyInfo.companyName);
+    formData.append('taxID', companyInfo.taxID);
+    if (files.companyRegistration) {
+      formData.append('companyRegistration', files.companyRegistration);
+    }
+    if (files.applicationLetter) {
+      formData.append('applicationLetter', files.applicationLetter);
+    }
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/services', {
+        method: 'POST',
+        body: formData,
+      });
+  
+      if (response.ok) {
+        toast({ title: 'Application submitted!', description: 'You will receive an update soon via email.' });
+        navigate('/services');
+      } else {
+        throw new Error('Failed to submit application');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-      toast({ title: 'Application submitted!', description: 'You will receive an update soon via email.' });
-      navigate('/services');
-    }, 1500);
+    }
   };
 
   return (

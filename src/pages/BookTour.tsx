@@ -41,29 +41,58 @@ const BookTour = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call for booking
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      const response = await fetch('http://localhost:5000/api/book-tour', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          selectedPark,
+          selectedTour,
+          date,
+          time,
+          guests,
+          firstName,
+          lastName,
+          email,
+          phone,
+          specialRequests,
+        }),
+      });
+  
+      if (response.ok) {
+        toast({
+          title: "Tour booking submitted!",
+          description: "You'll receive an email confirmation shortly.",
+        });
+        navigate('/payment', { 
+          state: { 
+            type: 'tour',
+            amount: 75 * parseInt(guests),
+            details: {
+              park: parkTours.find(p => p.id.toString() === selectedPark)?.name,
+              tour: selectedTour,
+              date,
+              time,
+              guests,
+              name: `${firstName} ${lastName}`,
+              email
+            }
+          } 
+        });
+      } else {
+        throw new Error('Failed to submit tour booking');
+      }
+    } catch (error) {
       toast({
-        title: "Tour booking submitted!",
-        description: "You'll receive an email confirmation shortly.",
+        title: "Error",
+        description: "Failed to submit tour booking. Please try again.",
+        variant: "destructive",
       });
-      navigate('/payment', { 
-        state: { 
-          type: 'tour',
-          amount: 75 * parseInt(guests),
-          details: {
-            park: parkTours.find(p => p.id.toString() === selectedPark)?.name,
-            tour: selectedTour,
-            date,
-            time,
-            guests,
-            name: `${firstName} ${lastName}`,
-            email
-          }
-        } 
-      });
-    }, 1500);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
