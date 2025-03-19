@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { User, Lock, LogIn, Loader2 } from 'lucide-react';
+import NavBar from '@/components/NavBar';
+import Footer from '@/components/Footer';
 import { toast } from 'sonner';
 
 const Login = () => {
@@ -73,16 +75,20 @@ const Login = () => {
   };
 
   return (
+  <>
+  
+    <NavBar />
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      
       <div className="max-w-md w-full">
         <div className="text-center">
           <div onClick={() => navigate('/')} className="cursor-pointer mx-auto flex items-center justify-center space-x-2 mb-5">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-lg">EP</span>
+            <div className="w-10 h-10 rounded-full bg-conservation-600 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">PCH</span>
             </div>
-            <span className="text-xl font-bold text-primary">EcoPark</span>
+            <span className="text-xl font-bold text-conservation-700">PARK CONSERVATION HUB</span>
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900">Welcome back</h2>
+          <h2 className="text-3xl font-extrabold text-conservation-700">Welcome back</h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to your account to access your dashboard
           </p>
@@ -150,7 +156,7 @@ const Login = () => {
                     </div>
 
                     <div className="text-sm">
-                      <a href="#" className="font-medium text-primary hover:text-primary-700">
+                      <a href="#" className="font-medium text-conservation-900 hover:text-primary-700">
                         Forgot your password?
                       </a>
                     </div>
@@ -159,7 +165,7 @@ const Login = () => {
                   <div>
                     <Button
                       type="submit"
-                      className="w-full flex justify-center py-2"
+                      className="w-full bg-conservation-500 flex justify-center py-2"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -233,6 +239,8 @@ const Login = () => {
         </div>
       </div>
     </div>
+    <Footer />
+    </>
   );
 };
 

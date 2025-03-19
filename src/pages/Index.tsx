@@ -1,10 +1,11 @@
 
 import React from 'react';
 import NavBar from '@/components/NavBar';
+import Features from '@/components/Features';
 import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
-import TourSection from '@/components/TourSection';
-import DonationSection from '@/components/DonationSection';
+import ParkHighlights from '@/components/ParkHighlights';
+import LoangoNationalPark from '@/components/park';
 
 const Index = () => {
   return (
@@ -12,8 +13,9 @@ const Index = () => {
       <NavBar />
       <main className="flex-grow">
         <Hero />
-        <TourSection />
-        <DonationSection />
+        <Features />
+        <LoangoNationalPark />
+        <ParkHighlights />
       </main>
       <Footer />
     </div>
