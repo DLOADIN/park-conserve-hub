@@ -7,7 +7,9 @@ interface StatCardProps {
   change?: string;
   trend?: 'up' | 'down' | 'neutral';
   icon: LucideIcon;
-  color: string;
+  color?: string;
+  className?:  string;
+  style?: React.CSSProperties;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, change, trend, icon: Icon, color }) => {
