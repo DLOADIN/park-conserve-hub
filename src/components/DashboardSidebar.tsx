@@ -167,8 +167,7 @@ const DashboardSidebar = () => {
           onClick={logout}
           className="flex items-center gap-2 w-full rounded-md px-3 py-2 hover:bg-gray-100 transition-colors text-danger-500"
         >
-          <LogOut size={18} />
-          <span>Logout</span>
+          
         </button>
         <div className="mt-4 text-center text-xs text-gray-500">
           {user?.firstName} {user?.lastName}

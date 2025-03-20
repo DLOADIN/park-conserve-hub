@@ -17,16 +17,6 @@ const features = [
     description: 'Collaborate with us on conservation projects and initiatives as a corporate or individual partner.',
     icon: Users,
   },
-  {
-    name: 'Transparency',
-    description: 'Track how funds are allocated with full financial transparency and regular reports.',
-    icon: DollarSign,
-  },
-  {
-    name: 'Resources',
-    description: 'Access educational materials and research about conservation and biodiversity.',
-    icon: FileText,
-  },
 ];
 
 const Features = () => {

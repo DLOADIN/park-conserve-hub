@@ -176,10 +176,12 @@ const Services = () => {
                       <SelectValue placeholder="Choose Service" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Consulting">Consulting</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Hardware Support">Hardware Support</SelectItem>
-                      <SelectItem value="Software Support">Software Support</SelectItem>
+                      <SelectItem value="Receptionist">Receptionist</SelectItem>
+                      <SelectItem value="Tour Guiders">Tour Guiders</SelectItem>
+                      <SelectItem value="Accountants">Accountants</SelectItem>
+                      <SelectItem value="Waiter/Waittress">Waiter/Waittress</SelectItem>
+                      <SelectItem value="Housekeeper">Housekeeper</SelectItem>
+                      <SelectItem value="Boat Tour Guiders">Boat Tour Guiders</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

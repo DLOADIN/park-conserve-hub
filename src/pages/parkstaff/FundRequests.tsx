@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -9,11 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useNavigate } from 'react-router-dom';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
 import { Search, Plus, DollarSign, Clock, CheckCircle, XCircle, FileText, MoreVertical, Edit, Trash, Eye } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import CreateFundRequestModal from './CreateFundRequestModal';
+import { format } from 'date-fns';
 
 interface FundRequest {
   id: string;
@@ -93,17 +94,23 @@ const mockRequests: FundRequest[] = [
 
 const FundRequests = () => {
   const { user, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [requests, setRequests] = useState<FundRequest[]>(mockRequests);
   
-  const filteredRequests = mockRequests.filter(request => {
+  const filteredRequests = requests.filter(request => {
     const matchesSearch = request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           request.category.toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (activeTab === 'all') return matchesSearch;
-    return matchesSearch && request.status === activeTab;
+    const matchesDate = !dateRange?.from || !dateRange?.to || 
+                         (new Date(request.createdAt) >= dateRange.from && 
+                          new Date(request.createdAt) <= dateRange.to);
+                          
+    if (activeTab === 'all') return matchesSearch && matchesDate;
+    return matchesSearch && matchesDate && request.status === activeTab;
   });
   
   const getUrgencyColor = (urgency: string) => {
@@ -134,7 +141,43 @@ const FundRequests = () => {
   };
 
   const handleCreateRequest = () => {
-    toast.success("Create request functionality will be implemented soon!");
+    setIsCreateModalOpen(true);
+  };
+
+  const handleSubmitRequest = (formData: any) => {
+    // In a real app, this would send the data to the server
+    const newRequest: FundRequest = {
+      id: (requests.length + 1).toString(),
+      title: formData.title,
+      description: formData.description,
+      amount: formData.amount,
+      category: formData.category,
+      urgency: formData.urgency,
+      status: 'pending',
+      createdBy: `${user?.firstName} ${user?.lastName}`,
+      createdAt: format(new Date(), 'yyyy-MM-dd'),
+      parkName: user?.park || 'Yellowstone',
+    };
+    
+    setRequests([newRequest, ...requests]);
+    setIsCreateModalOpen(false);
+    toast.success("Fund request submitted successfully!");
+  };
+
+  const handleViewDetails = (requestId: string) => {
+    toast.info(`Viewing details for request ${requestId}`);
+    // In a real app, this would navigate to a detail page or open a modal
+  };
+
+  const handleEditRequest = (requestId: string) => {
+    toast.info(`Editing request ${requestId}`);
+    // In a real app, this would open the edit modal with the request data
+  };
+
+  const handleDeleteRequest = (requestId: string) => {
+    // In a real app, this would send a delete request to the server
+    setRequests(requests.filter(request => request.id !== requestId));
+    toast.success("Request deleted successfully!");
   };
 
   return (
@@ -163,6 +206,14 @@ const FundRequests = () => {
                 <Plus className="mr-2 h-4 w-4" />
                 Create New Request
               </Button>
+            </div>
+
+            <div className="mb-6">
+              <DateRangePicker 
+                date={dateRange} 
+                onSelect={setDateRange} 
+                className="w-full sm:w-auto"
+              />
             </div>
             
             <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
@@ -218,15 +269,18 @@ const FundRequests = () => {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleViewDetails(request.id)}>
                                     <Eye className="mr-2 h-4 w-4" />
                                     View Details
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleEditRequest(request.id)}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Request
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600">
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDeleteRequest(request.id)}
+                                    className="text-red-600"
+                                  >
                                     <Trash className="mr-2 h-4 w-4" />
                                     Delete
                                   </DropdownMenuItem>
@@ -271,7 +325,7 @@ const FundRequests = () => {
                   </CardContent>
                   <CardFooter className="flex justify-between border-t pt-4">
                     <div className="text-sm text-gray-500">
-                      Showing {filteredRequests.length} of {mockRequests.length} requests
+                      Showing {filteredRequests.length} of {requests.length} requests
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm">Previous</Button>
@@ -284,6 +338,12 @@ const FundRequests = () => {
           </main>
         </div>
       </div>
+
+      <CreateFundRequestModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleSubmitRequest}
+      />
     </SidebarProvider>
   );
 };
