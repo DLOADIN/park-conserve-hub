@@ -28,11 +28,8 @@ def get_db_connection():
     try:
         connection = mysql.connector.connect(**db_config)
         return connection
-    except Error as e:
-        print(f"Error connecting to MySQL: {e}")
-        return None
-
-
+    except Error as f:
+        return(f"The error '{f}' occurred")
 
 
 @app.route('/api/donate', methods=['POST'])
@@ -141,50 +138,52 @@ def services():
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
-        
+    
     try:
         data = request.form
         files = request.files
-        
+
+        required_fields = ['firstName', 'lastName', 'email', 'companyType', 'companyName']
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+
         if 'companyRegistration' not in files:
             return jsonify({"error": "Company registration file is required"}), 400
 
         company_registration = files['companyRegistration'].read()
         application_letter = files['applicationLetter'].read() if 'applicationLetter' in files else None
 
-        required_fields = ['firstName', 'lastName', 'email', 'companyType', 'companyName', 'taxID']
-        if not all(field in data for field in required_fields):
-            return jsonify({"error": "Missing required fields"}), 400
-
         cursor = connection.cursor()
         cursor.execute('''
             INSERT INTO services (
                 first_name, last_name, email, phone,
-                company_type, provided_service, company_name,
-                tax_id, company_registration, application_letter
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                company_type, provided_service, company_name, company_registration, application_letter
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             data['firstName'],
             data['lastName'],
             data['email'],
-            data.get('phone', ''),
+            data.get('phone', ''),  
             data['companyType'],
-            data.get('providedService', ''),
+            data.get('providedService', ''),  
             data['companyName'],
-            data['taxID'],
             company_registration,
             application_letter
         ))
+
         connection.commit()
         return jsonify({"message": "Service application submitted successfully"}), 201
 
-    except Error as e:
-        print(f"Database error: {e}")
-        return jsonify({"error": "Database operation failed"}), 500
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
+
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
 
 if __name__ == '__main__':
     if not os.path.exists(app.config['UPLOAD_FOLDER']):

@@ -27,7 +27,6 @@ const Services = () => {
     companyType: '',
     providedService: '',
     companyName: '',
-    taxID: '',
   });
 
   // File Uploads
@@ -57,16 +56,6 @@ const Services = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!personalInfo.firstName || !personalInfo.lastName || !personalInfo.email || !companyInfo.companyType || !companyInfo.companyName || !companyInfo.taxID || !files.companyRegistration) {
-      toast({
-        title: 'Missing information',
-        description: 'Please fill in all required fields.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     const formData = new FormData();
@@ -77,7 +66,6 @@ const Services = () => {
     formData.append('companyType', companyInfo.companyType);
     formData.append('providedService', companyInfo.providedService);
     formData.append('companyName', companyInfo.companyName);
-    formData.append('taxID', companyInfo.taxID);
     if (files.companyRegistration) {
       formData.append('companyRegistration', files.companyRegistration);
     }
@@ -86,14 +74,17 @@ const Services = () => {
     }
 
     try {
-      const response = await fetch('', {
+      const response = await fetch('http://localhost:5000/api/services', {
         method: 'POST',
         body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
       });
-
+      
       if (response.ok) {
         toast({ title: 'Application submitted!', description: 'You will receive an update soon via email.' });
-        navigate('/payment');
+        navigate('/services');
       } else {
         throw new Error('Failed to submit application');
       }
