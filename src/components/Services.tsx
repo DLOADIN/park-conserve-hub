@@ -57,7 +57,7 @@ const Services = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-  
+
     if (!personalInfo.firstName || !personalInfo.lastName || !personalInfo.email || !companyInfo.companyType || !companyInfo.companyName || !companyInfo.taxID || !files.companyRegistration) {
       toast({
         title: 'Missing information',
@@ -66,9 +66,9 @@ const Services = () => {
       });
       return;
     }
-  
+
     setIsSubmitting(true);
-  
+
     const formData = new FormData();
     formData.append('firstName', personalInfo.firstName);
     formData.append('lastName', personalInfo.lastName);
@@ -84,24 +84,24 @@ const Services = () => {
     if (files.applicationLetter) {
       formData.append('applicationLetter', files.applicationLetter);
     }
-  
+
     try {
       const response = await fetch('', {
         method: 'POST',
         body: formData,
       });
-  
+
       if (response.ok) {
         toast({ title: 'Application submitted!', description: 'You will receive an update soon via email.' });
-        navigate('/services');
+        navigate('/payment');
       } else {
         throw new Error('Failed to submit application');
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to submit application. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to submit application. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -159,7 +159,7 @@ const Services = () => {
                   <Label htmlFor="companyType">Company Type</Label>
                   <Select onValueChange={(value) => handleCompanyChange('companyType', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Type" />
+                      <SelectValue placeholder="Select Type">{companyInfo.companyType || 'Select Type'}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="LLC">LLC</SelectItem>
@@ -173,13 +173,13 @@ const Services = () => {
                   <Label htmlFor="providedService">Service Offered</Label>
                   <Select onValueChange={(value) => handleCompanyChange('providedService', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose Service" />
+                      <SelectValue placeholder="Choose Service">{companyInfo.providedService || 'Choose Service'}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Receptionist">Receptionist</SelectItem>
                       <SelectItem value="Tour Guiders">Tour Guiders</SelectItem>
                       <SelectItem value="Accountants">Accountants</SelectItem>
-                      <SelectItem value="Waiter/Waittress">Waiter/Waittress</SelectItem>
+                      <SelectItem value="Waiter/Waitress">Waiter/Waitress</SelectItem>
                       <SelectItem value="Housekeeper">Housekeeper</SelectItem>
                       <SelectItem value="Boat Tour Guiders">Boat Tour Guiders</SelectItem>
                     </SelectContent>
@@ -192,8 +192,13 @@ const Services = () => {
                 </div>
 
                 <div>
+                  <Label htmlFor="companyRegistration">Company Registration Document</Label>
+                  <Input id="companyRegistration" type="file" onChange={handleFileChange} required />
+                </div>
+
+                <div>
                   <Label htmlFor="applicationLetter">Application Letter</Label>
-                  <Input id="applicationLetter" type="file" onChange={handleFileChange} required />
+                  <Input id="applicationLetter" type="file" onChange={handleFileChange} />
                 </div>
 
                 {/* Terms */}
@@ -203,15 +208,14 @@ const Services = () => {
                     By submitting, you agree to our <a href="#" className="text-conservation-700 underline">terms and conditions</a>.
                   </p>
                 </div>
+
+                <div className="sm:col-span-2">
+                  <Button type="submit" disabled={isSubmitting} className="w-full bg-conservation-600 hover:bg-conservation-700">
+                    {isSubmitting ? 'Processing...' : 'Submit Application'}
+                  </Button>
+                </div>
               </form>
             </CardContent>
-
-            <CardFooter>
-              <Button type="submit" onClick={handleSubmit} disabled={isSubmitting} 
-                className="w-full bg-conservation-600 hover:bg-conservation-700">
-                {isSubmitting ? 'Processing...' : 'Submit Application'}
-              </Button>
-            </CardFooter>
           </Card>
         </div>
       </div>

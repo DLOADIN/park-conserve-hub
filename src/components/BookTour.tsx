@@ -40,7 +40,6 @@ const BookTour = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
     try {
       const response = await fetch('http://localhost:5000/api/book-tour', {
         method: 'POST',
@@ -48,8 +47,8 @@ const BookTour = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          selectedPark,
-          selectedTour,
+          parkName: parkTours.find(p => p.id.toString() === selectedPark)?.name,
+          tourName: selectedTour,
           date,
           time,
           guests,
@@ -60,6 +59,7 @@ const BookTour = () => {
           specialRequests,
         }),
       });
+      const result = await response.json();
   
       if (response.ok) {
         toast({
@@ -82,18 +82,19 @@ const BookTour = () => {
           } 
         });
       } else {
-        throw new Error('Failed to submit tour booking');
+        throw new Error(result.error || 'Failed to submit tour booking');
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to submit tour booking. Please try again.",
+        description: error.message || "Failed to submit tour booking. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen flex flex-col">
