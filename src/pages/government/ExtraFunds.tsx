@@ -10,7 +10,7 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
 import { toast } from 'sonner';
 import { DateRange } from 'react-day-picker';
 import { Clock, Check, FileText, Search, X, PiggyBank, Calendar, Landmark } from 'lucide-react';
@@ -157,272 +157,176 @@ const ExtraFunds = () => {
           />
           
           <main className="p-6">
-            <Tabs defaultValue="requests" value={activeTab} onValueChange={setActiveTab} className="mb-6">
-              <TabsList className="grid grid-cols-2 w-full max-w-md">
-                <TabsTrigger value="requests">Fund Requests</TabsTrigger>
-                <TabsTrigger value="allocations">Park Allocations</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            
-            <TabsContent value="requests" className="mt-0 space-y-6">
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Filter Requests</CardTitle>
-                  <CardDescription>Search and filter extra fund requests</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1 relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                      <Input
-                        placeholder="Search by park or request details..."
-                        className="pl-8"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    <DateRangePicker date={date} onSelect={setDate} />
-                  </div>
-                  
-                  <div className="mt-4">
-                    <Tabs defaultValue="all" value={statusFilter} onValueChange={setStatusFilter}>
-                      <TabsList className="grid grid-cols-4 w-full max-w-md">
-                        <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="pending">Pending</TabsTrigger>
-                        <TabsTrigger value="approved">Approved</TabsTrigger>
-                        <TabsTrigger value="declined">Declined</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </div>
-                </CardContent>
-              </Card>
+  <Tabs
+    defaultValue="requests"
+    value={activeTab}
+    onValueChange={setActiveTab}
+    className="mb-6"
+  >
+    <TabsList className="grid grid-cols-2 w-full max-w-md">
+      <TabsTrigger value="requests">Fund Requests</TabsTrigger>
+      <TabsTrigger value="allocations">Park Allocations</TabsTrigger>
+    </TabsList>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Extra Fund Requests</CardTitle>
-                  <CardDescription>
-                    {filteredRequests.length} requests found
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Park</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRequests.length > 0 ? (
-                        filteredRequests.map(request => (
-                          <TableRow key={request.id}>
-                            <TableCell className="font-medium">#{request.id}</TableCell>
-                            <TableCell>{request.parkName}</TableCell>
-                            <TableCell>{request.title}</TableCell>
-                            <TableCell>${request.amount.toLocaleString()}</TableCell>
-                            <TableCell>{request.date}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                {request.status === 'pending' && (
-                                  <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-full text-xs">
-                                    <Clock className="h-3 w-3" />
-                                    Pending
-                                  </span>
-                                )}
-                                {request.status === 'approved' && (
-                                  <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs">
-                                    <Check className="h-3 w-3" />
-                                    Approved
-                                  </span>
-                                )}
-                                {request.status === 'declined' && (
-                                  <span className="flex items-center gap-1 text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs">
-                                    <X className="h-3 w-3" />
-                                    Declined
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => setViewRequest(request)}
-                                >
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  View
-                                </Button>
-                                {request.status === 'pending' && (
-                                  <Button 
-                                    size="sm" 
-                                    onClick={() => setReviewRequest(request)}
-                                  >
-                                    Review
-                                  </Button>
-                                )}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-4 text-gray-500">
-                            No extra fund requests found
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="allocations" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Park Fund Allocations</CardTitle>
-                  <CardDescription>Overview of budget and extra funds allocated to parks</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <Card className="bg-primary/5 border-none">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-full bg-primary/10">
-                              <PiggyBank className="h-5 w-5 text-primary" />
-                            </div>
-                            <span className="font-medium">Total Extra Funds</span>
-                          </div>
-                        </div>
-                        <div className="text-3xl font-bold">
-                          ${extraFundsData.reduce((acc, item) => 
-                            item.status === 'approved' ? acc + item.amount : acc, 0).toLocaleString()}
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">Approved additional funding</p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-primary/5 border-none">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-full bg-primary/10">
-                              <Calendar className="h-5 w-5 text-primary" />
-                            </div>
-                            <span className="font-medium">Active Requests</span>
-                          </div>
-                        </div>
-                        <div className="text-3xl font-bold">
-                          {extraFundsData.filter(item => item.status === 'pending').length}
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">Pending review</p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-primary/5 border-none">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-full bg-primary/10">
-                              <Landmark className="h-5 w-5 text-primary" />
-                            </div>
-                            <span className="font-medium">Parks Supported</span>
-                          </div>
-                        </div>
-                        <div className="text-3xl font-bold">
-                          {new Set(extraFundsData.filter(item => 
-                            item.status === 'approved').map(item => item.parkName)).size}
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">With extra funding</p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-primary/5 border-none">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className="p-2 rounded-full bg-green-100">
-                              <Check className="h-5 w-5 text-green-600" />
-                            </div>
-                            <span className="font-medium">Approval Rate</span>
-                          </div>
-                        </div>
-                        <div className="text-3xl font-bold">
-                          {extraFundsData.filter(item => item.status !== 'pending').length > 0 
-                            ? Math.round((extraFundsData.filter(item => item.status === 'approved').length / 
-                                extraFundsData.filter(item => item.status !== 'pending').length) * 100)
-                            : 0}%
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">Of reviewed requests</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                  
-                  <div className="space-y-6">
-                    {parksData.map((park) => (
-                      <div key={park.name} className="border p-4 rounded-md">
-                        <div className="flex justify-between items-center mb-2">
-                          <h3 className="font-semibold text-lg">{park.name} National Park</h3>
-                          <div className="flex items-center gap-4">
-                            <span className="text-gray-500 text-sm">
-                              Budget Usage: {park.percentUsed}%
-                            </span>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className={park.extraFunds > 0 ? "text-green-600 border-green-200" : ""}
-                            >
-                              {park.extraFunds > 0 
-                                ? `+$${park.extraFunds.toLocaleString()} Extra Funds` 
-                                : "No Extra Funds"}
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex justify-between mb-1 text-sm">
-                              <span>Base Budget: ${park.totalBudget.toLocaleString()}</span>
-                              <span>{park.percentUsed}% Used</span>
-                            </div>
-                            <Progress value={park.percentUsed} className="h-2" />
-                          </div>
-                          
-                          {park.extraFunds > 0 && (
-                            <div className="flex justify-between text-sm text-green-600">
-                              <span>Extra Funds: ${park.extraFunds.toLocaleString()}</span>
-                              <span>+{Math.round((park.extraFunds / park.totalBudget) * 100)}% of Base Budget</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="mt-4">
-                          <Button size="sm" variant="outline" className="mr-2">
-                            View Details
-                          </Button>
-                          {!park.extraFunds && (
-                            <Button size="sm">
-                              Allocate Extra Funds
-                            </Button>
-                          )}
-                        </div>
+    <TabsContent value="requests" className="mt-0 space-y-6">
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Filter Requests</CardTitle>
+          <CardDescription>Search and filter extra fund requests</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                placeholder="Search by park or request details..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <DateRangePicker date={date} onSelect={setDate} />
+          </div>
+
+          <div className="mt-4">
+            <Tabs
+              defaultValue="all"
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+            >
+              <TabsList className="grid grid-cols-4 w-full max-w-md">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="pending">Pending</TabsTrigger>
+                <TabsTrigger value="approved">Approved</TabsTrigger>
+                <TabsTrigger value="declined">Declined</TabsTrigger>
+              </TabsList>
+              <TabsContent value="all">
+                {/* Additional content for "all" status */}
+              </TabsContent>
+              <TabsContent value="pending">
+                {/* Additional content for "pending" status */}
+              </TabsContent>
+              <TabsContent value="approved">
+                {/* Additional content for "approved" status */}
+              </TabsContent>
+              <TabsContent value="declined">
+                {/* Additional content for "declined" status */}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Fund requests table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Extra Fund Requests</CardTitle>
+          <CardDescription>
+            {filteredRequests.length} requests found
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Park</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredRequests.length > 0 ? (
+                filteredRequests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell className="font-medium">#{request.id}</TableCell>
+                    <TableCell>{request.parkName}</TableCell>
+                    <TableCell>{request.title}</TableCell>
+                    <TableCell>
+                      ${request.amount.toLocaleString()}
+                    </TableCell>
+                    <TableCell>{request.date}</TableCell>
+                    <TableCell>
+                      {/* Status badges */}
+                      <div className="flex items-center">
+                        {request.status === "pending" && (
+                          <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-full text-xs">
+                            <Clock className="h-3 w-3" />
+                            Pending
+                          </span>
+                        )}
+                        {request.status === "approved" && (
+                          <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs">
+                            <Check className="h-3 w-3" />
+                            Approved
+                          </span>
+                        )}
+                        {request.status === "declined" && (
+                          <span className="flex items-center gap-1 text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs">
+                            <X className="h-3 w-3" />
+                            Declined
+                          </span>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t pt-6">
-                  <Button className="w-full">Generate Comprehensive Report</Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </main>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewRequest(request)}
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        {request.status === "pending" && (
+                          <Button
+                            size="sm"
+                            onClick={() => setReviewRequest(request)}
+                          >
+                            Review
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className="text-center py-4 text-gray-500"
+                  >
+                    No extra fund requests found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </TabsContent>
+
+    <TabsContent value="allocations" className="mt-0">
+      {/* Allocations content */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Park Fund Allocations</CardTitle>
+          <CardDescription>
+            Overview of budget and extra funds allocated to parks
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Allocation cards */}
+        </CardContent>
+      </Card>
+    </TabsContent>
+  </Tabs>
+</main>
+
         </div>
       </div>
       

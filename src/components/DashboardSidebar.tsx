@@ -15,7 +15,7 @@ import {
   SidebarHeader,
   SidebarTrigger
 } from '@/components/ui/sidebar';
-import { LogOut, User, LayoutDashboard, Users, FileText, DollarSign, PiggyBank, Calendar, Clock, CreditCard, Landmark, AlertTriangle, FileBarChart, Activity } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, Users, FileText, DollarSign, PiggyBank, Calendar, Clock, CreditCard, Landmark, AlertTriangle, FileBarChart, Activity, ClipboardCheck, UserCheck } from 'lucide-react';
 
 interface SidebarLinkProps {
   to: string;
@@ -123,7 +123,7 @@ const DashboardSidebar = () => {
           </SidebarGroup>
         )}
 
-        {role === 'finance' && (
+{role === 'finance' && (
           <SidebarGroup>
             <SidebarGroupLabel>Finance</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -136,6 +136,21 @@ const DashboardSidebar = () => {
                 </SidebarLink>
                 <SidebarLink to="/finance/booked-tours" icon={Calendar} active={isActive('/finance/booked-tours')}>
                   Booked Tours
+                </SidebarLink>
+                <SidebarLink to="/finance/request-management" icon={ClipboardCheck} active={isActive('/finance/request-management')}>
+                  Fund Requests
+                </SidebarLink>
+                <SidebarLink to="/finance/emergency-requests" icon={AlertTriangle} active={isActive('/finance/emergency-requests')}>
+                  Emergency Requests
+                </SidebarLink>
+                <SidebarLink to="/finance/extra-funds" icon={PiggyBank} active={isActive('/finance/extra-funds')}>
+                  Extra Funds
+                </SidebarLink>
+                <SidebarLink to="/finance/service-providers" icon={UserCheck} active={isActive('/finance/service-providers')}>
+                  Service Providers
+                </SidebarLink>
+                <SidebarLink to="/finance/budget-creation" icon={DollarSign} active={isActive('/finance/budget-creation')}>
+                  Budget Creation
                 </SidebarLink>
               </SidebarMenu>
             </SidebarGroupContent>

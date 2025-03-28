@@ -16,16 +16,26 @@ import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import Profile from "./pages/Profile";
 import FundRequests from "./pages/parkstaff/FundRequests";
-import Budget from "./pages/government/Budget";
-import EmergencyRequests from "./pages/government/EmergencyRequests";
+
 import Donations from "./pages/finance/Donations";
 import BookedTours from "./pages/finance/BookedTours";
+import RequestManagement from "./pages/finance/RequestManagement";
+import FinanceEmergencyRequests from "./pages/finance/EmergencyRequests";
+import EmergencyRequestForm from "./pages/finance/EmergencyRequestForm";
+import FinanceExtraFunds from "./pages/finance/ExtraFunds";
+import ExtraFundsForm from "./pages/finance/ExtraFundsForm";
+import BudgetSuggestion from "./pages/finance/BudgetSuggestion";
+import ServiceProviders from "./pages/finance/ServiceProviders";
+import BudgetCreation from "./pages/finance/BudgetCreation";
+
+import InvoiceView from "./pages/auditor/InvoiceView";
 import Transactions from "./pages/auditor/Transactions";
 import FinancialReports from "./pages/auditor/FinancialReports";
 
-import BudgetSuggestion from "./pages/finance/BudgetSuggestion";
+
 import ExtraFunds from "./pages/government/ExtraFunds";
-import InvoiceView from "./pages/auditor/InvoiceView";
+import Budget from "./pages/government/Budget";
+import EmergencyRequests from "./pages/government/EmergencyRequests";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +68,13 @@ const App = () => (
             <Route path="/finance/budget-suggestion" element={<BudgetSuggestion />} />
             <Route path="/finance/donations" element={<Donations />} />
             <Route path="/finance/booked-tours" element={<BookedTours />} />
+            <Route path="/finance/request-management" element={<RequestManagement />} />
+            <Route path="/finance/emergency-requests" element={<FinanceEmergencyRequests />} />
+            <Route path="/finance/emergency-requests/new" element={<EmergencyRequestForm />} />
+            <Route path="/finance/extra-funds" element={<FinanceExtraFunds />} />
+            <Route path="/finance/extra-funds/new" element={<ExtraFundsForm />} />
+            <Route path="/finance/service-providers" element={<ServiceProviders />} />
+            <Route path="/finance/budget-creation" element={<BudgetCreation />} />
             
             {/* Auditor routes */}
             <Route path="/auditor/transactions" element={<Transactions />} />

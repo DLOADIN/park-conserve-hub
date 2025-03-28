@@ -86,7 +86,7 @@ const Services = () => {
     }
   
     try {
-      const response = await fetch('http://localhost:5000/api/services', {
+      const response = await fetch('', {
         method: 'POST',
         body: formData,
       });
@@ -192,18 +192,8 @@ const Services = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="companyRegistration">Company Registration Documents</Label>
-                  <Input id="companyRegistration" type="file" onChange={handleFileChange} required />
-                </div>
-
-                <div>
                   <Label htmlFor="applicationLetter">Application Letter</Label>
                   <Input id="applicationLetter" type="file" onChange={handleFileChange} required />
-                </div>
-
-                <div>
-                  <Label htmlFor="taxID">Tax Identification Number</Label>
-                  <Input id="taxID" value={companyInfo.taxID} onChange={(e) => handleCompanyChange('taxID', e.target.value)} required />
                 </div>
 
                 {/* Terms */}

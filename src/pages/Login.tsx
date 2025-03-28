@@ -10,6 +10,13 @@ import { User, Lock, LogIn, Loader2 } from 'lucide-react';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -102,6 +109,25 @@ const Login = () => {
               </TabsList>
               <TabsContent value="login" className="mt-6">
                 <form className="space-y-6" onSubmit={handleSubmit}>
+
+                  <div>
+                    <Label htmlFor="Role">Enter Your Role</Label>
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Select>
+                      <SelectTrigger className="w-full ">
+                        <SelectValue placeholder="Respectively choose your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Yosemite">Admin</SelectItem>
+                        <SelectItem value="Acadia">Park Staff</SelectItem>
+                        <SelectItem value="Yellowstone">Government</SelectItem>
+                        <SelectItem value="Grand Canyon">Finance</SelectItem>
+                        <SelectItem value="Zion">Auditor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <Label htmlFor="email">Email address</Label>
                     <div className="mt-1 relative rounded-md shadow-sm">
@@ -155,11 +181,6 @@ const Login = () => {
                       </label>
                     </div>
 
-                    <div className="text-sm">
-                      <a href="#" className="font-medium text-conservation-900 hover:text-primary-700">
-                        Forgot your password?
-                      </a>
-                    </div>
                   </div>
 
                   <div>
