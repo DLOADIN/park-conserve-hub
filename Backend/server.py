@@ -4,6 +4,7 @@ from mysql.connector import Error
 import os
 from datetime import datetime
 from flask_cors import CORS
+from math import random
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -169,7 +170,8 @@ def services():
             data.get('providedService', ''),
             data['companyName'],
             company_registration,
-            application_letter)
+            application_letter),
+            False  # Adding the missing value for is_anonymous
         )
 
         connection.commit()
