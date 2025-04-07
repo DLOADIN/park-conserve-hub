@@ -4,7 +4,8 @@ from mysql.connector import Error
 import os
 from datetime import datetime
 from flask_cors import CORS
-from math import random
+import random
+
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -118,8 +119,7 @@ def book_tour():
             data['lastName'],
             data['email'],
             data.get('phone', ''),
-            data.get('specialRequests', ''),
-            False  # Adding the missing value for is_anonymous
+            data.get('specialRequests', '')
         ))
         connection.commit()
         return jsonify({"message": "Tour booked successfully"}), 201
@@ -146,7 +146,7 @@ def services():
         data = request.form
         files = request.files
 
-        required_fields = ['firstName', 'lastName', 'email', 'companyType', 'companyName']
+        required_fields = ['firstName', 'lastName', 'email', 'companyType', 'companyName', 'taxId']
         if not all(field in data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
 
@@ -159,8 +159,10 @@ def services():
         cursor = connection.cursor()
         cursor.execute('''
             INSERT INTO services (
-                first_name, last_name, email, phone, company_type, provided_service, company_name, company_registration, application_letter
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                first_name, last_name, email, phone, company_type, 
+                provided_service, company_name, tax_id, 
+                company_registration, application_letter
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
             data['firstName'],
             data['lastName'],
@@ -169,9 +171,9 @@ def services():
             data['companyType'],
             data.get('providedService', ''),
             data['companyName'],
+            data['taxId'],
             company_registration,
-            application_letter),
-            False  # Adding the missing value for is_anonymous
+            application_letter)
         )
 
         connection.commit()
@@ -188,7 +190,7 @@ def services():
 
 
 
-@app.route('/api/process-payment', methods=['POST'])
+@app.route('/api/process_payment', methods=['POST'])
 def process_payment():
     """Handle payment processing for donations and tour bookings."""
     connection = get_db_connection()
@@ -236,7 +238,7 @@ def process_payment():
                 transaction_id, payment_type, amount, 
                 card_name, card_number_last4, expiry_date, status,
                 park_name, customer_email
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             transaction_id,
             data['paymentType'],
@@ -246,8 +248,7 @@ def process_payment():
             expiry_date,
             status,
             data['parkName'],
-            data['customerEmail'],
-            False  # Adding the missing value for is_anonymous
+            data['customerEmail']
         ))
         connection.commit()
         

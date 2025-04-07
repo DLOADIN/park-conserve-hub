@@ -85,7 +85,7 @@ const Payment = () => {
       // Get the entity ID from the details object based on payment type
       const relatedEntityId = details.id || 0; // This needs to be passed from the previous page
       
-      const response = await fetch('http://localhost:5000/api/process-payment', {
+      const response = await fetch('http://localhost:5000/api/process_payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
