@@ -70,6 +70,7 @@ def donate():
             data['lastName'],
             data['email'],
             data.get('message', ''),
+            False  # Adding the missing value for is_anonymous
         ))
         connection.commit()
         return jsonify({"message": "Donation recorded successfully"}), 201
@@ -116,7 +117,8 @@ def book_tour():
             data['lastName'],
             data['email'],
             data.get('phone', ''),
-            data.get('specialRequests', '')
+            data.get('specialRequests', ''),
+            False  # Adding the missing value for is_anonymous
         ))
         connection.commit()
         return jsonify({"message": "Tour booked successfully"}), 201
@@ -156,20 +158,19 @@ def services():
         cursor = connection.cursor()
         cursor.execute('''
             INSERT INTO services (
-                first_name, last_name, email, phone,
-                company_type, provided_service, company_name, company_registration, application_letter
+                first_name, last_name, email, phone, company_type, provided_service, company_name, company_registration, application_letter
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
+            ''', (
             data['firstName'],
             data['lastName'],
             data['email'],
-            data.get('phone', ''),  
+            data.get('phone', ''),
             data['companyType'],
-            data.get('providedService', ''),  
+            data.get('providedService', ''),
             data['companyName'],
             company_registration,
-            application_letter
-        ))
+            application_letter)
+        )
 
         connection.commit()
         return jsonify({"message": "Service application submitted successfully"}), 201
@@ -183,6 +184,81 @@ def services():
             cursor.close()
             connection.close()
 
+
+
+@app.route('/api/process-payment', methods=['POST'])
+def process_payment():
+    """Handle payment processing for donations and tour bookings."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['paymentType', 'amount', 'cardName', 'cardNumber', 
+                         'expiryDate', 'cvv', 'parkName', 'customerEmail']
+        
+        # Validate all required fields
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required payment fields"}), 400
+
+        # Validate amount
+        try:
+            payment_amount = float(data['amount'])
+            if payment_amount <= 0:
+                return jsonify({"error": "Payment amount must be positive"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid payment amount"}), 400
+
+        # Generate a unique transaction ID
+        timestamp = datetime.now().strftime('%y%m%d%H%M%S')
+        random_num = str(random.randint(100, 999))
+        transaction_id = f"TR-{timestamp}-{random_num}"
+        
+        # Process card details securely
+        card_number = data['cardNumber'].replace(' ', '')
+        last_four_digits = card_number[-4:] if len(card_number) >= 4 else "0000"
+        status = "completed"
+        
+        # Format expiry date as MM/YYYY
+        expiry_date = data['expiryDate']
+        if '/' in expiry_date:
+            month, year = expiry_date.split('/')
+            if len(year) == 2:
+                year = f"20{year}"
+            expiry_date = f"{month}/{year}"
+        
+        cursor = connection.cursor()
+        cursor.execute('''
+            INSERT INTO payments (
+                transaction_id, payment_type, amount, 
+                card_name, card_number_last4, expiry_date, status,
+                park_name, customer_email
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            transaction_id,
+            data['paymentType'],
+            payment_amount,
+            data['cardName'],
+            last_four_digits,
+            expiry_date,
+            status,
+            data['parkName'],
+            data['customerEmail'],
+            False  # Adding the missing value for is_anonymous
+        ))
+        connection.commit()
+        
+        return jsonify({
+            "message": "Payment processed successfully",
+            "transactionId": transaction_id,
+            "status": "completed",
+            "date": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }), 201
+
+    except Exception as e:
+        print(f"Payment processing error: {e}")
+        return jsonify({"error": "Payment processing failed"}), 500
 
 
 if __name__ == '__main__':

@@ -84,6 +84,24 @@ CREATE TABLE IF NOT EXISTS `tours` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
+
+
+CREATE TABLE IF NOT EXISTS `payments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `transaction_id` varchar(50) NOT NULL,
+  `payment_type` enum('donation','tour') NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `card_name` varchar(100) NOT NULL,
+  `card_number_last4` char(4) NOT NULL,
+  `expiry_date` varchar(7) NOT NULL, -- Stores as MM/YYYY
+  `status` enum('pending','completed','failed') NOT NULL DEFAULT 'completed',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `park_name` varchar(100) DEFAULT NULL,
+  `customer_email` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `transaction_id` (`transaction_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

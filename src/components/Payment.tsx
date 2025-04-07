@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -9,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
+import { generateTransactionId } from '@/lib/utils';
 
 const Payment = () => {
   const location = useLocation();
@@ -81,24 +81,49 @@ const Payment = () => {
     
     setIsSubmitting(true);
     
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsComplete(true);
+    try {
+      // Get the entity ID from the details object based on payment type
+      const relatedEntityId = details.id || 0; // This needs to be passed from the previous page
       
-      // Record the payment in our database (simulated)
-      console.log('Payment recorded:', {
-        type,
-        amount,
-        details,
-        transactionId: 'TR-' + Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
+      const response = await fetch('http://localhost:5000/api/process-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentType: type, // 'donation' or 'tour'
+          amount: amount,
+          cardName: cardName,
+          cardNumber: cardNumber,
+          expiryDate: expiryDate,
+          cvv: cvv,
+          parkName: details.park,
+          customerEmail: details.email || '',
+        }),
       });
       
+      const result = await response.json();
+      
+      if (response.ok) {
+        setIsComplete(true);
+        toast({
+          title: "Payment successful!",
+          description: `Your ${type} has been processed successfully.`,
+        });
+        
+        // Store transaction ID for display
+        sessionStorage.setItem('lastTransactionId', result.transactionId);
+      } else {
+        throw new Error(result.error || 'Payment processing failed');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
       toast({
-        title: "Payment successful!",
-        description: `Your ${type} has been processed successfully.`,
+        title: "Payment failed",
+        description: error.message || "There was an error processing your payment. Please try again.",
+        variant: "destructive",
       });
-    }, 2000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -230,7 +255,10 @@ const Payment = () => {
                     </div>
                     <div className="flex justify-between mb-2">
                       <span className="text-conservation-700">Transaction ID:</span>
-                      <span className="font-medium">TR-{Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}</span>
+                      <span className="font-medium">
+                        {sessionStorage.getItem('lastTransactionId') || 
+                        `TR-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-conservation-700">Status:</span>
