@@ -15,7 +15,6 @@ interface User {
   name: string;
   email: string;
   role: string;
-  status: 'active' | 'inactive' | 'pending';
   lastLogin: string;
   park?: string;
 }
@@ -39,7 +38,6 @@ const formSchema = z.object({
   park: z.string().min(1, {
     message: "Please select a park.",
   }),
-  status: z.enum(['active', 'inactive', 'pending']),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -52,7 +50,6 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
       lastName: '',
       email: '',
       park: '',
-      status: 'active',
     },
   });
 
@@ -65,7 +62,6 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
         lastName: nameParts.slice(1).join(' ') || '',
         email: userToEdit.email,
         park: userToEdit.park || '',
-        status: userToEdit.status,
       });
     } else {
       form.reset({
@@ -73,7 +69,6 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
         lastName: '',
         email: '',
         park: '',
-        status: 'active',
       });
     }
   }, [userToEdit, form]);
@@ -164,11 +159,19 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Yellowstone">Yellowstone</SelectItem>
-                      <SelectItem value="Yosemite">Yosemite</SelectItem>
-                      <SelectItem value="Grand Canyon">Grand Canyon</SelectItem>
-                      <SelectItem value="Zion">Zion</SelectItem>
-                      <SelectItem value="Acadia">Acadia</SelectItem>
+                      <SelectItem value="Akanda National Park">Akanda National Park</SelectItem>
+                      <SelectItem value="Batéké Plateau National Park">Batéké Plateau National Park</SelectItem>
+                      <SelectItem value="Birougou National Park">Birougou National Park</SelectItem>
+                      <SelectItem value="Crystal Mountains National Park">Crystal Mountains National Park</SelectItem>
+                      <SelectItem value="Ivindo National Park">Ivindo National Park</SelectItem>
+                      <SelectItem value="Loango National Park">Loango National Park</SelectItem>
+                      <SelectItem value="Lope National Park">Lope National Park</SelectItem>
+                      <SelectItem value="Mayumba National Park">Mayumba National Park</SelectItem>
+                      <SelectItem value="Minkébé National Park">Minkébé National Park</SelectItem>
+                      <SelectItem value="Moukalaba-Doudou National Park">Moukalaba-Doudou National Park</SelectItem>
+                      <SelectItem value="Mvembé National Park">Mvembé National Park</SelectItem>
+                      <SelectItem value="Mwagna National Park">Mwagna National Park</SelectItem>
+                      <SelectItem value="Waka National Park">Waka National Park</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -176,32 +179,6 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
