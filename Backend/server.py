@@ -288,7 +288,7 @@ def get_park_staff():
                 park_name as park,
                 role,
                 last_login
-            FROM park_staff
+            FROM parkstaff
         """)
         staff = cursor.fetchall()
         
@@ -331,7 +331,7 @@ def add_park_staff():
 
         # Check if email already exists
         cursor = connection.cursor()
-        cursor.execute("SELECT id FROM park_staff WHERE email = %s", (data['email'],))
+        cursor.execute("SELECT id FROM parkstaff WHERE email = %s", (data['email'],))
         existing_user = cursor.fetchone()
         
         if existing_user:
@@ -339,7 +339,7 @@ def add_park_staff():
 
         # Insert new staff member
         cursor.execute('''
-            INSERT INTO park_staff (
+            INSERT INTO parkstaff (
                 first_name, last_name, email, park_name, role
             ) VALUES (%s, %s, %s, %s, %s)
         ''', (
@@ -388,14 +388,14 @@ def update_park_staff(staff_id):
 
         # Check if staff exists
         cursor = connection.cursor()
-        cursor.execute("SELECT id FROM park_staff WHERE id = %s", (staff_id,))
+        cursor.execute("SELECT id FROM parkstaff WHERE id = %s", (staff_id,))
         existing_staff = cursor.fetchone()
         
         if not existing_staff:
             return jsonify({"error": "Staff member not found"}), 404
         
         # Check if email exists for another user
-        cursor.execute("SELECT id FROM park_staff WHERE email = %s AND id != %s", 
+        cursor.execute("SELECT id FROM parkstaff WHERE email = %s AND id != %s", 
                       (data['email'], staff_id))
         email_exists = cursor.fetchone()
         
@@ -404,7 +404,7 @@ def update_park_staff(staff_id):
 
         # Update staff member
         cursor.execute('''
-            UPDATE park_staff SET
+            UPDATE parkstaff SET
                 first_name = %s,
                 last_name = %s,
                 email = %s,
@@ -434,7 +434,7 @@ def update_park_staff(staff_id):
 
 
 @app.route('/api/park-staff/<int:staff_id>', methods=['DELETE'])
-def delete_park_staff(staff_id):
+def delete_parkstaff(staff_id):
     """Delete a park staff member."""
     connection = get_db_connection()
     if not connection:
@@ -444,14 +444,14 @@ def delete_park_staff(staff_id):
         cursor = connection.cursor()
         
         # Check if staff exists
-        cursor.execute("SELECT id FROM park_staff WHERE id = %s", (staff_id,))
+        cursor.execute("SELECT id FROM parkstaff WHERE id = %s", (staff_id,))
         existing_staff = cursor.fetchone()
         
         if not existing_staff:
             return jsonify({"error": "Staff member not found"}), 404
         
         # Delete staff member
-        cursor.execute("DELETE FROM park_staff WHERE id = %s", (staff_id,))
+        cursor.execute("DELETE FROM parkstaff WHERE id = %s", (staff_id,))
         connection.commit()
         
         return jsonify({
@@ -478,7 +478,7 @@ def update_login_time(staff_id):
         cursor = connection.cursor()
         
         # Check if staff exists
-        cursor.execute("SELECT id FROM park_staff WHERE id = %s", (staff_id,))
+        cursor.execute("SELECT id FROM parkstaff WHERE id = %s", (staff_id,))
         existing_staff = cursor.fetchone()
         
         if not existing_staff:
@@ -486,7 +486,7 @@ def update_login_time(staff_id):
         
         # Update last login time
         cursor.execute(
-            "UPDATE park_staff SET last_login = CURRENT_TIMESTAMP WHERE id = %s", 
+            "UPDATE parkstaff SET last_login = CURRENT_TIMESTAMP WHERE id = %s", 
             (staff_id,)
         )
         connection.commit()
@@ -543,7 +543,7 @@ def admin_login():
             return jsonify({"error": "Email and password are required"}), 400
 
         cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM admin_table WHERE email = %s", (email,))
+        cursor.execute("SELECT * FROM admintable WHERE email = %s", (email,))
         admin = cursor.fetchone()
         print(f"Found admin: {admin}")
         
@@ -553,7 +553,7 @@ def admin_login():
             return jsonify({"error": "Invalid credentials"}), 401
 
         # Update last login
-        cursor.execute("UPDATE admin_table SET last_login = CURRENT_TIMESTAMP WHERE id = %s", (admin['id'],))
+        cursor.execute("UPDATE admintable SET last_login = CURRENT_TIMESTAMP WHERE id = %s", (admin['id'],))
         connection.commit()
 
         # Create JWT token with explicit types
@@ -603,7 +603,7 @@ def update_admin_profile(current_user_id):
 
         cursor = connection.cursor()
         cursor.execute('''
-            UPDATE admin_table SET
+            UPDATE admintable SET
                 first_name = %s,
                 last_name = %s,
                 email = %s,
@@ -651,7 +651,7 @@ def update_admin_avatar(current_user_id):
 
         cursor = connection.cursor()
         cursor.execute(
-            "UPDATE admin_table SET avatar_url = %s WHERE id = %s",
+            "UPDATE admintable SET avatar_url = %s WHERE id = %s",
             (f"/uploads/{filename}", current_user_id)
         )
         connection.commit()
@@ -678,7 +678,7 @@ def delete_admin_account(current_user_id):
     
     try:
         cursor = connection.cursor()
-        cursor.execute("DELETE FROM admin_table WHERE id = %s", (current_user_id,))
+        cursor.execute("DELETE FROM admintable WHERE id = %s", (current_user_id,))
         connection.commit()
         return jsonify({"message": "Account deleted successfully"}), 200
     except Exception as e:
@@ -710,7 +710,7 @@ def update_admin_password(current_user_id):
             return jsonify({"error": "New passwords don't match"}), 400
 
         cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT password_hash FROM admin_table WHERE id = %s", (current_user_id,))
+        cursor.execute("SELECT password_hash FROM admintable WHERE id = %s", (current_user_id,))
         admin = cursor.fetchone()
 
         if hashlib.sha256(current_password.encode()).hexdigest() != admin['password_hash']:
@@ -718,7 +718,7 @@ def update_admin_password(current_user_id):
 
         new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
         cursor.execute(
-            "UPDATE admin_table SET password_hash = %s WHERE id = %s",
+            "UPDATE admintable SET password_hash = %s WHERE id = %s",
             (new_password_hash, current_user_id)
         )
         connection.commit()
@@ -794,7 +794,139 @@ def demo_login():
     except Exception as e:
         print(f"Demo login error: {e}")
         return jsonify({"error": "Demo login failed"}), 500
+
+
+@app.route('/api/admin/tour-bookings', methods=['GET'])
+@token_required
+def get_tour_bookings(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, dict):
+        return connection, 500
     
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT DATE_FORMAT(created_at, '%b') as month, SUM(id) as bookings "
+            "FROM tours GROUP BY YEAR(created_at), MONTH(date) "
+            "ORDER BY id"
+        )
+        bookings = cursor.fetchall()
+        return jsonify({"tour_bookings": bookings}), 200
+    except Exception as e:
+        print(f"Error fetching tour bookings: {e}")
+        return jsonify({"error": "Failed to fetch tour bookings"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/admin/donations', methods=['GET'])
+@token_required
+def get_donations(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, dict):
+        return connection, 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT DATE_FORMAT(created_at, '%b') as month, SUM(amount) as amount "
+            "FROM donations GROUP BY YEAR(created_at), MONTH(created_at) "
+            "ORDER BY id"
+        )
+        donations = cursor.fetchall()
+        return jsonify({"donations": donations}), 200
+    except Exception as e:
+        print(f"Error fetching donations: {e}")
+        return jsonify({"error": "Failed to fetch donations"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/admin/recent-logins', methods=['GET'])
+@token_required
+def get_recent_logins(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, dict):
+        return connection, 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT email, role, login_time as last_login "
+            "FROM login_logs ORDER BY login_time DESC LIMIT 5"
+        )
+        logins = cursor.fetchall()
+        return jsonify({"recent_logins": logins}), 200
+    except Exception as e:
+        print(f"Error fetching logins: {e}")
+        return jsonify({"error": "Failed to fetch recent logins"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/admin/login-metrics', methods=['GET'])
+@token_required
+def get_login_metrics(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, dict):
+        return connection, 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT DATE_FORMAT(login_time, '%b') as month, COUNT(*) as logins "
+            "FROM login_logs GROUP BY YEAR(login_time), MONTH(login_time) "
+            "ORDER BY login_time"
+        )
+        metrics = cursor.fetchall()
+        return jsonify({"login_metrics": metrics}), 200
+    except Exception as e:
+        print(f"Error fetching login metrics: {e}")
+        return jsonify({"error": "Failed to fetch login metrics"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/admin/stats', methods=['GET'])
+@token_required
+def get_dashboard_stats(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, dict):
+        return connection, 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        cursor.execute("SELECT COUNT(*) as total_bookings FROM tours")
+        total_bookings = cursor.fetchone()['total_bookings']
+        
+        cursor.execute("SELECT SUM(amount) as total_donations FROM donations")
+        total_donations = cursor.fetchone()['total_donations'] or 0
+        
+        cursor.execute("SELECT COUNT(*) as total_logins FROM admintable")
+        total_logins = cursor.fetchone()['total_logins']
+        
+        cursor.execute("SELECT COUNT(*) as active_admins FROM parkstaff")
+        active_admins = cursor.fetchone()['active_admins']
+
+        stats = [
+            {"title": "Total Tours Booked", "value": total_bookings, "icon": "Calendar", "trend": "up"},
+            {"title": "Total Donations", "value": total_donations, "icon": "Cash", "trend": "up"},
+            {"title": "Total Admins", "value": total_logins, "icon": "LogIn", "trend": "up"},
+            {"title": "Recorded Park stuffs", "value": active_admins, "icon": "Users", "trend": "up"},
+        ]
+        return jsonify({"stats": stats}), 200
+    except Exception as e:
+        print(f"Error fetching stats: {e}")
+        return jsonify({"error": "Failed to fetch stats"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()    
 
 
 if __name__ == '__main__':

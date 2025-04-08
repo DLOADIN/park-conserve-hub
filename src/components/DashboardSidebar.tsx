@@ -83,6 +83,9 @@ const DashboardSidebar = () => {
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+              <SidebarLink to="/admin/admindashboard" icon={Users} active={isActive('/admin/admindashboard')}>
+                  Dashboard
+                </SidebarLink>
                 <SidebarLink to="/admin/users" icon={Users} active={isActive('/admin/users')}>
                   User Management
                 </SidebarLink>
