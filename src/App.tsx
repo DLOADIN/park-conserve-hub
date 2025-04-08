@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 
 import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/admin/UserManagement";
+import AdminProfile from "./pages/admin/Profile";
 import Profile from "./pages/Profile";
 import FundRequests from "./pages/parkstaff/FundRequests";
 
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/Login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />{/* Admin routes */}
             <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/Profile" element={<AdminProfile />} />
             
             {/* Park Staff routes */}
             <Route path="/park-staff/fund-requests" element={<FundRequests />} />
@@ -80,7 +82,7 @@ const App = () => (
             <Route path="/auditor/transactions" element={<Transactions />} />
             <Route path="/auditor/financial-reports" element={<FinancialReports />} />
             <Route path="/auditor/invoices" element={<InvoiceView />} />
-            <Route path="/profile" element={<Profile />} />
+            
           </Routes>
 
         </BrowserRouter>

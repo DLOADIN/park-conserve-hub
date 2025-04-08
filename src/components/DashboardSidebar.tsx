@@ -86,6 +86,9 @@ const DashboardSidebar = () => {
                 <SidebarLink to="/admin/users" icon={Users} active={isActive('/admin/users')}>
                   User Management
                 </SidebarLink>
+                <SidebarLink to="/admin/profile" icon={User} active={isActive('/admin/profile')}>
+                  Profile
+                </SidebarLink>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

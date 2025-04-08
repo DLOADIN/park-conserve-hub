@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { z } from 'zod';
@@ -9,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 interface User {
   id: string;
@@ -23,6 +23,7 @@ interface AddParkStaffModalProps {
   isOpen: boolean;
   onClose: () => void;
   userToEdit: User | null;
+  onSuccess?: () => void;
 }
 
 const formSchema = z.object({
@@ -42,7 +43,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, userToEdit }) => {
+const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, userToEdit, onSuccess }) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,12 +74,31 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
     }
   }, [userToEdit, form]);
 
-  const onSubmit = (values: FormValues) => {
-    // In a real app, this would send a request to the server
-    // For now, we'll just show a toast message
-    const action = userToEdit ? 'updated' : 'added';
-    toast.success(`Park staff ${action} successfully!`);
-    onClose();
+  const onSubmit = async (values: FormValues) => {
+    try {
+      const API_URL = 'http://localhost:5000/api';
+      
+      if (userToEdit) {
+        // Update existing user
+        await axios.put(`${API_URL}/park-staff/${userToEdit.id}`, values);
+        toast.success('Park staff updated successfully!');
+      } else {
+        // Create new user
+        await axios.post(`${API_URL}/park-staff`, values);
+        toast.success('Park staff added successfully!');
+      }
+      
+      // Call onSuccess to refresh the user list
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      if (error.response && error.response.data && error.response.data.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error('An error occurred while saving the staff member.');
+      }
+      console.error('Error saving staff member:', error);
+    }
   };
 
   return (
@@ -178,7 +198,6 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                 </FormItem>
               )}
             />
-            
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>

@@ -5,10 +5,14 @@ import os
 from datetime import datetime
 from flask_cors import CORS
 import random
+import hashlib
+import jwt
+from functools import wraps
 
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SECRET_KEY'] = 'x7k9p2m4q8v5n3j6h1t0r2y5u8w3z6b9'
 
 # Allow specific origins
 CORS(app, resources={
@@ -262,6 +266,535 @@ def process_payment():
     except Exception as e:
         print(f"Payment processing error: {e}")
         return jsonify({"error": "Payment processing failed"}), 500
+
+
+
+@app.route('/api/park-staff', methods=['GET'])
+def get_park_staff():
+    """Retrieve all park staff members."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, 
+                first_name, 
+                last_name, 
+                CONCAT(first_name, ' ', last_name) as name,
+                email, 
+                park_name as park,
+                role,
+                last_login
+            FROM park_staff
+        """)
+        staff = cursor.fetchall()
+        
+        # Format dates for frontend
+        for member in staff:
+            if member['last_login']:
+                member['last_login'] = member['last_login'].strftime('%Y-%m-%d')
+            else:
+                member['last_login'] = 'Never'
+        
+        return jsonify(staff), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve park staff"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+@app.route('/api/park-staff', methods=['POST'])
+def add_park_staff():
+    """Add a new park staff member."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email', 'park']
+        
+        # Validate all required fields
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({
+                "error": "Missing required fields", 
+                "missing": missing_fields
+            }), 400
+
+        # Check if email already exists
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM park_staff WHERE email = %s", (data['email'],))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            return jsonify({"error": "Email already exists"}), 409
+
+        # Insert new staff member
+        cursor.execute('''
+            INSERT INTO park_staff (
+                first_name, last_name, email, park_name, role
+            ) VALUES (%s, %s, %s, %s, %s)
+        ''', (
+            data['firstName'],
+            data['lastName'],
+            data['email'],
+            data['park'],
+            'park-staff'  # Default role
+        ))
+        connection.commit()
+        
+        new_staff_id = cursor.lastrowid
+        
+        return jsonify({
+            "message": "Park staff added successfully",
+            "id": new_staff_id
+        }), 201
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to add park staff: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+@app.route('/api/park-staff/<int:staff_id>', methods=['PUT'])
+def update_park_staff(staff_id):
+    """Update an existing park staff member."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email', 'park']
+        
+        # Validate all required fields
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({
+                "error": "Missing required fields", 
+                "missing": missing_fields
+            }), 400
+
+        # Check if staff exists
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM park_staff WHERE id = %s", (staff_id,))
+        existing_staff = cursor.fetchone()
+        
+        if not existing_staff:
+            return jsonify({"error": "Staff member not found"}), 404
+        
+        # Check if email exists for another user
+        cursor.execute("SELECT id FROM park_staff WHERE email = %s AND id != %s", 
+                      (data['email'], staff_id))
+        email_exists = cursor.fetchone()
+        
+        if email_exists:
+            return jsonify({"error": "Email already in use by another staff member"}), 409
+
+        # Update staff member
+        cursor.execute('''
+            UPDATE park_staff SET
+                first_name = %s,
+                last_name = %s,
+                email = %s,
+                park_name = %s
+            WHERE id = %s
+        ''', (
+            data['firstName'],
+            data['lastName'],
+            data['email'],
+            data['park'],
+            staff_id
+        ))
+        connection.commit()
+        
+        return jsonify({
+            "message": "Park staff updated successfully",
+            "id": staff_id
+        }), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to update park staff: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+@app.route('/api/park-staff/<int:staff_id>', methods=['DELETE'])
+def delete_park_staff(staff_id):
+    """Delete a park staff member."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor()
+        
+        # Check if staff exists
+        cursor.execute("SELECT id FROM park_staff WHERE id = %s", (staff_id,))
+        existing_staff = cursor.fetchone()
+        
+        if not existing_staff:
+            return jsonify({"error": "Staff member not found"}), 404
+        
+        # Delete staff member
+        cursor.execute("DELETE FROM park_staff WHERE id = %s", (staff_id,))
+        connection.commit()
+        
+        return jsonify({
+            "message": "Park staff deleted successfully"
+        }), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to delete park staff: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+@app.route('/api/park-staff/update-login/<int:staff_id>', methods=['PUT'])
+def update_login_time(staff_id):
+    """Update the last login time for a park staff member."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor()
+        
+        # Check if staff exists
+        cursor.execute("SELECT id FROM park_staff WHERE id = %s", (staff_id,))
+        existing_staff = cursor.fetchone()
+        
+        if not existing_staff:
+            return jsonify({"error": "Staff member not found"}), 404
+        
+        # Update last login time
+        cursor.execute(
+            "UPDATE park_staff SET last_login = CURRENT_TIMESTAMP WHERE id = %s", 
+            (staff_id,)
+        )
+        connection.commit()
+        
+        return jsonify({
+            "message": "Last login time updated successfully"
+        }), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to update login time: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        try:
+            data = jwt.decode(token.split()[1], app.config['SECRET_KEY'], algorithms=["HS256"])
+            kwargs['current_user_id'] = data['user_id']
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except Exception as e:
+            return jsonify({'error': f'Invalid token: {str(e)}'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+
+
+
+
+
+
+@app.route('/api/admin/login', methods=['POST'])
+def admin_login():
+    connection = get_db_connection()
+    if isinstance(connection, tuple):  # Check if connection failed
+        return connection
+    
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM admin_table WHERE email = %s", (email,))
+        admin = cursor.fetchone()
+        print(f"Found admin: {admin}")
+        
+        if not admin or hashlib.sha256(password.encode()).hexdigest() != admin['password_hash']:
+            print(f"Password hash attempted: {hashlib.sha256(password.encode()).hexdigest()}")
+            print(f"Stored hash: {admin['password_hash'] if admin else 'No user'}")
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Update last login
+        cursor.execute("UPDATE admin_table SET last_login = CURRENT_TIMESTAMP WHERE id = %s", (admin['id'],))
+        connection.commit()
+
+        # Create JWT token with explicit types
+        token = jwt.encode({
+            'user_id': str(admin['id']),
+            'email': admin['email'],
+            'role': admin['role'],
+            'exp': int(datetime.utcnow().timestamp() + 86400)  # 24 hours (86400 seconds)
+        }, app.config['SECRET_KEY'], algorithm='HS256')  # Explicitly specify algorithm
+
+        return jsonify({
+            "message": "Login successful",
+            "token": token,
+            "user": {
+                "id": str(admin['id']),
+                "firstName": admin['first_name'],
+                "lastName": admin['last_name'],
+                "email": admin['email'],
+                "phone": admin['phone'],
+                "role": admin['role'],
+                "park": admin['park_name'],
+                "avatarUrl": admin['avatar_url']
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/admin/profile', methods=['PUT'])
+@token_required
+def update_admin_profile(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email', 'phone']
+        
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        cursor = connection.cursor()
+        cursor.execute('''
+            UPDATE admin_table SET
+                first_name = %s,
+                last_name = %s,
+                email = %s,
+                phone = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        ''', (
+            data['firstName'],
+            data['lastName'],
+            data['email'],
+            data['phone'],
+            current_user_id
+        ))
+        connection.commit()
+
+        return jsonify({"message": "Profile updated successfully"}), 200
+
+    except Exception as e:
+        print(f"Profile update error: {e}")
+        return jsonify({"error": "Failed to update profile"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/admin/avatar', methods=['POST'])
+@token_required
+def update_admin_avatar(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        if 'avatar' not in request.files:
+            return jsonify({"error": "No avatar file provided"}), 400
+
+        avatar = request.files['avatar']
+        if avatar.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+
+        # Save the file
+        filename = f"avatar_{current_user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        avatar.save(filepath)
+
+        cursor = connection.cursor()
+        cursor.execute(
+            "UPDATE admin_table SET avatar_url = %s WHERE id = %s",
+            (f"/uploads/{filename}", current_user_id)
+        )
+        connection.commit()
+
+        return jsonify({
+            "message": "Avatar updated successfully",
+            "avatarUrl": f"/uploads/{filename}"
+        }), 200
+
+    except Exception as e:
+        print(f"Avatar update error: {e}")
+        return jsonify({"error": "Failed to update avatar"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/admin/account', methods=['DELETE'])
+@token_required
+def delete_admin_account(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, dict):
+        return connection, 500
+    
+    try:
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM admin_table WHERE id = %s", (current_user_id,))
+        connection.commit()
+        return jsonify({"message": "Account deleted successfully"}), 200
+    except Exception as e:
+        print(f"Account deletion error: {e}")
+        return jsonify({"error": "Failed to delete account"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+@app.route('/api/admin/password', methods=['PUT'])
+@token_required
+def update_admin_password(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        data = request.json
+        current_password = data.get('currentPassword')
+        new_password = data.get('newPassword')
+        confirm_password = data.get('confirmPassword')
+
+        if not all([current_password, new_password, confirm_password]):
+            return jsonify({"error": "All password fields are required"}), 400
+
+        if new_password != confirm_password:
+            return jsonify({"error": "New passwords don't match"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT password_hash FROM admin_table WHERE id = %s", (current_user_id,))
+        admin = cursor.fetchone()
+
+        if hashlib.sha256(current_password.encode()).hexdigest() != admin['password_hash']:
+            return jsonify({"error": "Current password is incorrect"}), 401
+
+        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        cursor.execute(
+            "UPDATE admin_table SET password_hash = %s WHERE id = %s",
+            (new_password_hash, current_user_id)
+        )
+        connection.commit()
+
+        return jsonify({"message": "Password updated successfully"}), 200
+
+    except Exception as e:
+        print(f"Password update error: {e}")
+        return jsonify({"error": "Failed to update password"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# Keep your existing routes (donate, book_tour, etc.) here
+# Add this mock login for non-admin roles
+@app.route('/api/demo-login', methods=['POST'])
+def demo_login():
+    try:
+        data = request.json
+        role = data.get('role')
+        
+        mock_users = {
+            'park-staff': {
+                'id': '2',
+                'firstName': 'Park',
+                'lastName': 'Staff',
+                'email': 'parkstaff@ecopark.com',
+                'role': 'park-staff',
+                'park': 'Yellowstone'
+            },
+            'government': {
+                'id': '3',
+                'firstName': 'Government',
+                'lastName': 'Agent',
+                'email': 'government@ecopark.com',
+                'role': 'government'
+            },
+            'finance': {
+                'id': '4',
+                'firstName': 'Finance',
+                'lastName': 'Officer',
+                'email': 'finance@ecopark.com',
+                'role': 'finance',
+                'park': 'Yellowstone'
+            },
+            'auditor': {
+                'id': '5',
+                'firstName': 'Auditor',
+                'lastName': 'Officer',
+                'email': 'auditor@ecopark.com',
+                'role': 'auditor'
+            }
+        }
+
+        if role not in mock_users:
+            return jsonify({"error": "Invalid role"}), 400
+
+        user = mock_users[role]
+        token = jwt.encode({
+            'user_id': user['id'],
+            'email': user['email'],
+            'role': user['role'],
+            'exp': int(datetime.utcnow().timestamp() + 86400)  # 24 hours
+        }, app.config['SECRET_KEY'], algorithm='HS256')
+
+        return jsonify({
+            "message": "Login successful",
+            "token": token,
+            "user": user
+        }), 200
+
+    except Exception as e:
+        print(f"Demo login error: {e}")
+        return jsonify({"error": "Demo login failed"}), 500
+    
 
 
 if __name__ == '__main__':

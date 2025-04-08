@@ -1,6 +1,6 @@
-
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 export type UserRole = 'visitor' | 'admin' | 'park-staff' | 'government' | 'finance' | 'auditor';
 
@@ -11,6 +11,8 @@ interface User {
   email: string;
   role: UserRole;
   park?: string;
+  phone?: string;
+  avatarUrl?: string;
 }
 
 interface AuthContextType {
@@ -19,9 +21,12 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  setUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const API_URL = 'http://localhost:5000/api';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -36,10 +41,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth on mount
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('token');
+    if (storedUser && token) {
       setUser(JSON.parse(storedUser));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
     setLoading(false);
   }, []);
@@ -47,61 +53,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Mock authentication
-      // In a real app, this would call an API
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const response = await axios.post(`${API_URL}/admin/login`, {
+        email,
+        password
+      });
       
-      let mockUser: User;
-      
-      if (email === 'admin@ecopark.com') {
-        mockUser = {
-          id: '1',
-          firstName: 'Admin',
-          lastName: 'User',
-          email: 'admin@ecopark.com',
-          role: 'admin',
-          park: 'Yellowstone'
-        };
-      } else if (email === 'parkstaff@ecopark.com') {
-        mockUser = {
-          id: '2',
-          firstName: 'Park',
-          lastName: 'Staff',
-          email: 'parkstaff@ecopark.com',
-          role: 'park-staff',
-          park: 'Yellowstone'
-        };
-      } else if (email === 'government@ecopark.com') {
-        mockUser = {
-          id: '3',
-          firstName: 'Government',
-          lastName: 'Agent',
-          email: 'government@ecopark.com',
-          role: 'government'
-        };
-      } else if (email === 'finance@ecopark.com') {
-        mockUser = {
-          id: '4',
-          firstName: 'Finance',
-          lastName: 'Officer',
-          email: 'finance@ecopark.com',
-          role: 'finance',
-          park: 'Yellowstone'
-        };
-      } else if (email === 'auditor@ecopark.com') {
-        mockUser = {
-          id: '5',
-          firstName: 'Auditor',
-          lastName: 'Officer',
-          email: 'auditor@ecopark.com',
-          role: 'auditor'
-        };
-      } else {
-        throw new Error('Invalid credentials');
-      }
-      
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      const { token, user: userData } = response.data;
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       toast.success('Login successful');
     } catch (error) {
       toast.error('Login failed. Please check your credentials.');
@@ -114,8 +75,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    delete axios.defaults.headers.common['Authorization'];
     toast.success('Logged out successfully');
   };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    if (storedUser && token) {
+      setUser(JSON.parse(storedUser));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;  // Re-apply token
+    }
+    setLoading(false);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ 
@@ -123,7 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading, 
       login, 
       logout,
-      isAuthenticated: !!user 
+      isAuthenticated: !!user,
+      setUser
     }}>
       {children}
     </AuthContext.Provider>

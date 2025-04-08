@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -14,42 +14,73 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Plus, MoreVertical, UserPlus, Shield, ShieldAlert, ShieldCheck, UserCog, Trash, Edit, Mail, Clock } from 'lucide-react';
 import AddParkStaffModal from './AddParkStaffModal';
 import UserActivityTable from './UserActivityTable';
+import axios from 'axios';
+import { toast } from 'sonner';
+
+type UserStatus = 'active' | 'inactive' | 'pending';
 
 interface User {
   id: string;
   name: string;
   email: string;
   role: string;
-  status: 'active' | 'inactive' | 'pending';
+  status: UserStatus;
   lastLogin: string;
   park?: string;
 }
 
-const mockUsers: User[] = [
-  { id: '1', name: 'John Doe', email: 'john@ecopark.com', role: 'admin', status: 'active', lastLogin: '2023-10-15', park: 'Yellowstone' },
-  { id: '2', name: 'Jane Smith', email: 'jane@ecopark.com', role: 'park-staff', status: 'active', lastLogin: '2023-10-14', park: 'Yosemite' },
-  { id: '3', name: 'Mike Johnson', email: 'mike@ecopark.com', role: 'government', status: 'active', lastLogin: '2023-10-10' },
-  { id: '4', name: 'Sara Wilson', email: 'sara@ecopark.com', role: 'finance', status: 'inactive', lastLogin: '2023-09-28', park: 'Grand Canyon' },
-  { id: '5', name: 'Tom Brown', email: 'tom@ecopark.com', role: 'auditor', status: 'active', lastLogin: '2023-10-13' },
-  { id: '6', name: 'Lisa Davis', email: 'lisa@ecopark.com', role: 'park-staff', status: 'pending', lastLogin: '2023-10-01', park: 'Acadia' },
-  { id: '7', name: 'Robert Miller', email: 'robert@ecopark.com', role: 'government', status: 'active', lastLogin: '2023-10-08' },
-  { id: '8', name: 'Emily White', email: 'emily@ecopark.com', role: 'finance', status: 'active', lastLogin: '2023-10-12', park: 'Zion' },
-];
-
 const UserManagement = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('users');
-  
-  const filteredUsers = mockUsers.filter(u => 
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axios.get('http://localhost:5000/api/park-staff');
+        
+        const userData: User[] = response.data.map((staff: any) => ({
+          id: staff.id.toString(),
+          name: `${staff.first_name} ${staff.last_name}`,
+          email: staff.email,
+          role: staff.role || 'park-staff',
+          status: staff.last_login ? 'active' : 'pending',
+          lastLogin: staff.last_login ? new Date(staff.last_login).toLocaleDateString() : 'Never',
+          park: staff.park_name
+        }));
+
+        setUsers(userData);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        setError('Failed to load users. Please try again later.');
+        toast.error('Failed to load users');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [isAuthenticated, navigate, isAddModalOpen]);
+
+  const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
+
   const getRoleBadgeColor = (role: string) => {
     switch(role) {
       case 'admin': return 'bg-purple-100 text-purple-800';
@@ -60,8 +91,8 @@ const UserManagement = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-  
-  const getStatusBadgeColor = (status: string) => {
+
+  const getStatusBadgeColor = (status: UserStatus) => {
     switch(status) {
       case 'active': return 'bg-emerald-100 text-emerald-800';
       case 'inactive': return 'bg-red-100 text-red-800';
@@ -69,7 +100,7 @@ const UserManagement = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-  
+
   const getRoleIcon = (role: string) => {
     switch(role) {
       case 'admin': return <Shield className="h-4 w-4" />;
@@ -80,15 +111,30 @@ const UserManagement = () => {
       default: return <Shield className="h-4 w-4" />;
     }
   };
-  
+
   const handleAddUser = () => {
     setUserToEdit(null);
     setIsAddModalOpen(true);
   };
-  
+
   const handleEditUser = (user: User) => {
     setUserToEdit(user);
     setIsAddModalOpen(true);
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/park-staff/${userId}`);
+      setUsers(users.filter(u => u.id !== userId));
+      toast.success('User deleted successfully');
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      toast.error('Failed to delete user');
+    }
+  };
+
+  const handleSuccess = () => {
+    setIsAddModalOpen(false);
   };
 
   return (
@@ -107,7 +153,6 @@ const UserManagement = () => {
               <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <TabsList className="mb-4 sm:mb-0">
                   <TabsTrigger value="users">Users</TabsTrigger>
-                  <TabsTrigger value="activity">Activity Log</TabsTrigger>
                 </TabsList>
                 
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -122,7 +167,11 @@ const UserManagement = () => {
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </div>
-                      <Button className="whitespace-nowrap" onClick={handleAddUser}>
+                      <Button 
+                        className="whitespace-nowrap" 
+                        onClick={handleAddUser}
+                        disabled={loading}
+                      >
                         <UserPlus className="mr-2 h-4 w-4" />
                         Add Park Staff
                       </Button>
@@ -138,106 +187,137 @@ const UserManagement = () => {
                     <CardDescription>Manage all EcoPark system users across different roles.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="border-b border-gray-200">
-                            <th className="text-left py-3 px-4 font-medium text-gray-600">User</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-600">Role</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-600">Park</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-600">Last Login</th>
-                            <th className="text-right py-3 px-4 font-medium text-gray-600">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredUsers.map((user, index) => (
-                            <tr 
-                              key={user.id} 
-                              className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
-                            >
-                              <td className="py-3 px-4">
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarImage src={`https://avatars.dicebear.com/api/initials/${user.name.charAt(0)}${user.name.split(' ')[1]?.charAt(0) || ''}.svg`} alt={user.name} />
-                                    <AvatarFallback>{user.name.charAt(0)}{user.name.split(' ')[1]?.charAt(0) || ''}</AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <div className="font-medium">{user.name}</div>
-                                    <div className="text-sm text-gray-500">{user.email}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">
-                                <Badge variant="outline" className={`${getRoleBadgeColor(user.role)} flex items-center gap-1 font-normal`}>
-                                  {getRoleIcon(user.role)}
-                                  <span className="capitalize">{user.role.replace('-', ' ')}</span>
-                                </Badge>
-                              </td>
-                              <td className="py-3 px-4">
-                                {user.park || '-'}
-                              </td>
-                              <td className="py-3 px-4">
-                                <Badge variant="outline" className={getStatusBadgeColor(user.status)}>
-                                  <span className="capitalize">{user.status}</span>
-                                </Badge>
-                              </td>
-                              <td className="py-3 px-4 text-sm text-gray-500">
-                                {user.lastLogin}
-                              </td>
-                              <td className="py-3 px-4 text-right">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                                      <MoreVertical className="h-4 w-4" />
-                                      <span className="sr-only">Open menu</span>
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                                      <Edit className="mr-2 h-4 w-4" />
-                                      Edit User
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                      <Mail className="mr-2 h-4 w-4" />
-                                      Send Email
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                      <Clock className="mr-2 h-4 w-4" />
-                                      View Activity
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600">
-                                      <Trash className="mr-2 h-4 w-4" />
-                                      Delete User
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </td>
+                    {error ? (
+                      <div className="text-center py-8 text-red-500">
+                        {error}
+                        <Button 
+                          variant="outline" 
+                          className="mt-4"
+                          onClick={() => window.location.reload()}
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    ) : loading ? (
+                      <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+                    ) : (
+                      <div className="overflow-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">User</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Role</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Park</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Last Login</th>
+                              <th className="text-right py-3 px-4 font-medium text-gray-600">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {filteredUsers.length > 0 ? (
+                              filteredUsers.map((user, index) => (
+                                <tr 
+                                  key={user.id} 
+                                  className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                                >
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center gap-3">
+                                      <Avatar className="h-8 w-8">
+                                        <AvatarImage 
+                                          src={`https://avatars.dicebear.com/api/initials/${user.name.charAt(0)}${user.name.split(' ')[1]?.charAt(0) || ''}.svg`} 
+                                          alt={user.name} 
+                                        />
+                                        <AvatarFallback>
+                                          {user.name.charAt(0)}{user.name.split(' ')[1]?.charAt(0) || ''}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                        <div className="font-medium">{user.name}</div>
+                                        <div className="text-sm text-gray-500">{user.email}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`${getRoleBadgeColor(user.role)} flex items-center gap-1 font-normal`}
+                                    >
+                                      {getRoleIcon(user.role)}
+                                      <span className="capitalize">{user.role.replace('-', ' ')}</span>
+                                    </Badge>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    {user.park || '-'}
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={getStatusBadgeColor(user.status)}
+                                    >
+                                      <span className="capitalize">{user.status}</span>
+                                    </Badge>
+                                  </td>
+                                  <td className="py-3 px-4 text-sm text-gray-500">
+                                    {user.lastLogin}
+                                  </td>
+                                  <td className="py-3 px-4 text-right">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                          <MoreVertical className="h-4 w-4" />
+                                          <span className="sr-only">Open menu</span>
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                                          <Edit className="mr-2 h-4 w-4" />
+                                          Edit User
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                          <Mail className="mr-2 h-4 w-4" />
+                                          Send Email
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                          <Clock className="mr-2 h-4 w-4" />
+                                          View Activity
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          className="text-red-600"
+                                          onClick={() => handleDeleteUser(user.id)}
+                                        >
+                                          <Trash className="mr-2 h-4 w-4" />
+                                          Delete User
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={6} className="py-8 text-center text-gray-500">
+                                  No users found
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </CardContent>
-                  <CardFooter className="flex items-center justify-between border-t border-gray-100 pt-4">
-                    <div className="text-sm text-gray-500">Showing {filteredUsers.length} of {mockUsers.length} users</div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">Previous</Button>
-                      <Button variant="outline" size="sm">Next</Button>
-                    </div>
-                  </CardFooter>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="activity" className="mt-0">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Activity Log</CardTitle>
-                    <CardDescription>Track login and logout times of park staff users</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <UserActivityTable />
-                  </CardContent>
+                  {!loading && !error && (
+                    <CardFooter className="flex items-center justify-between border-t border-gray-100 pt-4">
+                      <div className="text-sm text-gray-500">
+                        Showing {filteredUsers.length} of {users.length} users
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm">Previous</Button>
+                        <Button variant="outline" size="sm">Next</Button>
+                      </div>
+                    </CardFooter>
+                  )}
                 </Card>
               </TabsContent>
             </Tabs>
@@ -249,6 +329,7 @@ const UserManagement = () => {
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
         userToEdit={userToEdit}
+        onSuccess={handleSuccess}
       />
     </SidebarProvider>
   );
