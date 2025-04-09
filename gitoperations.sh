@@ -10,3 +10,6 @@ git commit -m "$1"
 git push origin main
 
 echo "Changes have been added, committed, and pushed successfully!"
+
+
+
