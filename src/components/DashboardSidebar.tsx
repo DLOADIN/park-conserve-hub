@@ -70,7 +70,7 @@ const DashboardSidebar = () => {
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-              <SidebarLink to="/admin/admindashboard" icon={Users} active={isActive('/admin/admindashboard')}>
+              <SidebarLink to="/admin/admindashboard" icon={LayoutDashboard} active={isActive('/admin/admindashboard')}>
                   Dashboard
                 </SidebarLink>
                 <SidebarLink to="/admin/users" icon={Settings} active={isActive('/admin/users')}>
@@ -89,7 +89,10 @@ const DashboardSidebar = () => {
             <SidebarGroupLabel>Park Staff</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarLink to="/park-staff/fund-requests" icon={FileText} active={isActive('/park-staff/fund-requests')}>
+                <SidebarLink to="/parkstaff/dashboard" icon={LayoutDashboard} active={isActive('/park-staff/fund-requests')}>
+                  Dashboard
+                </SidebarLink>
+                <SidebarLink to="/parkstaff/fund-requests" icon={FileText} active={isActive('/park-staff/fund-requests')}>
                   Fund Requests
                 </SidebarLink>
               </SidebarMenu>

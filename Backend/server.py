@@ -8,7 +8,7 @@ import random
 import hashlib
 import jwt
 from functools import wraps
-
+import bcrypt
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -992,6 +992,178 @@ def get_dashboard_stats(current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()    
+
+
+@app.route('/api/fund-requests', methods=['POST'])
+@token_required
+def create_fund_request(current_user_id):
+    """Create a new fund request."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['title', 'description', 'amount', 'category', 'urgency', 'parkname']  # Adjusted parkName to parkname
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        # Validate amount
+        try:
+            amount = float(data['amount'])
+            if amount <= 0:
+                return jsonify({"error": "Amount must be positive"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid amount"}), 400
+
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO fund_requests (
+                title, description, amount, category, parkname, urgency, status, created_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data['title'],
+            data['description'],
+            amount,
+            data['category'],
+            data['parkname'],  # Use parkname consistently
+            data['urgency'],
+            'pending',
+            current_user_id
+        ))
+        connection.commit()
+        
+        new_request_id = cursor.lastrowid
+        
+        return jsonify({
+            "message": "Fund request created successfully",
+            "id": new_request_id
+        }), 201
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to create fund request: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+@app.route('/api/fund-requests', methods=['GET'])
+@token_required
+def get_fund_requests(current_user_id):
+    """Retrieve all fund requests for the user's park."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, title, description, amount, category, parkname, urgency, status,
+                created_by, created_at
+            FROM fund_requests
+            WHERE created_by = %s
+        """, (current_user_id,))
+        requests = cursor.fetchall()
+        
+        # Format dates for frontend
+        for req in requests:
+            req['createdAt'] = req['created_at'].strftime('%Y-%m-%d')
+            del req['created_at']  # Remove raw timestamp
+        
+        return jsonify(requests), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve fund requests"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+@app.route('/api/fund-requests/<int:request_id>', methods=['PUT'])
+@token_required
+def update_fund_request(request_id, current_user_id):
+    """Update an existing fund request."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['title', 'description', 'amount', 'category', 'urgency', 'parkname']  # Adjusted parkName to parkname
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM fund_requests WHERE id = %s AND created_by = %s", 
+                       (request_id, current_user_id))
+        if not cursor.fetchone():
+            return jsonify({"error": "Fund request not found or unauthorized"}), 404
+
+        cursor.execute("""
+            UPDATE fund_requests SET
+                title = %s, description = %s, amount = %s, category = %s, parkname = %s,
+                urgency = %s
+            WHERE id = %s
+        """, (
+            data['title'], data['description'], float(data['amount']),
+            data['category'], data['parkname'], data['urgency'], request_id
+        ))
+        connection.commit()
+        
+        return jsonify({"message": "Fund request updated successfully"}), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to update fund request: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+@app.route('/api/fund-requests/<int:request_id>', methods=['DELETE'])
+@token_required
+def delete_fund_request(request_id, current_user_id):
+    """Delete a fund request."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM fund_requests WHERE id = %s AND created_by = %s", 
+                       (request_id, current_user_id))
+        if not cursor.fetchone():
+            return jsonify({"error": "Fund request not found or unauthorized"}), 404
+
+        cursor.execute("DELETE FROM fund_requests WHERE id = %s", (request_id,))
+        connection.commit()
+        
+        return jsonify({"message": "Fund request deleted successfully"}), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to delete fund request: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 
 # if __name__ == '__main__':

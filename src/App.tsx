@@ -16,8 +16,12 @@ import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import AdminProfile from "./pages/admin/Profile";
 import AdminDashboard from "./pages/admin/dashboard";
+
+import ParkDashboard from "./pages/parkstaff/dashboard";
+// import ParkStaffProfile from "./pages/parkstaff/Profile";
 import FundRequests from "./pages/parkstaff/FundRequests";
 
+import FinanceDashboard from "./pages/finance/dashboard";
 import Donations from "./pages/finance/Donations";
 import BookedTours from "./pages/finance/BookedTours";
 import RequestManagement from "./pages/finance/RequestManagement";
@@ -29,11 +33,12 @@ import BudgetSuggestion from "./pages/finance/BudgetSuggestion";
 import ServiceProviders from "./pages/finance/ServiceProviders";
 import BudgetCreation from "./pages/finance/BudgetCreation";
 
+import AuditorDashboard from "./pages/auditor/dashboard";
 import InvoiceView from "./pages/auditor/InvoiceView";
 import Transactions from "./pages/auditor/Transactions";
 import FinancialReports from "./pages/auditor/FinancialReports";
 
-
+import GovernmentDashboard from "./pages/government/dashboard";
 import ExtraFunds from "./pages/government/ExtraFunds";
 import Budget from "./pages/government/Budget";
 import EmergencyRequests from "./pages/government/EmergencyRequests";
@@ -61,14 +66,17 @@ const App = () => (
             <Route path="/admin/Profile" element={<AdminProfile />} />
             
             {/* Park Staff routes */}
-            <Route path="/park-staff/fund-requests" element={<FundRequests />} />
+            <Route path="/parkstaff/dashboard" element={<ParkDashboard />} />
+            <Route path="/parkstaff/fund-requests" element={<FundRequests />} />
             
             {/* Government routes */}
+            <Route path="/govenment/dashboard" element={<GovernmentDashboard />} />
             <Route path="/government/budget" element={<Budget />} />
             <Route path="/government/emergency-requests" element={<EmergencyRequests />} />
             <Route path="/government/extra-funds" element={<ExtraFunds />} />
             
             {/* Finance routes */}
+            <Route path="/finance/dashboard" element={<FinanceDashboard />} />
             <Route path="/finance/budget-suggestion" element={<BudgetSuggestion />} />
             <Route path="/finance/donations" element={<Donations />} />
             <Route path="/finance/booked-tours" element={<BookedTours />} />
@@ -81,6 +89,7 @@ const App = () => (
             <Route path="/finance/budget-creation" element={<BudgetCreation />} />
             
             {/* Auditor routes */}
+            <Route path="/auditor/dashboard" element={<AuditorDashboard />} />
             <Route path="/auditor/transactions" element={<Transactions />} />
             <Route path="/auditor/financial-reports" element={<FinancialReports />} />
             <Route path="/auditor/invoices" element={<InvoiceView />} />

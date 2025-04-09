@@ -7,13 +7,12 @@ import DashboardHeader from '@/components/DashboardHeader';
 import StatCard from '@/components/StatCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar, PiggyBank, LogIn, Users } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
 
-const Dashboard = () => {
+const FinanceDashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [tourBookings, setTourBookings] = useState([]);
@@ -141,4 +140,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default FinanceDashboard;

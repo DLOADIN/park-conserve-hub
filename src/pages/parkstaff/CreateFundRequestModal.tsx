@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,40 +11,48 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 
 const formSchema = z.object({
-  title: z.string().min(5, {
-    message: "Title must be at least 5 characters.",
-  }),
-  description: z.string().min(10, {
-    message: "Description must be at least 10 characters.",
-  }),
-  amount: z.coerce.number().positive({
-    message: "Amount must be a positive number.",
-  }),
-  category: z.string().min(1, {
-    message: "Please select a category.",
-  }),
-  urgency: z.enum(['low', 'medium', 'high'], {
-    required_error: "Please select an urgency level.",
-  }),
+  title: z.string().min(5, { message: 'Title must be at least 5 characters.' }),
+  parkname: z.string().min(1, { message: 'Please enter your park name.' }),
+  description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
+  amount: z.coerce.number().positive({ message: 'Amount must be a positive number.' }),
+  category: z.string().min(1, { message: 'Please select a category.' }),
+  urgency: z.enum(['low', 'medium', 'high'], { required_error: 'Please select an urgency level.' }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// Align with FundRequests.tsx
+interface FundRequest {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  category: string;
+  urgency: 'low' | 'medium' | 'high';
+  status: 'pending' | 'approved' | 'rejected';
+  createdBy: string;
+  createdAt: string;
+  parkname: string;
+}
 
 interface CreateFundRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: FormValues) => void;
+  initialData?: FundRequest | null;
 }
 
-const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({ 
-  isOpen, 
+const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
+  isOpen,
   onClose,
-  onSubmit
+  onSubmit,
+  initialData,
 }) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       title: '',
+      parkname: '',
       description: '',
       amount: undefined,
       category: '',
@@ -55,19 +62,21 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
 
   const handleSubmit = (values: FormValues) => {
     onSubmit(values);
-    form.reset();
+    if (!initialData) form.reset(); // Only reset on create, not edit
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Create New Fund Request</DialogTitle>
+          <DialogTitle>{initialData ? 'Edit Fund Request' : 'Create New Fund Request'}</DialogTitle>
           <DialogDescription>
-            Fill in the details to submit a new fund request to the finance department.
+            {initialData
+              ? 'Modify the details of your existing fund request.'
+              : 'Fill in the details to submit a new fund request to the finance department.'}
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <FormField
@@ -83,7 +92,21 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                 </FormItem>
               )}
             />
-            
+
+            <FormField
+              control={form.control}
+              name="parkname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Your Park Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="E.g., Luango National Park" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="description"
@@ -91,9 +114,9 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Provide detailed information about the funding request..." 
-                      {...field} 
+                    <Textarea
+                      placeholder="Provide detailed information about the funding request..."
+                      {...field}
                       className="min-h-[120px]"
                     />
                   </FormControl>
@@ -104,7 +127,7 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
@@ -113,9 +136,9 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                   <FormItem>
                     <FormLabel>Amount ($)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="0.00" 
+                      <Input
+                        type="number"
+                        placeholder="0.00"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value;
@@ -134,11 +157,7 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
@@ -147,10 +166,11 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                       <SelectContent>
                         <SelectItem value="Maintenance">Maintenance</SelectItem>
                         <SelectItem value="Conservation">Conservation</SelectItem>
-                        <SelectItem value="Infrastructure">Infrastructure</SelectItem>
-                        <SelectItem value="Education">Education</SelectItem>
+                        <SelectItem value="Education">Educating Our Park Staff</SelectItem>
                         <SelectItem value="Safety">Safety</SelectItem>
-                        <SelectItem value="Research">Research</SelectItem>
+                        <SelectItem value="Research">Research over Parks</SelectItem>
+                        <SelectItem value="Community">Community Engagement</SelectItem>
+                        <SelectItem value="Salaries">Salaries</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
@@ -159,18 +179,14 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="urgency"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Urgency Level</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select urgency level" />
@@ -189,14 +205,12 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit">
-                Submit Request
-              </Button>
+              <Button type="submit">{initialData ? 'Update Request' : 'Submit Request'}</Button>
             </DialogFooter>
           </form>
         </Form>
