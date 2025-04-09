@@ -15,7 +15,7 @@ import {
   SidebarHeader,
   SidebarTrigger
 } from '@/components/ui/sidebar';
-import { LogOut, User, LayoutDashboard, Users, FileText, DollarSign, PiggyBank, Calendar, Clock, CreditCard, Landmark, AlertTriangle, FileBarChart, Activity, ClipboardCheck, UserCheck } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, Users, Settings, FileText, DollarSign, PiggyBank, Calendar, Clock, CreditCard, Landmark, AlertTriangle, FileBarChart, Activity, ClipboardCheck, UserCheck } from 'lucide-react';
 
 interface SidebarLinkProps {
   to: string;
@@ -64,19 +64,6 @@ const DashboardSidebar = () => {
       </SidebarHeader>
 
       <SidebarContent className="p-2">
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarLink to="/dashboard" icon={LayoutDashboard} active={isActive('/dashboard')}>
-                Dashboard
-              </SidebarLink>
-              <SidebarLink to="/profile" icon={User} active={isActive('/profile')}>
-                Profile
-              </SidebarLink>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
         {role === 'admin' && (
           <SidebarGroup>
@@ -86,7 +73,7 @@ const DashboardSidebar = () => {
               <SidebarLink to="/admin/admindashboard" icon={Users} active={isActive('/admin/admindashboard')}>
                   Dashboard
                 </SidebarLink>
-                <SidebarLink to="/admin/users" icon={Users} active={isActive('/admin/users')}>
+                <SidebarLink to="/admin/users" icon={Settings} active={isActive('/admin/users')}>
                   User Management
                 </SidebarLink>
                 <SidebarLink to="/admin/profile" icon={User} active={isActive('/admin/profile')}>

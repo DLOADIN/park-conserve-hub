@@ -90,6 +90,102 @@ def donate():
             connection.close()
 
 
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        try:
+            data = jwt.decode(token.split()[1], app.config['SECRET_KEY'], algorithms=["HS256"])
+            kwargs['current_user_id'] = data['user_id']
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token has expired'}), 401
+        except Exception as e:
+            return jsonify({'error': f'Invalid token: {str(e)}'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    connection = get_db_connection()
+    if isinstance(connection, tuple):  # Check if connection failed
+        return connection
+    
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        
+        # Check all user tables
+        user_tables = [
+            ('admintable', 'admin'),
+            ('parkstaff', 'park-staff'),
+            ('finance_officers', 'finance'),
+            ('auditors', 'auditor'),
+            ('government_officers', 'government')
+        ]
+        
+        user = None
+        user_role = None
+        user_table = None
+        
+        for table, role in user_tables:
+            cursor.execute(f"SELECT * FROM {table} WHERE email = %s", (email,))
+            result = cursor.fetchone()
+            if result:
+                user = result
+                user_role = role
+                user_table = table
+                break
+        
+        if not user or hashlib.sha256(password.encode()).hexdigest() != user['password_hash']:
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Update last login
+        cursor.execute(f"UPDATE {user_table} SET last_login = CURRENT_TIMESTAMP WHERE id = %s", (user['id'],))
+        connection.commit()
+
+        # Create JWT token
+        token = jwt.encode({
+            'user_id': str(user['id']),
+            'email': user['email'],
+            'role': user_role,
+            'exp': int(datetime.utcnow().timestamp() + 86400)
+        }, app.config['SECRET_KEY'], algorithm='HS256')
+
+        # Prepare user response
+        user_data = {
+            "id": str(user['id']),
+            "firstName": user['first_name'],
+            "lastName": user['last_name'],
+            "email": user['email'],
+            "phone": user.get('phone', ''),
+            "role": user_role,
+            "park": user.get('park_name', ''),
+            "avatarUrl": user.get('avatar_url', '')
+        }
+
+        return jsonify({
+            "message": "Login successful",
+            "token": token,
+            "user": user_data,
+            "dashboard": f"/{user_role.replace('-', '')}/dashboard"
+        }), 200
+
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
 
 
 @app.route('/api/book-tour', methods=['POST'])
@@ -310,6 +406,7 @@ def get_park_staff():
             connection.close()
 
 
+# In server.py, update the add_park_staff endpoint
 @app.route('/api/park-staff', methods=['POST'])
 def add_park_staff():
     """Add a new park staff member."""
@@ -319,7 +416,7 @@ def add_park_staff():
     
     try:
         data = request.json
-        required_fields = ['firstName', 'lastName', 'email', 'park']
+        required_fields = ['firstName', 'lastName', 'email', 'park', 'password']  # Added password
         
         # Validate all required fields
         if not all(field in data for field in required_fields):
@@ -337,15 +434,19 @@ def add_park_staff():
         if existing_user:
             return jsonify({"error": "Email already exists"}), 409
 
-        # Insert new staff member
+        # Hash the password
+        password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
+
+        # Insert new staff member with password
         cursor.execute('''
             INSERT INTO parkstaff (
-                first_name, last_name, email, park_name, role
-            ) VALUES (%s, %s, %s, %s, %s)
+                first_name, last_name, email, password_hash, park_name, role
+            ) VALUES (%s, %s, %s, %s, %s, %s)
         ''', (
             data['firstName'],
             data['lastName'],
             data['email'],
+            password_hash,
             data['park'],
             'park-staff'  # Default role
         ))
@@ -361,6 +462,55 @@ def add_park_staff():
     except Exception as e:
         print(f"Database error: {e}")
         return jsonify({"error": f"Failed to add park staff: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+# Optional: Add endpoint to update password separately
+@app.route('/api/park-staff/password/<int:staff_id>', methods=['PUT'])
+@token_required
+def update_park_staff_password(staff_id, current_user_id):
+    """Update park staff password."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        if 'password' not in data:
+            return jsonify({"error": "Password is required"}), 400
+
+        cursor = connection.cursor()
+        
+        # Check if staff exists
+        cursor.execute("SELECT id FROM parkstaff WHERE id = %s", (staff_id,))
+        existing_staff = cursor.fetchone()
+        
+        if not existing_staff:
+            return jsonify({"error": "Staff member not found"}), 404
+        
+        # Hash the new password
+        password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
+        
+        # Update password
+        cursor.execute(
+            "UPDATE parkstaff SET password_hash = %s WHERE id = %s",
+            (password_hash, staff_id)
+        )
+        connection.commit()
+        
+        return jsonify({
+            "message": "Password updated successfully"
+        }), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to update password: {str(e)}"}), 500
     finally:
         if connection.is_connected():
             cursor.close()
@@ -502,29 +652,6 @@ def update_login_time(staff_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
-
-
-
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({'error': 'Token is missing'}), 401
-        try:
-            data = jwt.decode(token.split()[1], app.config['SECRET_KEY'], algorithms=["HS256"])
-            kwargs['current_user_id'] = data['user_id']
-        except jwt.ExpiredSignatureError:
-            return jsonify({'error': 'Token has expired'}), 401
-        except Exception as e:
-            return jsonify({'error': f'Invalid token: {str(e)}'}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-
-
-
-
 
 
 
@@ -733,68 +860,6 @@ def update_admin_password(current_user_id):
             cursor.close()
             connection.close()
 
-# Keep your existing routes (donate, book_tour, etc.) here
-# Add this mock login for non-admin roles
-@app.route('/api/demo-login', methods=['POST'])
-def demo_login():
-    try:
-        data = request.json
-        role = data.get('role')
-        
-        mock_users = {
-            'park-staff': {
-                'id': '2',
-                'firstName': 'Park',
-                'lastName': 'Staff',
-                'email': 'parkstaff@ecopark.com',
-                'role': 'park-staff',
-                'park': 'Yellowstone'
-            },
-            'government': {
-                'id': '3',
-                'firstName': 'Government',
-                'lastName': 'Agent',
-                'email': 'government@ecopark.com',
-                'role': 'government'
-            },
-            'finance': {
-                'id': '4',
-                'firstName': 'Finance',
-                'lastName': 'Officer',
-                'email': 'finance@ecopark.com',
-                'role': 'finance',
-                'park': 'Yellowstone'
-            },
-            'auditor': {
-                'id': '5',
-                'firstName': 'Auditor',
-                'lastName': 'Officer',
-                'email': 'auditor@ecopark.com',
-                'role': 'auditor'
-            }
-        }
-
-        if role not in mock_users:
-            return jsonify({"error": "Invalid role"}), 400
-
-        user = mock_users[role]
-        token = jwt.encode({
-            'user_id': user['id'],
-            'email': user['email'],
-            'role': user['role'],
-            'exp': int(datetime.utcnow().timestamp() + 86400)  # 24 hours
-        }, app.config['SECRET_KEY'], algorithm='HS256')
-
-        return jsonify({
-            "message": "Login successful",
-            "token": token,
-            "user": user
-        }), 200
-
-    except Exception as e:
-        print(f"Demo login error: {e}")
-        return jsonify({"error": "Demo login failed"}), 500
-
 
 @app.route('/api/admin/tour-bookings', methods=['GET'])
 @token_required
@@ -929,7 +994,14 @@ def get_dashboard_stats(current_user_id):
             connection.close()    
 
 
+# if __name__ == '__main__':
+#     if not os.path.exists(app.config['UPLOAD_FOLDER']):
+#         os.makedirs(app.config['UPLOAD_FOLDER'])
+#     app.run(debug=True, port=5000)
+
 if __name__ == '__main__':
-    if not os.path.exists(app.config['UPLOAD_FOLDER']):
-        os.makedirs(app.config['UPLOAD_FOLDER'])
-    app.run(debug=True, port=5000)
+    if os.getenv('FLASK_ENV') == 'production':
+    # Use Gunicorn or similar in production
+        pass
+    else:
+        app.run(debug=True, port=5000)

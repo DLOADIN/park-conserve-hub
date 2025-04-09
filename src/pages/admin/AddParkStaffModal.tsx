@@ -26,6 +26,7 @@ interface AddParkStaffModalProps {
   onSuccess?: () => void;
 }
 
+// Updated form schema to include password (required for new users, optional for edits)
 const formSchema = z.object({
   firstName: z.string().min(2, {
     message: "First name must be at least 2 characters.",
@@ -39,6 +40,9 @@ const formSchema = z.object({
   park: z.string().min(1, {
     message: "Please select a park.",
   }),
+  password: z.string().min(8, {
+    message: "Password must be at least 8 characters.",
+  }).optional().or(z.literal('')), // Optional for edits
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -51,10 +55,11 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
       lastName: '',
       email: '',
       park: '',
+      password: '',
     },
   });
 
-  // When editing a user, populate the form with their information
+  // Populate form with user data when editing
   useEffect(() => {
     if (userToEdit) {
       const nameParts = userToEdit.name.split(' ');
@@ -63,6 +68,7 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
         lastName: nameParts.slice(1).join(' ') || '',
         email: userToEdit.email,
         park: userToEdit.park || '',
+        password: '', // Leave password blank for edits
       });
     } else {
       form.reset({
@@ -70,6 +76,7 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
         lastName: '',
         email: '',
         park: '',
+        password: '',
       });
     }
   }, [userToEdit, form]);
@@ -79,17 +86,17 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
       const API_URL = 'http://localhost:5000/api';
       
       if (userToEdit) {
-        // Update existing user
-        await axios.put(`${API_URL}/park-staff/${userToEdit.id}`, values);
+        // Update existing user (password not included in edit)
+        const { password, ...updateValues } = values; // Exclude password from update payload
+        await axios.put(`${API_URL}/park-staff/${userToEdit.id}`, updateValues);
         toast.success('Park staff updated successfully!');
       } else {
-        // Create new user
+        // Create new user (include password)
         await axios.post(`${API_URL}/park-staff`, values);
         toast.success('Park staff added successfully!');
       }
       
-      // Call onSuccess to refresh the user list
-      onSuccess();
+      onSuccess?.();
       onClose();
     } catch (error: any) {
       if (error.response && error.response.data && error.response.data.error) {
@@ -198,6 +205,25 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                 </FormItem>
               )}
             />
+            
+            {!userToEdit && ( // Only show password field when adding a new user
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter password" type="password" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Password must be at least 8 characters long.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>

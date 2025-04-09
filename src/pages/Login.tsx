@@ -21,8 +21,6 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Email entered:', email);
-    console.log('Password entered:', password);
     if (!email || !password) {
       toast.error('Please enter both email and password');
       return;
@@ -30,34 +28,19 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      await login(email, password);
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDemoLogin = async (role: string) => {
-    if (role === 'admin') {
-      toast.error('Please use email and password for admin login');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await axios.post(`${API_URL}/demo-login`, { role });
-      const { token, user } = response.data;
+      const response = await axios.post(`${API_URL}/login`, { email, password });
+      const { token, user, dashboard } = response.data;
       
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      toast.success('Login successful');
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Demo login error:', error);
-      toast.error('Demo login failed');
+      
+      await login(email, password); // Update AuthContext
+      toast.success(`Login successful. Welcome ${user.role.replace('-', ' ')}!`);
+      navigate(dashboard);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.response?.data?.error || 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -150,60 +133,9 @@ const Login = () => {
                   </span>
                 </div>
               </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="inline-flex justify-center text-xs"
-                  onClick={() => handleDemoLogin('admin')}
-                >
-                  Admin
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="inline-flex justify-center text-xs"
-                  onClick={() => handleDemoLogin('park-staff')}
-                >
-                  {/* Park StaffIt seems like your message got cut off. Based on what you've provided, I'll help you complete the integration by ensuring:1. The SQL table structure matches the requirements
-2. Backend operations support all admin profile features
-3. Login works properly with demo accounts (except admin)
-4. Frontend and backend are properly synchronized
-
-Here's the completion of the Login component and necessary adjustments:
-
-```jsx */}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="inline-flex justify-center text-xs"
-                  onClick={() => handleDemoLogin('government')}
-                >
-                  Government
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="inline-flex justify-center text-xs"
-                  onClick={() => handleDemoLogin('finance')}
-                >
-                  Finance
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="inline-flex justify-center col-span-2 text-xs"
-                  onClick={() => handleDemoLogin('auditor')}
-                >
-                  Auditor
-                </Button>
-              </div>
             </div>
           </div>
         </div>
-
       </div>
       <Footer />
     </>

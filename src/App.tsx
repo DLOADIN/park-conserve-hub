@@ -15,7 +15,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import UserManagement from "./pages/admin/UserManagement";
 import AdminProfile from "./pages/admin/Profile";
-import AdminDashboard from "./pages/admin/Admindashboard";
+import AdminDashboard from "./pages/admin/dashboard";
 import FundRequests from "./pages/parkstaff/FundRequests";
 
 import Donations from "./pages/finance/Donations";
@@ -56,7 +56,7 @@ const App = () => (
             <Route path="/Login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />{/* Admin routes */}
 
-            <Route path="/admin/admindashboard" element={<AdminDashboard />} />{/* Admin routes */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />{/* Admin routes */}
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/Profile" element={<AdminProfile />} />
             

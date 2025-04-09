@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
-export type UserRole = 'visitor' | 'admin' | 'park-staff' | 'government' | 'finance' | 'auditor';
+export type UserRole = 'admin' | 'park-staff' | 'finance' | 'auditor' | 'government';
 
 interface User {
   id: string;
@@ -53,17 +53,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/admin/login`, {
-        email,
-        password
-      });
-      
+      const response = await axios.post(`${API_URL}/login`, { email, password });
       const { token, user: userData } = response.data;
+      
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      toast.success('Login successful');
     } catch (error) {
       toast.error('Login failed. Please check your credentials.');
       throw error;

@@ -62,11 +62,6 @@ const DashboardHeader = ({ title, subtitle, className }: DashboardHeaderProps) =
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => navigate('/profile')}>
-              <User className="mr-2 h-4 w-4" />
-              Profile
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-red-500">
               <LogOut className="mr-2 h-4 w-4" />
               Logout
