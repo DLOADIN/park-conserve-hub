@@ -1166,6 +1166,43 @@ def delete_fund_request(request_id, current_user_id):
             connection.close()
 
 
+@app.route('/api/park-staff/fund-request-stats', methods=['GET'])
+@token_required
+def get_fund_request_stats(current_user_id):
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    parkname = request.args.get('parkname')
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+                SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+                COUNT(*) as total
+            FROM fund_requests
+            WHERE created_by = %s AND parkname = %s
+        """, (current_user_id, parkname))
+        stats = cursor.fetchone()
+        return jsonify({
+            "stats": [
+                {"title": "All Park Staff Requests", "value": stats['total'] or 0, "icon": "FileText"},
+                {"title": "Pending Requests", "value": stats['pending'] or 0, "icon": "Clock"},
+                {"title": "Approved Requests", "value": stats['approved'] or 0, "icon": "CheckCircle"},
+                {"title": "Rejected Requests", "value": stats['rejected'] or 0, "icon": "XCircle"}
+            ]
+        }), 200
+    except Exception as e:
+        print(f"Error fetching fund request stats: {e}")
+        return jsonify({"error": "Failed to fetch fund request stats"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
 # if __name__ == '__main__':
 #     if not os.path.exists(app.config['UPLOAD_FOLDER']):
 #         os.makedirs(app.config['UPLOAD_FOLDER'])
