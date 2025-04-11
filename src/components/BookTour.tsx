@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { CalendarIcon, Clock, Info, Users } from 'lucide-react';
+import { CalendarIcon, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,7 +27,6 @@ const parkTours = [
   { id: 13, name: 'Mwagne National Park', tours: ['River Safari', 'Botanical Tour', 'Silent Meditation Trail'] },
 ];
 
-
 const BookTour = () => {
   const [searchParams] = useSearchParams();
   const initialParkId = searchParams.get('park') || '';
@@ -51,6 +49,10 @@ const BookTour = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    const guestsNum = parseInt(guests);
+    const amount = 75 * guestsNum;
+
     try {
       const response = await fetch('http://localhost:5000/api/book-tour', {
         method: 'POST',
@@ -62,7 +64,8 @@ const BookTour = () => {
           tourName: selectedTour,
           date,
           time,
-          guests,
+          guests: guestsNum,
+          amount,
           firstName,
           lastName,
           email,
@@ -71,7 +74,7 @@ const BookTour = () => {
         }),
       });
       const result = await response.json();
-  
+
       if (response.ok) {
         toast({
           title: "Tour booking submitted!",
@@ -80,17 +83,17 @@ const BookTour = () => {
         navigate('/payment', { 
           state: { 
             type: 'tour',
-            amount: 75 * parseInt(guests),
+            amount,
             details: {
               park: parkTours.find(p => p.id.toString() === selectedPark)?.name,
               tour: selectedTour,
               date,
               time,
-              guests,
+              guests: guestsNum,
               name: `${firstName} ${lastName}`,
-              email
-            }
-          } 
+              email,
+            },
+          },
         });
       } else {
         throw new Error(result.error || 'Failed to submit tour booking');
@@ -105,7 +108,6 @@ const BookTour = () => {
       setIsSubmitting(false);
     }
   };
-  
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -143,6 +145,29 @@ const BookTour = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* <div className="sm:col-span-2">
+                    <Label htmlFor="tour">Select Tour</Label>
+                    <Select 
+                      value={selectedTour} 
+                      onValueChange={setSelectedTour}
+                      disabled={!selectedPark}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a tour" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedPark &&
+                          parkTours
+                            .find(p => p.id.toString() === selectedPark)
+                            ?.tours.map(tour => (
+                              <SelectItem key={tour} value={tour}>
+                                {tour}
+                              </SelectItem>
+                            ))}
+                      </SelectContent>
+                    </Select>
+                  </div> */}
                   
                   <div>
                     <Label htmlFor="date">Date</Label>
@@ -154,9 +179,22 @@ const BookTour = () => {
                         onChange={(e) => setDate(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
                         className="pl-10"
+                        required
                       />
                       <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-conservation-500" />
                     </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="time">Time</Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
                   </div>
                   
                   <div>
@@ -168,8 +206,14 @@ const BookTour = () => {
                         min="1"
                         max="20"
                         value={guests}
-                        onChange={(e) => setGuests(e.target.value)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '' || (/^\d+$/.test(value) && parseInt(value) >= 1 && parseInt(value) <= 20)) {
+                            setGuests(value);
+                          }
+                        }}
                         className="pl-10"
+                        required
                       />
                       <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-conservation-500" />
                     </div>
@@ -179,7 +223,7 @@ const BookTour = () => {
                     <div className="text-xl font-semibold text-conservation-800">
                       $75 <span className="text-sm font-normal text-conservation-600">per person</span>
                     </div>
-                    {guests && parseInt(guests) > 1 && (
+                    {guests && parseInt(guests) > 0 && (
                       <div className="text-conservation-700">
                         Total: ${75 * parseInt(guests)}
                       </div>
@@ -242,20 +286,12 @@ const BookTour = () => {
                     />
                   </div>
                 </div>
-                
-                <div className="flex items-start space-x-2 mt-6 text-sm text-conservation-700">
-                  <Info className="h-5 w-5 flex-shrink-0 text-conservation-500" />
-                  <p>
-                    By booking, you agree to our <a href="#" className="text-conservation-600 underline">terms and conditions</a> and 
-                    <a href="#" className="text-conservation-600 underline"> cancellation policy</a>.
-                  </p>
-                </div>
               </form>
             </CardContent>
             <CardFooter>
               <Button 
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                type="submit"
                 className="w-full bg-conservation-600 hover:bg-conservation-700"
               >
                 {isSubmitting ? 'Processing...' : 'Proceed to Payment'}

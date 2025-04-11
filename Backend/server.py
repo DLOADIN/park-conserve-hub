@@ -3,6 +3,8 @@ import mysql.connector
 from mysql.connector import Error
 import os
 from datetime import datetime
+from flask import jsonify
+from datetime import timedelta
 from flask_cors import CORS
 import random
 import hashlib
@@ -197,24 +199,43 @@ def book_tour():
 
     try:
         data = request.json
-        required_fields = ['parkName', 'tourName', 'date', 'time', 'guests', 'firstName', 'lastName', 'email']
+        required_fields = ['parkName', 'tourName', 'date', 'time', 'guests', 'amount', 'firstName', 'lastName', 'email']
 
         if not all(field in data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
 
+        try:
+            guests = int(data['guests'])
+            amount = int(data['amount'])
+        except (ValueError, TypeError):
+            return jsonify({"error": "Guests and amount must be valid integers"}), 400
+
+        if guests < 1 or guests > 20:
+            return jsonify({"error": "Guests must be between 1 and 20"}), 400
+
+        if amount != guests * 75:
+            return jsonify({"error": "Invalid amount: must be $75 per guest"}), 400
+
+        # Validate date and time formats
+        try:
+            datetime.strptime(data['date'], '%Y-%m-%d')
+            datetime.strptime(data['time'], '%H:%M')
+        except ValueError:
+            return jsonify({"error": "Invalid date or time format"}), 400
+
         cursor = connection.cursor()
         cursor.execute('''
             INSERT INTO tours (
-                park_name, tour_name, date, time, 
-                guests, first_name, last_name, 
-                email, phone, special_requests
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                park_name, tour_name, date, time, guests, amount,
+                first_name, last_name, email, phone, special_requests
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             data['parkName'],
             data['tourName'],
             data['date'],
             data['time'],
-            int(data['guests']),
+            guests,
+            amount,
             data['firstName'],
             data['lastName'],
             data['email'],
@@ -226,14 +247,13 @@ def book_tour():
 
     except Error as e:
         print(f"Database error: {e}")
-        return jsonify({"error": "Database operation failed"}), 500
+        return jsonify({"error": f"Database operation failed: {str(e)}"}), 500
 
     finally:
         if cursor:
             cursor.close()
         if connection.is_connected():
             connection.close()
-
 
 
 @app.route('/api/services', methods=['POST'])
@@ -1197,6 +1217,222 @@ def get_fund_request_stats(current_user_id):
     except Exception as e:
         print(f"Error fetching fund request stats: {e}")
         return jsonify({"error": "Failed to fetch fund request stats"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# Add these new endpoints after the existing ones in server.py
+
+@app.route('/api/finance/tours', methods=['GET'])
+@token_required
+def get_all_tours(current_user_id):
+    """Retrieve all booked tours for finance officer"""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, park_name, tour_name, date, time, guests, amount,
+                first_name, last_name, email, phone, special_requests,
+                created_at
+            FROM tours
+            ORDER BY created_at DESC
+        """)
+        tours = cursor.fetchall()
+        
+        for tour in tours:
+            # Format dates and times
+            tour['created_at'] = tour['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            tour['date'] = tour['date'].strftime('%Y-%m-%d')
+            tour['time'] = str(tour['time'])  # TIME field is already in HH:MM:SS format
+            tour['amount'] = float(tour['amount'])  # Ensure amount is numeric for frontend
+            
+        return jsonify(tours), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to retrieve tours: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+@app.route('/api/finance/donations', methods=['GET'])
+@token_required
+def get_all_donations(current_user_id):
+    """Retrieve all donations for finance officer"""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, donation_type, amount, park_name,
+                first_name, last_name, email, message,
+                is_anonymous, created_at
+            FROM donations
+            ORDER BY created_at DESC
+        """)
+        donations = cursor.fetchall()
+        
+        for donation in donations:
+            donation['created_at'] = donation['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+        return jsonify(donations), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve donations"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/finance/services', methods=['GET'])
+@token_required
+def get_all_services(current_user_id):
+    """Retrieve all service applications"""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, first_name, last_name, email, phone,
+                company_type, provided_service, company_name,
+                tax_id, created_at,
+                status IS NULL as 'pending',
+                status
+            FROM services
+            ORDER BY created_at DESC
+        """)
+        services = cursor.fetchall()
+        
+        for service in services:
+            service['created_at'] = service['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+        return jsonify(services), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve services"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/finance/services/<int:service_id>/status', methods=['PUT'])
+@token_required
+def update_service_status(current_user_id, service_id):
+    """Approve or deny service application"""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        status = data.get('status')  # 'approved' or 'denied'
+        
+        if status not in ['approved', 'denied']:
+            return jsonify({"error": "Invalid status"}), 400
+            
+        cursor = connection.cursor()
+        cursor.execute("""
+            ALTER TABLE services ADD COLUMN IF NOT EXISTS status ENUM('approved', 'denied') DEFAULT NULL
+        """)
+        cursor.execute("""
+            UPDATE services 
+            SET status = %s
+            WHERE id = %s
+        """, (status, service_id))
+        connection.commit()
+        
+        return jsonify({"message": f"Service {status} successfully"}), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to update service status: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/finance/fund-requests', methods=['GET'])
+@token_required
+def get_all_fund_requests(current_user_id):
+    """Retrieve all fund requests with park staff details"""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                fr.id, fr.title, fr.description, fr.amount,
+                fr.category, fr.parkname, fr.urgency, fr.status,
+                fr.created_at, fr.created_by,
+                ps.first_name, ps.last_name, ps.email as staff_email,
+                ps.park_name as staff_park
+            FROM fund_requests fr
+            JOIN parkstaff ps ON fr.created_by = ps.id
+            ORDER BY fr.created_at DESC
+        """)
+        requests = cursor.fetchall()
+        
+        for req in requests:
+            req['created_at'] = req['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+        return jsonify(requests), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve fund requests"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+@app.route('/api/finance/fund-requests/<int:request_id>/status', methods=['PUT'])
+@token_required
+def update_fund_request_status(current_user_id, request_id):
+    """Approve or deny fund request"""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        status = data.get('status')  # 'approved' or 'rejected'
+        
+        if status not in ['approved', 'rejected']:
+            return jsonify({"error": "Invalid status"}), 400
+            
+        cursor = connection.cursor()
+        cursor.execute("""
+            UPDATE fund_requests 
+            SET status = %s
+            WHERE id = %s
+        """, (status, request_id))
+        connection.commit()
+        
+        return jsonify({"message": f"Fund request {status} successfully"}), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to update fund request status: {str(e)}"}), 500
     finally:
         if connection.is_connected():
             cursor.close()
