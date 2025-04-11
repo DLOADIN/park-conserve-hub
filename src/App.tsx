@@ -29,7 +29,6 @@ import FinanceEmergencyRequests from "./pages/finance/EmergencyRequests";
 import EmergencyRequestForm from "./pages/finance/EmergencyRequestForm";
 import FinanceExtraFunds from "./pages/finance/ExtraFunds";
 import ExtraFundsForm from "./pages/finance/ExtraFundsForm";
-import BudgetSuggestion from "./pages/finance/BudgetSuggestion";
 import ServiceProviders from "./pages/finance/ServiceProviders";
 import BudgetCreation from "./pages/finance/BudgetCreation";
 
@@ -77,7 +76,6 @@ const App = () => (
             
             {/* Finance routes */}
             <Route path="/finance/dashboard" element={<FinanceDashboard />} />
-            <Route path="/finance/budget-suggestion" element={<BudgetSuggestion />} />
             <Route path="/finance/donations" element={<Donations />} />
             <Route path="/finance/booked-tours" element={<BookedTours />} />
             <Route path="/finance/request-management" element={<RequestManagement />} />

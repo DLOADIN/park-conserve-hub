@@ -127,9 +127,9 @@ const DashboardSidebar = () => {
               <SidebarLink to="/finance/dashboard" icon={LayoutDashboard} active={isActive('/finance/dashboard')}>
                   Dashboard
                 </SidebarLink>
-                <SidebarLink to="/finance/budget-suggestion" icon={Landmark} active={isActive('/finance/budget-suggestion')}>
+                {/* <SidebarLink to="/finance/budget-suggestion" icon={Landmark} active={isActive('/finance/budget-suggestion')}>
                   Budget Suggestion
-                </SidebarLink>
+                </SidebarLink> */}
                 <SidebarLink to="/finance/donations" icon={PiggyBank} active={isActive('/finance/donations')}>
                   Donations
                 </SidebarLink>

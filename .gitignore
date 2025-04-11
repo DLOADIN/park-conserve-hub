@@ -14,6 +14,7 @@ dist-ssr
 
 # Editor directories and files
 .vscode/*
+/Backend/notrequiredpark_conservation.sql
 !.vscode/extensions.json
 .idea
 .DS_Store
