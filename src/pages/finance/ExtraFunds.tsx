@@ -13,7 +13,24 @@ import { Search, FileText, Plus } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { toast } from 'sonner';
 
+
 const ExtraFunds = () => {
+  const parkTours = [
+    { id: 1, name: 'Akanda National Park', tours: ['Wildlife Safari', 'Forest Hike', 'Bird Watching'] },
+    { id: 2, name: 'Moukalaba-Doudou National Park', tours: ['Kayaking Adventure', 'Fishing Tour', 'Lake Cruise'] },
+    { id: 3, name: 'Ivindo National Park', tours: ['Rock Climbing', 'Mountain Trail', 'Scenic Drive'] },
+    { id: 4, name: 'Loango National Park', tours: ['Whale Watching', 'Beach Safari', 'Rainforest Walk'] },
+    { id: 5, name: 'Lopé National Park', tours: ['Cultural Tour', 'Gorilla Trek', 'Ancient Rock Art Walk'] },
+    { id: 6, name: 'Mayumba National Park', tours: ['Turtle Nesting Tour', 'Coastal Walk', 'Marine Life Excursion'] },
+    { id: 7, name: 'Pongara National Park', tours: ['Mangrove Exploration', 'Sunset Boat Ride', 'Eco-Lodge Retreat'] },
+    { id: 8, name: 'Waka National Park', tours: ['Canopy Walk', 'Jungle Hike', 'Bird Photography Tour'] },
+    { id: 9, name: 'Birougou National Park', tours: ['Forest Trekking', 'Waterfall Visit', 'Cultural Immersion'] },
+    { id: 10, name: 'Bateke Plateau National Park', tours: ['Grassland Safari', 'Volcano Crater Walk', 'Camping Experience'] },
+    { id: 11, name: 'Crystal Mountains National Park', tours: ['Mountain Climbing', 'River Rafting', 'Nature Observation'] },
+    { id: 12, name: 'Minkébé National Park', tours: ['Elephant Tracking', 'Deep Forest Camping', 'Research Station Visit'] },
+    { id: 13, name: 'Mwagne National Park', tours: ['River Safari', 'Botanical Tour', 'Silent Meditation Trail'] },
+  ];
+
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,13 +161,19 @@ const ExtraFunds = () => {
                         <SelectValue placeholder="Select park" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Parks</SelectItem>
-                        <SelectItem value="Yellowstone">Yellowstone</SelectItem>
-                        <SelectItem value="Yosemite">Yosemite</SelectItem>
-                        <SelectItem value="Grand Canyon">Grand Canyon</SelectItem>
-                        <SelectItem value="Zion">Zion</SelectItem>
-                        <SelectItem value="Acadia">Acadia</SelectItem>
-                        <SelectItem value="Rocky Mountain">Rocky Mountain</SelectItem>
+                        <SelectItem value="Akanda National Park">Akanda National Park</SelectItem>
+                        <SelectItem value="Moukalaba-Doudou National Park">Moukalaba-Doudou National Park</SelectItem>
+                        <SelectItem value="Ivindo National Park">Ivindo National Park</SelectItem>
+                        <SelectItem value="Loango National Park">Loango National Park</SelectItem>
+                        <SelectItem value="Lopé National Park">Lopé National Park</SelectItem>
+                        <SelectItem value="Mayumba National Park">Mayumba National Park</SelectItem>
+                        <SelectItem value="Pongara National Park">Pongara National Park</SelectItem>
+                        <SelectItem value="Waka National Park">Waka National Park</SelectItem>
+                        <SelectItem value="Birougou National Park">Birougou National Park</SelectItem>
+                        <SelectItem value="Bateke Plateau National Park">Bateke Plateau National Park</SelectItem>
+                        <SelectItem value="Crystal Mountains National Park">Crystal Mountains National Park</SelectItem>
+                        <SelectItem value="Minkébé National Park">Minkébé National Park</SelectItem>
+                        <SelectItem value="Mwagne National Park">Mwagne National Park</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

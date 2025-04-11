@@ -43,7 +43,6 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const ExtraFundsForm = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   
   const form = useForm<FormValues>({
@@ -203,15 +202,21 @@ const ExtraFundsForm = () => {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="Infrastructure">Infrastructure</SelectItem>
-                                <SelectItem value="Conservation">Conservation</SelectItem>
-                                <SelectItem value="Education">Education</SelectItem>
-                                <SelectItem value="Research">Research</SelectItem>
-                                <SelectItem value="Visitor Services">Visitor Services</SelectItem>
-                                <SelectItem value="Staffing">Staffing</SelectItem>
-                                <SelectItem value="Maintenance">Maintenance</SelectItem>
-                                <SelectItem value="Other">Other</SelectItem>
+                                <SelectItem value="Akanda National Park">Akanda National Park</SelectItem>
+                                <SelectItem value="Moukalaba-Doudou National Park">Moukalaba-Doudou National Park</SelectItem>
+                                <SelectItem value="Ivindo National Park">Ivindo National Park</SelectItem>
+                                <SelectItem value="Loango National Park">Loango National Park</SelectItem>
+                                <SelectItem value="Lopé National Park">Lopé National Park</SelectItem>
+                                <SelectItem value="Mayumba National Park">Mayumba National Park</SelectItem>
+                                <SelectItem value="Pongara National Park">Pongara National Park</SelectItem>
+                                <SelectItem value="Waka National Park">Waka National Park</SelectItem>
+                                <SelectItem value="Birougou National Park">Birougou National Park</SelectItem>
+                                <SelectItem value="Bateke Plateau National Park">Bateke Plateau National Park</SelectItem>
+                                <SelectItem value="Crystal Mountains National Park">Crystal Mountains National Park</SelectItem>
+                                <SelectItem value="Minkébé National Park">Minkébé National Park</SelectItem>
+                                <SelectItem value="Mwagne National Park">Mwagne National Park</SelectItem>
                               </SelectContent>
+
                             </Select>
                             <FormMessage />
                           </FormItem>
