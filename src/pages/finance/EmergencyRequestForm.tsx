@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import DashboardHeader from '@/components/DashboardHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -60,25 +59,36 @@ const EmergencyRequestForm = () => {
     },
   });
   
-  const handleSubmit = (values: FormValues) => {
-    console.log('Emergency request submitted:', values);
-    
-    // In a real app, this would send the data to a backend API
-    // For demo purposes, we'll just show a success message
-    toast.success('Emergency fund request submitted successfully!');
-    
-    // Reset form
-    form.reset();
-    
-    // Navigate back to dashboard after a short delay
-    setTimeout(() => {
-      navigate('/finance/emergency-requests');
-    }, 1500);
+  const handleSubmit = async (values: FormValues) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/finance/emergency-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, // Assuming token is stored here
+        },
+        body: JSON.stringify(values),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit request');
+      }
+      
+      toast.success('Emergency fund request submitted successfully!');
+      form.reset();
+      
+      setTimeout(() => {
+        navigate('/finance/emergency-requests');
+      }, 1500);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to submit emergency request');
+    }
   };
   
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
         
         <div className="flex-1">

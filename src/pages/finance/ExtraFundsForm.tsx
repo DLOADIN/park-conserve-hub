@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -60,20 +59,31 @@ const ExtraFundsForm = () => {
     },
   });
   
-  const handleSubmit = (values: FormValues) => {
-    console.log('Extra funds request submitted:', values);
-    
-    // In a real app, this would send the data to a backend API
-    // For demo purposes, we'll just show a success message
-    toast.success('Extra funds request submitted successfully!');
-    
-    // Reset form
-    form.reset();
-    
-    // Navigate back to dashboard after a short delay
-    setTimeout(() => {
-      navigate('/finance/extra-funds');
-    }, 1500);
+  const handleSubmit = async (values: FormValues) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/finance/extra-funds', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(values),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit request');
+      }
+      
+      toast.success('Extra funds request submitted successfully!');
+      form.reset();
+      
+      setTimeout(() => {
+        navigate('/finance/extra-funds');
+      }, 1500);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to submit extra funds request');
+    }
   };
   
   return (

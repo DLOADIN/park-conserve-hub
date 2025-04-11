@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -7,102 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
-import { Search, FileText, Plus, CalendarIcon, FilterIcon } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, FileText, Plus } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { DateRange } from 'react-day-picker';
-
-interface ExtraFundsRequest {
-  id: string;
-  title: string;
-  description: string;
-  amount: number;
-  park: string;
-  parkId: string;
-  submittedBy: string;
-  submittedById: string;
-  dateSubmitted: string;
-  status: 'pending' | 'approved' | 'rejected';
-  reason?: string;
-  approvedBy?: string;
-  dateResolved?: string;
-}
-
-const mockExtraFundsRequests: ExtraFundsRequest[] = [
-  {
-    id: 'ef-001',
-    title: 'Extended Trail Maintenance',
-    description: 'Additional funds needed for expanding trail maintenance to newly acquired park areas.',
-    amount: 75000,
-    park: 'Yellowstone National Park',
-    parkId: 'park-001',
-    submittedBy: 'Jane Smith',
-    submittedById: 'user-002',
-    dateSubmitted: '2023-10-15',
-    status: 'pending',
-  },
-  {
-    id: 'ef-002',
-    title: 'Visitor Center Expansion',
-    description: 'Expanding visitor center to accommodate increasing tourism.',
-    amount: 150000,
-    park: 'Grand Canyon National Park',
-    parkId: 'park-002',
-    submittedBy: 'Jane Smith',
-    submittedById: 'user-002',
-    dateSubmitted: '2023-10-10',
-    status: 'approved',
-    reason: 'Expansion necessary to improve visitor experience',
-    approvedBy: 'Michael Johnson',
-    dateResolved: '2023-10-12',
-  },
-  {
-    id: 'ef-003',
-    title: 'Wildlife Conservation Program',
-    description: 'Additional funding for expanded wildlife conservation efforts.',
-    amount: 95000,
-    park: 'Zion National Park',
-    parkId: 'park-003',
-    submittedBy: 'Jane Smith',
-    submittedById: 'user-002',
-    dateSubmitted: '2023-10-05',
-    status: 'rejected',
-    reason: 'Current conservation budget is sufficient. Please reapply next fiscal year.',
-    approvedBy: 'Michael Johnson',
-    dateResolved: '2023-10-07',
-  },
-  {
-    id: 'ef-004',
-    title: 'Educational Programs',
-    description: 'Funds for developing new educational programs about park ecology.',
-    amount: 45000,
-    park: 'Yosemite National Park',
-    parkId: 'park-004',
-    submittedBy: 'Jane Smith',
-    submittedById: 'user-002',
-    dateSubmitted: '2023-09-28',
-    status: 'pending',
-  },
-  {
-    id: 'ef-005',
-    title: 'Campground Improvements',
-    description: 'Upgrading facilities at three major campgrounds.',
-    amount: 85000,
-    park: 'Acadia National Park',
-    parkId: 'park-005',
-    submittedBy: 'Jane Smith',
-    submittedById: 'user-002',
-    dateSubmitted: '2023-09-22',
-    status: 'approved',
-    reason: 'Necessary improvements for visitor safety and comfort',
-    approvedBy: 'Michael Johnson',
-    dateResolved: '2023-09-25',
-  },
-];
 
 const ExtraFunds = () => {
   const navigate = useNavigate();
@@ -110,21 +19,48 @@ const ExtraFunds = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [parkFilter, setParkFilter] = useState('all');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<any>(undefined);
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleDateRangeSelect = (range: DateRange | undefined) => {
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/finance/extra-funds', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch extra funds requests');
+        }
+        
+        const data = await response.json();
+        setRequests(data);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to load extra funds requests');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRequests();
+  }, []);
+
+  const handleDateRangeSelect = (range: any | undefined) => {
     setDateRange(range);
   };
 
-  const filteredRequests = mockExtraFundsRequests.filter(request => {
+  const filteredRequests = requests.filter((request: any) => {
     const matchesSearch = 
       request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.park.toLowerCase().includes(searchTerm.toLowerCase());
+      request.parkName.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
     
-    const matchesPark = parkFilter === 'all' || request.parkId === parkFilter;
+    const matchesPark = parkFilter === 'all' || request.parkName === parkFilter;
     
     let matchesDate = true;
     if (dateRange && dateRange.from && dateRange.to) {
@@ -209,11 +145,12 @@ const ExtraFunds = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Parks</SelectItem>
-                        <SelectItem value="park-001">Yellowstone National Park</SelectItem>
-                        <SelectItem value="park-002">Grand Canyon National Park</SelectItem>
-                        <SelectItem value="park-003">Zion National Park</SelectItem>
-                        <SelectItem value="park-004">Yosemite National Park</SelectItem>
-                        <SelectItem value="park-005">Acadia National Park</SelectItem>
+                        <SelectItem value="Yellowstone">Yellowstone</SelectItem>
+                        <SelectItem value="Yosemite">Yosemite</SelectItem>
+                        <SelectItem value="Grand Canyon">Grand Canyon</SelectItem>
+                        <SelectItem value="Zion">Zion</SelectItem>
+                        <SelectItem value="Acadia">Acadia</SelectItem>
+                        <SelectItem value="Rocky Mountain">Rocky Mountain</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -236,13 +173,17 @@ const ExtraFunds = () => {
               <CardHeader>
                 <CardTitle>Extra Funds Requests</CardTitle>
                 <CardDescription>
-                  Showing {filteredRequests.length} of {mockExtraFundsRequests.length} requests
+                  Showing {filteredRequests.length} requests
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {filteredRequests.length > 0 ? (
+                {loading ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">Loading...</p>
+                  </div>
+                ) : filteredRequests.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredRequests.map(request => (
+                    {filteredRequests.map((request: any) => (
                       <Card key={request.id} className="hover:shadow-md transition-shadow">
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
@@ -270,12 +211,6 @@ const ExtraFunds = () => {
                               <span className="text-gray-500">By:</span>
                               <span>{request.submittedBy}</span>
                             </div>
-                            {request.status !== 'pending' && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Resolved:</span>
-                                <span>{request.dateResolved}</span>
-                              </div>
-                            )}
                           </div>
                         </CardContent>
                         <CardFooter className="flex justify-end pt-0">
@@ -297,7 +232,7 @@ const ExtraFunds = () => {
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-4">
                 <div className="text-sm text-gray-500">
-                  Showing {filteredRequests.length} of {mockExtraFundsRequests.length} requests
+                  Showing {filteredRequests.length} requests
                 </div>
               </CardFooter>
             </Card>

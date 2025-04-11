@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -9,71 +9,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Plus, Search, Filter, Clock, CheckCircle, XCircle, AlertCircleIcon, Eye } from 'lucide-react';
+import { AlertTriangle, Plus, Search, Filter, Eye } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { format } from 'date-fns';
-
-// Sample emergency requests data
-const emergencyRequestsData = [
-  {
-    id: 'ER001',
-    title: 'Flood Damage Repair',
-    parkName: 'Yellowstone',
-    amount: 75000,
-    emergencyType: 'Natural Disaster',
-    timeframe: 'urgent',
-    status: 'pending',
-    submittedDate: '2023-10-15',
-    description: 'Recent flooding has damaged a critical access bridge in the northeast section of the park. Immediate repairs are needed to ensure visitor safety and prevent further damage.',
-    justification: 'Without this repair, the entire northeast section of the park will be inaccessible to visitors and emergency vehicles. This poses significant safety risks and will result in revenue losses if not addressed promptly.',
-  },
-  {
-    id: 'ER002',
-    title: 'Wildlife Disease Containment',
-    parkName: 'Grand Canyon',
-    amount: 45000,
-    emergencyType: 'Wildlife Crisis',
-    timeframe: 'immediate',
-    status: 'submitted',
-    submittedDate: '2023-10-18',
-    description: 'A potentially contagious disease has been detected in the local deer population. Funds are needed for testing, monitoring, and containment efforts.',
-    justification: 'If left unchecked, this disease could decimate the deer population and potentially spread to other wildlife species. Immediate action is necessary to prevent an ecological crisis.',
-  },
-  {
-    id: 'ER003',
-    title: 'Trail Collapse Repair',
-    parkName: 'Zion',
-    amount: 32000,
-    emergencyType: 'Infrastructure Failure',
-    timeframe: 'urgent',
-    status: 'submitted',
-    submittedDate: '2023-10-12',
-    description: 'A section of the Angel\'s Landing trail has collapsed due to erosion, creating a dangerous situation for hikers.',
-    justification: 'This is one of our most popular trails and the collapse creates a severe safety hazard. Immediate repair is needed before someone is injured.',
-  },
-  {
-    id: 'ER004',
-    title: 'Contaminated Water Source',
-    parkName: 'Acadia',
-    amount: 28500,
-    emergencyType: 'Safety Hazard',
-    timeframe: 'immediate',
-    status: 'draft',
-    submittedDate: null,
-    description: 'A water source used by campers and hikers has tested positive for harmful bacteria. Emergency purification systems and alternative water sources are needed.',
-    justification: 'This is a critical public health issue that could result in illness among park visitors if not addressed immediately.',
-  },
-];
+import { toast } from 'sonner';
 
 const EmergencyRequests = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [requests, setRequests] = useState(emergencyRequestsData);
-  const [filteredRequests, setFilteredRequests] = useState(emergencyRequestsData);
+  const [requests, setRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -83,30 +31,57 @@ const EmergencyRequests = () => {
     from: undefined,
     to: undefined,
   });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/finance/emergency-requests', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch emergency requests');
+        }
+        
+        const data = await response.json();
+        setRequests(data);
+        applyFilters(activeTab, parkFilter, searchTerm, dateRange, data);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to load emergency requests');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRequests();
+  }, []);
 
   // Handle filter changes
   const handleFilterChange = (status: string) => {
     setActiveTab(status);
-    applyFilters(status, parkFilter, searchTerm, dateRange);
+    applyFilters(status, parkFilter, searchTerm, dateRange, requests);
   };
   
   // Handle park filter change
   const handleParkFilterChange = (park: string) => {
     setParkFilter(park);
-    applyFilters(activeTab, park, searchTerm, dateRange);
+    applyFilters(activeTab, park, searchTerm, dateRange, requests);
   };
   
   // Handle search
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;
     setSearchTerm(term);
-    applyFilters(activeTab, parkFilter, term, dateRange);
+    applyFilters(activeTab, parkFilter, term, dateRange, requests);
   };
   
   // Handle date range change
   const handleDateRangeChange = (range: { from?: Date; to?: Date }) => {
     setDateRange({ from: range.from ?? undefined, to: range.to ?? undefined });
-    applyFilters(activeTab, parkFilter, searchTerm, range);
+    applyFilters(activeTab, parkFilter, searchTerm, range, requests);
   };
   
   // Apply all filters
@@ -114,9 +89,10 @@ const EmergencyRequests = () => {
     status: string, 
     park: string, 
     term: string, 
-    dates: { from?: Date; to?: Date }
+    dates: { from?: Date; to?: Date },
+    data: any[]
   ) => {
-    let filtered = requests;
+    let filtered = data;
     
     // Apply status filter
     if (status !== 'all') {
@@ -155,41 +131,15 @@ const EmergencyRequests = () => {
     setIsViewDialogOpen(true);
   };
   
-  // Submit draft request
-  const submitDraftRequest = (requestId: string) => {
-    const updatedRequests = requests.map(request => {
-      if (request.id === requestId) {
-        return {
-          ...request,
-          status: 'submitted',
-          submittedDate: format(new Date(), 'yyyy-MM-dd'),
-        };
-      }
-      return request;
-    });
-    
-    setRequests(updatedRequests);
-    applyFilters(activeTab, parkFilter, searchTerm, dateRange);
-    
-    // Close dialog if open
-    if (isViewDialogOpen && selectedRequest?.id === requestId) {
-      setIsViewDialogOpen(false);
-    }
-  };
-  
   // Get status badge
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'draft':
-        return <Badge className="bg-gray-500 hover:bg-gray-600">Draft</Badge>;
-      case 'submitted':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Submitted</Badge>;
       case 'pending':
         return <Badge className="bg-amber-500 hover:bg-amber-600">Pending Approval</Badge>;
       case 'approved':
         return <Badge className="bg-green-500 hover:bg-green-600">Approved</Badge>;
-      case 'denied':
-        return <Badge className="bg-red-500 hover:bg-red-600">Denied</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-500 hover:bg-red-600">Rejected</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -213,7 +163,7 @@ const EmergencyRequests = () => {
   
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
         
         <div className="flex-1">
@@ -279,11 +229,11 @@ const EmergencyRequests = () => {
                 </div>
                 
                 <Tabs defaultValue="all" className="w-full" onValueChange={handleFilterChange}>
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="all">All Requests</TabsTrigger>
-                    <TabsTrigger value="draft">Drafts</TabsTrigger>
-                    <TabsTrigger value="submitted">Submitted</TabsTrigger>
                     <TabsTrigger value="pending">Pending</TabsTrigger>
+                    <TabsTrigger value="approved">Approved</TabsTrigger>
+                    {/* Removed draft and submitted tabs */}
                   </TabsList>
                   
                   <TabsContent value="all" className="mt-6">
@@ -303,7 +253,13 @@ const EmergencyRequests = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredRequests.length === 0 ? (
+                          {loading ? (
+                            <TableRow>
+                              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                                Loading...
+                              </TableCell>
+                            </TableRow>
+                          ) : filteredRequests.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                                 No emergency requests found
@@ -320,126 +276,6 @@ const EmergencyRequests = () => {
                                 <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
                                 <TableCell>{getStatusBadge(request.status)}</TableCell>
                                 <TableCell>{request.submittedDate || '-'}</TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openViewDialog(request)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                    
-                                    {request.status === 'draft' && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="bg-blue-50 text-blue-700 hover:bg-blue-100"
-                                        onClick={() => submitDraftRequest(request.id)}
-                                      >
-                                        Submit
-                                      </Button>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="draft" className="mt-6">
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Request ID</TableHead>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Park</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Emergency Type</TableHead>
-                            <TableHead>Timeframe</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredRequests.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                                No draft requests found
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            filteredRequests.map((request) => (
-                              <TableRow key={request.id}>
-                                <TableCell>{request.id}</TableCell>
-                                <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
-                                <TableCell>{request.parkName}</TableCell>
-                                <TableCell>${request.amount.toLocaleString()}</TableCell>
-                                <TableCell>{request.emergencyType}</TableCell>
-                                <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openViewDialog(request)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                    
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="bg-blue-50 text-blue-700 hover:bg-blue-100"
-                                      onClick={() => submitDraftRequest(request.id)}
-                                    >
-                                      Submit
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="submitted" className="mt-6">
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Request ID</TableHead>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Park</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Emergency Type</TableHead>
-                            <TableHead>Timeframe</TableHead>
-                            <TableHead>Submitted Date</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredRequests.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                No submitted requests found
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            filteredRequests.map((request) => (
-                              <TableRow key={request.id}>
-                                <TableCell>{request.id}</TableCell>
-                                <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
-                                <TableCell>{request.parkName}</TableCell>
-                                <TableCell>${request.amount.toLocaleString()}</TableCell>
-                                <TableCell>{request.emergencyType}</TableCell>
-                                <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
-                                <TableCell>{request.submittedDate}</TableCell>
                                 <TableCell>
                                   <Button
                                     variant="outline"
@@ -473,10 +309,71 @@ const EmergencyRequests = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredRequests.length === 0 ? (
+                          {loading ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                Loading...
+                              </TableCell>
+                            </TableRow>
+                          ) : filteredRequests.length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                                 No pending requests found
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            filteredRequests.map((request) => (
+                              <TableRow key={request.id}>
+                                <TableCell>{request.id}</TableCell>
+                                <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
+                                <TableCell>{request.parkName}</TableCell>
+                                <TableCell>${request.amount.toLocaleString()}</TableCell>
+                                <TableCell>{request.emergencyType}</TableCell>
+                                <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
+                                <TableCell>{request.submittedDate}</TableCell>
+                                <TableCell>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openViewDialog(request)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="approved" className="mt-6">
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Request ID</TableHead>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Park</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Emergency Type</TableHead>
+                            <TableHead>Timeframe</TableHead>
+                            <TableHead>Submitted Date</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {loading ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                Loading...
+                              </TableCell>
+                            </TableRow>
+                          ) : filteredRequests.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                No approved requests found
                               </TableCell>
                             </TableRow>
                           ) : (
@@ -514,7 +411,7 @@ const EmergencyRequests = () => {
       
       {/* View Request Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[1500px]">
           <DialogHeader>
             <div className="flex items-center gap-3 text-amber-500 mb-1">
               <AlertTriangle className="h-5 w-5" />
@@ -566,17 +463,6 @@ const EmergencyRequests = () => {
           </div>
           
           <DialogFooter>
-            {selectedRequest?.status === 'draft' && (
-              <Button 
-                className="bg-blue-600"
-                onClick={() => {
-                  submitDraftRequest(selectedRequest.id);
-                  setIsViewDialogOpen(false);
-                }}
-              >
-                Submit Request
-              </Button>
-            )}
             <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
               Close
             </Button>

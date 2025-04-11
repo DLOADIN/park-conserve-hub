@@ -1439,6 +1439,227 @@ def update_fund_request_status(current_user_id, request_id):
             connection.close()
 
 
+# Add these endpoints to your existing server.py, after the existing finance-related endpoints
+
+@app.route('/api/finance/emergency-requests', methods=['POST'])
+@token_required
+def create_emergency_request(current_user_id):
+    """Create a new emergency fund request."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['title', 'description', 'amount', 'parkName', 'emergencyType', 'justification', 'timeframe']
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        # Validate amount
+        try:
+            amount = float(data['amount'])
+            if amount <= 0:
+                return jsonify({"error": "Amount must be positive"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid amount"}), 400
+
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO emergency_requests (
+                title, description, amount, park_name, emergency_type,
+                justification, timeframe, status, created_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data['title'],
+            data['description'],
+            amount,
+            data['parkName'],
+            data['emergencyType'],
+            data['justification'],
+            data['timeframe'],
+            'pending',
+            current_user_id
+        ))
+        connection.commit()
+        
+        new_request_id = cursor.lastrowid
+        
+        return jsonify({
+            "message": "Emergency fund request created successfully",
+            "id": new_request_id
+        }), 201
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to create emergency request: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/finance/emergency-requests', methods=['GET'])
+@token_required
+def get_emergency_requests(current_user_id):
+    """Retrieve all emergency fund requests for the finance officer."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, title, description, amount, park_name as parkName,
+                emergency_type as emergencyType, justification, timeframe,
+                status, created_at
+            FROM emergency_requests
+            WHERE created_by = %s
+            ORDER BY created_at DESC
+        """, (current_user_id,))
+        requests = cursor.fetchall()
+        
+        # Format dates for frontend
+        for req in requests:
+            req['amount'] = float(req['amount'])  # Convert Decimal to float
+            req['submittedDate'] = req['created_at'].strftime('%Y-%m-%d') if req['created_at'] else None
+            req['id'] = str(req['id'])  # Match frontend expectation
+            del req['created_at']
+        
+        return jsonify(requests), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve emergency requests"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/finance/extra-funds', methods=['POST'])
+@token_required
+def create_extra_funds_request(current_user_id):
+    """Create a new extra funds request."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['title', 'description', 'amount', 'parkName', 'category', 'justification', 'expectedDuration']
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        # Validate amount
+        try:
+            amount = float(data['amount'])
+            if amount <= 0:
+                return jsonify({"error": "Amount must be positive"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid amount"}), 400
+
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO extra_funds_requests (
+                title, description, amount, park_name, category,
+                justification, expected_duration, status, created_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data['title'],
+            data['description'],
+            amount,
+            data['parkName'],
+            data['category'],
+            data['justification'],
+            data['expectedDuration'],
+            'pending',
+            current_user_id
+        ))
+        connection.commit()
+        
+        new_request_id = cursor.lastrowid
+        
+        return jsonify({
+            "message": "Extra funds request created successfully",
+            "id": new_request_id
+        }), 201
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to create extra funds request: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+@app.route('/api/finance/extra-funds', methods=['GET'])
+@token_required
+def get_extra_funds_requests(current_user_id):
+    """Retrieve all extra funds requests for the finance officer."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, title, description, amount, park_name as parkName,
+                category, justification, expected_duration as expectedDuration,
+                status, created_at, created_by as submittedById
+            FROM extra_funds_requests
+            WHERE created_by = %s
+            ORDER BY created_at DESC
+        """, (current_user_id,))
+        requests = cursor.fetchall()
+        
+        # Get finance officer details for submittedBy
+        cursor.execute("""
+            SELECT id, CONCAT(first_name, ' ', last_name) as name
+            FROM finance_officers
+            WHERE id = %s
+        """, (current_user_id,))
+        officer = cursor.fetchone()
+        officer_name = officer['name'] if officer else 'Unknown'
+        
+        # Format data for frontend
+        for req in requests:
+            req['amount'] = float(req['amount'])  # Convert Decimal to float
+            req['dateSubmitted'] = req['created_at'].strftime('%Y-%m-%d') if req['created_at'] else None
+            # Ensure id is an integer before formatting
+            req_id = int(req['id'])  # Convert to int explicitly
+            req['id'] = f"ef-{req_id:03d}"  # Format as ef-001
+            req['parkId'] = f"park-{req_id:03d}"  # Format as park-001
+            req['submittedBy'] = officer_name
+            req['park'] = req['parkName']  # Add park field for frontend
+            del req['created_at']
+        
+        return jsonify(requests), 200
+
+    except ValueError as ve:
+        print(f"ValueError: {ve}")
+        return jsonify({"error": "Invalid data format in database"}), 500
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve extra funds requests"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+
+
+
+
 # if __name__ == '__main__':
 #     if not os.path.exists(app.config['UPLOAD_FOLDER']):
 #         os.makedirs(app.config['UPLOAD_FOLDER'])
