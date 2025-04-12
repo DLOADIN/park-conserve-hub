@@ -103,6 +103,7 @@ const Donations = () => {
                       <TableHead>ID</TableHead>
                       <TableHead>Donor</TableHead>
                       <TableHead>Amount</TableHead>
+                      <TableHead>Email</TableHead>
                       <TableHead>Park Name</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Date</TableHead>
@@ -120,6 +121,7 @@ const Donations = () => {
                               : `${donation.first_name} ${donation.last_name}`}
                           </TableCell>
                           <TableCell>${donation.amount.toLocaleString()}</TableCell>
+                          <TableCell>{donation.email}</TableCell>
                           <TableCell>{donation.park_name}</TableCell>
                           <TableCell>{donation.donation_type}</TableCell>
                           <TableCell>{donation.created_at}</TableCell>

@@ -99,6 +99,7 @@ const BookedTours = () => {
                       <TableHead>Park Name</TableHead>
                       <TableHead>Tour Name</TableHead>
                       <TableHead>Customer</TableHead>
+                      <TableHead>Email</TableHead>
                       <TableHead>Tour Date</TableHead>
                       <TableHead>Guests</TableHead>
                       <TableHead>Amount</TableHead>
@@ -112,7 +113,9 @@ const BookedTours = () => {
                           <TableCell>{tour.id}</TableCell>
                           <TableCell>{tour.park_name}</TableCell>
                           <TableCell>{tour.tour_name || 'N/A'}</TableCell>
+                          
                           <TableCell>{`${tour.first_name} ${tour.last_name}`}</TableCell>
+                          <TableCell>{tour.email}</TableCell>
                           <TableCell>{tour.date}</TableCell>
                           <TableCell>{tour.guests}</TableCell>
                           <TableCell>${tour.amount}.00</TableCell>

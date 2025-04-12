@@ -1879,10 +1879,19 @@ def get_rejected_budgets(current_user_id):
 
 
 # Add this after the other budget endpoints in server.py
-@app.route('/api/finance/budgets/approved', methods=['GET', 'OPTIONS'])
+@app.route('/api/finance/budgets/approved', methods=['GET'])
 @token_required
 def get_approved_budgets(current_user_id):
     """Retrieve approved budgets."""
+    #  if request.method == 'OPTIONS':
+    #     response = jsonify({"message": "CORS preflight successful"})
+    #     # This is the issue - you're using a tuple with commas inside the string
+    #     # Instead of a list of allowed origins
+    #     response.headers['Access-Control-Allow-Origin'] = "*"  # Or use your specific origin
+    #     response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    #     response.headers['Access-Control-Allow-Headers'] = 'Authorization, Content-Type'
+    #     return response, 200
+     
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500

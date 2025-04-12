@@ -106,6 +106,7 @@ const RequestManagement = () => {
                       <TableHead>Amount</TableHead>
                       <TableHead>Park</TableHead>
                       <TableHead>Staff</TableHead>
+                      <TableHead>Email</TableHead>
                       <TableHead>Staff Park</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
@@ -120,6 +121,7 @@ const RequestManagement = () => {
                         <TableCell>${request.amount.toLocaleString()}</TableCell>
                         <TableCell>{request.parkname}</TableCell>
                         <TableCell>{`${request.first_name} ${request.last_name}`}</TableCell>
+                        <TableCell>{request.staff_email}</TableCell>
                         <TableCell>{request.staff_park}</TableCell>
                         <TableCell>{request.status}</TableCell>
                         <TableCell>
