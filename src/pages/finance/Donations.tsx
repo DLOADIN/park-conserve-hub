@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Search, User, MapPin, DollarSign, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable'; 
 
 interface Donation {
   id: string;
@@ -86,65 +87,74 @@ const Donations = () => {
             <Card>
               <CardHeader>
                 <CardTitle>All Donations</CardTitle>
-                <div className="relative w-full md:w-1/3 mt-2">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search donations..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
+                <div className="flex justify-between items-center">
+                  <div className="relative w-full md:w-1/3 mt-2">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search donations..."
+                      className="pl-8"
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                    />
+                  </div>
+                  <PrintDownloadTable
+                    tableId="donations-table"
+                    title="Donations Report"
+                    filename="donations_report"
                   />
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Donor</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Park Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredDonations.length > 0 ? (
-                      filteredDonations.map((donation) => (
-                        <TableRow key={donation.id}>
-                          <TableCell>{donation.id}</TableCell>
-                          <TableCell>
-                            {donation.is_anonymous
-                              ? 'Anonymous'
-                              : `${donation.first_name} ${donation.last_name}`}
-                          </TableCell>
-                          <TableCell>${donation.amount.toLocaleString()}</TableCell>
-                          <TableCell>{donation.email}</TableCell>
-                          <TableCell>{donation.park_name}</TableCell>
-                          <TableCell>{donation.donation_type}</TableCell>
-                          <TableCell>{donation.created_at}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => viewDonationDetails(donation)}
-                            >
-                              View
-                            </Button>
+                <div id="donations-table">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Donor</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Park Name</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="no-print">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDonations.length > 0 ? (
+                        filteredDonations.map((donation) => (
+                          <TableRow key={donation.id}>
+                            <TableCell>{donation.id}</TableCell>
+                            <TableCell>
+                              {donation.is_anonymous
+                                ? 'Anonymous'
+                                : `${donation.first_name} ${donation.last_name}`}
+                            </TableCell>
+                            <TableCell>${donation.amount.toLocaleString()}</TableCell>
+                            <TableCell>{donation.email}</TableCell>
+                            <TableCell>{donation.park_name}</TableCell>
+                            <TableCell>{donation.donation_type}</TableCell>
+                            <TableCell>{donation.created_at}</TableCell>
+                            <TableCell className="no-print">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => viewDonationDetails(donation)}
+                              >
+                                View
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center">
+                            No donations found
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center">
-                          No donations found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
                 <div className="mt-4 text-sm text-gray-500">
                   Showing {filteredDonations.length} of {donations.length} donations
                 </div>
