@@ -19,7 +19,9 @@ app.config['SECRET_KEY'] = 'x7k9p2m4q8v5n3j6h1t0r2y5u8w3z6b9'
 # Allow specific origins
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:8081", "http://127.0.0.1:8081", "http://localhost:8080",  "http://127.0.0.1:8080","http://localhost:8082",  "http://127.0.0.1:8082", "http://localhost:8083",  "http://127.0.0.1:8083"]
+        "origins": ["http://localhost:8081", "http://127.0.0.1:8081", "http://localhost:8080",  "http://127.0.0.1:8080","http://localhost:8082",  "http://127.0.0.1:8082", "http://localhost:8083",  "http://127.0.0.1:8083"],
+        "methods": ["GET", "POST", "OPTIONS", "PUT"],  # Explicitly allow OPTIONS
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
@@ -1654,6 +1656,274 @@ def get_extra_funds_requests(current_user_id):
 
 
 
+
+
+
+
+@app.route('/api/finance/budgets', methods=['POST'])
+@token_required
+def create_budget(current_user_id):
+    """Create a new budget with items."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['title', 'fiscalYear', 'items', 'status']
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+        
+        if data['status'] not in ['draft', 'submitted']:
+            return jsonify({"error": "Invalid status. Must be 'draft' or 'submitted'"}), 400
+        
+        # Validate items
+        items = data['items']
+        if not isinstance(items, list) or len(items) == 0:
+            return jsonify({"error": "Items must be a non-empty list"}), 400
+        
+        for item in items:
+            if not all(key in item for key in ['category', 'description', 'amount']):
+                return jsonify({"error": "Each item must have category, description, and amount"}), 400
+            if not isinstance(item['amount'], (int, float)) or item['amount'] <= 0:
+                return jsonify({"error": "Item amount must be a positive number"}), 400
+        
+        total_amount = sum(item['amount'] for item in items)
+        
+        cursor = connection.cursor()
+        # Insert budget
+        cursor.execute("""
+            INSERT INTO budgets (title, fiscal_year, total_amount, status, created_by)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (
+            data['title'],
+            data['fiscalYear'],
+            total_amount,
+            data['status'],
+            current_user_id
+        ))
+        
+        budget_id = cursor.lastrowid
+        
+        # Insert budget items
+        for item in items:
+            cursor.execute("""
+                INSERT INTO budget_items (budget_id, category, description, amount)
+                VALUES (%s, %s, %s, %s)
+            """, (
+                budget_id,
+                item['category'],
+                item['description'],
+                item['amount']
+            ))
+        
+        connection.commit()
+        
+        return jsonify({
+            "message": f"Budget {data['status']} successfully",
+            "id": budget_id
+        }), 201
+    
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to create budget"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# Get all budgets (for existing budgets tab)
+@app.route('/api/finance/budgets', methods=['GET'])
+@token_required
+def get_budgets(current_user_id):
+    """Retrieve all budgets for the finance officer."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, title, fiscal_year AS fiscalYear, total_amount AS totalAmount,
+                status, created_at AS createdAt
+            FROM budgets
+            WHERE created_by = %s
+            ORDER BY created_at DESC
+        """, (current_user_id,))
+        budgets = cursor.fetchall()
+        
+        # Fetch items for each budget
+        for budget in budgets:
+            cursor.execute("""
+                SELECT 
+                    id, category, description, amount
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            for item in items:
+                item['amount'] = float(item['amount'])  # Convert Decimal to float
+                item['id'] = str(item['id'])  # Ensure id is string for frontend
+            budget['items'] = items
+            budget['id'] = str(budget['id'])  # Ensure id is string
+            budget['totalAmount'] = float(budget['totalAmount'])  # Convert Decimal to float
+            budget['createdAt'] = budget['createdAt'].isoformat()  # Convert to ISO string
+        
+        return jsonify(budgets), 200
+    
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# Get pending budgets
+@app.route('/api/finance/budgets/pending', methods=['GET'])
+@token_required
+def get_pending_budgets(current_user_id):
+    """Retrieve pending (submitted) budgets."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, title, fiscal_year AS fiscalYear, total_amount AS totalAmount,
+                status, created_at AS createdAt
+            FROM budgets
+            WHERE created_by = %s AND status = 'submitted'
+            ORDER BY created_at DESC
+        """, (current_user_id,))
+        budgets = cursor.fetchall()
+        
+        for budget in budgets:
+            cursor.execute("""
+                SELECT 
+                    id, category, description, amount
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            for item in items:
+                item['amount'] = float(item['amount'])
+                item['id'] = str(item['id'])
+            budget['items'] = items
+            budget['id'] = str(budget['id'])
+            budget['totalAmount'] = float(budget['totalAmount'])
+            budget['createdAt'] = budget['createdAt'].isoformat()
+        
+        return jsonify(budgets), 200
+    
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve pending budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# Get rejected budgets
+@app.route('/api/finance/budgets/rejected', methods=['GET'])
+@token_required
+def get_rejected_budgets(current_user_id):
+    """Retrieve rejected budgets."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, title, fiscal_year AS fiscalYear, total_amount AS totalAmount,
+                status, created_at AS createdAt
+            FROM budgets
+            WHERE created_by = %s AND status = 'rejected'
+            ORDER BY created_at DESC
+        """, (current_user_id,))
+        budgets = cursor.fetchall()
+        
+        for budget in budgets:
+            cursor.execute("""
+                SELECT 
+                    id, category, description, amount
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            for item in items:
+                item['amount'] = float(item['amount'])
+                item['id'] = str(item['id'])
+            budget['items'] = items
+            budget['id'] = str(budget['id'])
+            budget['totalAmount'] = float(budget['totalAmount'])
+            budget['createdAt'] = budget['createdAt'].isoformat()
+        
+        return jsonify(budgets), 200
+    
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve rejected budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+# Add this after the other budget endpoints in server.py
+@app.route('/api/finance/budgets/approved', methods=['GET', 'OPTIONS'])
+@token_required
+def get_approved_budgets(current_user_id):
+    """Retrieve approved budgets."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id, title, fiscal_year AS fiscalYear, total_amount AS totalAmount,
+                status, created_at AS createdAt
+            FROM budgets
+            WHERE created_by = %s AND status = 'approved'
+            ORDER BY created_at DESC
+        """, (current_user_id,))
+        budgets = cursor.fetchall()
+        
+        for budget in budgets:
+            cursor.execute("""
+                SELECT 
+                    id, category, description, amount
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            for item in items:
+                item['amount'] = float(item['amount'])
+                item['id'] = str(item['id'])
+            budget['items'] = items
+            budget['id'] = str(budget['id'])
+            budget['totalAmount'] = float(budget['totalAmount'])
+            budget['createdAt'] = budget['createdAt'].isoformat()
+        
+        return jsonify(budgets), 200
+    
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve approved budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 
 

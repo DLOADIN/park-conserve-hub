@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -33,55 +33,9 @@ interface BudgetData {
   fiscalYear: string;
   totalAmount: number;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
-  createdAt: Date;
+  createdAt: Date | string;
   items: BudgetItem[];
 }
-
-// Sample data
-const sampleBudgets: BudgetData[] = [
-  {
-    id: '1',
-    title: 'Annual Park Budget 2023',
-    fiscalYear: '2023-2024',
-    totalAmount: 1250000,
-    status: 'approved',
-    createdAt: new Date('2023-03-15'),
-    items: [
-      { id: '1-1', category: 'Staff Salaries', description: 'Annual salaries for 25 staff members', amount: 750000 },
-      { id: '1-2', category: 'Maintenance', description: 'Park facilities maintenance', amount: 200000 },
-      { id: '1-3', category: 'Conservation', description: 'Wildlife conservation programs', amount: 150000 },
-      { id: '1-4', category: 'Equipment', description: 'New equipment purchases', amount: 100000 },
-      { id: '1-5', category: 'Miscellaneous', description: 'Unforeseen expenses', amount: 50000 },
-    ],
-  },
-  {
-    id: '2',
-    title: 'Emergency Flood Recovery',
-    fiscalYear: '2023-2024',
-    totalAmount: 350000,
-    status: 'approved',
-    createdAt: new Date('2023-08-10'),
-    items: [
-      { id: '2-1', category: 'Infrastructure Repair', description: 'Repair of damaged paths and bridges', amount: 200000 },
-      { id: '2-2', category: 'Habitat Restoration', description: 'Restoration of damaged wildlife habitats', amount: 150000 },
-    ],
-  },
-  {
-    id: '3',
-    title: 'Annual Park Budget 2024 (Draft)',
-    fiscalYear: '2024-2025',
-    totalAmount: 1350000,
-    status: 'draft',
-    createdAt: new Date('2024-02-20'),
-    items: [
-      { id: '3-1', category: 'Staff Salaries', description: 'Annual salaries for 27 staff members', amount: 810000 },
-      { id: '3-2', category: 'Maintenance', description: 'Park facilities maintenance', amount: 220000 },
-      { id: '3-3', category: 'Conservation', description: 'Wildlife conservation programs', amount: 170000 },
-      { id: '3-4', category: 'Equipment', description: 'New equipment purchases', amount: 100000 },
-      { id: '3-5', category: 'Miscellaneous', description: 'Unforeseen expenses', amount: 50000 },
-    ],
-  },
-];
 
 const BudgetCreation = () => {
   const [activeTab, setActiveTab] = useState('existing');
@@ -90,6 +44,46 @@ const BudgetCreation = () => {
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([
     { id: '1', category: '', description: '', amount: 0 },
   ]);
+  const [existingBudgets, setExistingBudgets] = useState<BudgetData[]>([]);
+  const [pendingBudgets, setPendingBudgets] = useState<BudgetData[]>([]);
+  const [approvedBudgets, setApprovedBudgets] = useState<BudgetData[]>([]);
+  const [rejectedBudgets, setRejectedBudgets] = useState<BudgetData[]>([]);
+  const [loading, setLoading] = useState({ existing: true, pending: true, approved: true, rejected: true });
+
+  // Fetch budgets for each tab
+  useEffect(() => {
+    const fetchBudgets = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<BudgetData[]>>, key: keyof typeof loading) => {
+      try {
+        const response = await fetch(endpoint, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${key} budgets`);
+        }
+        const data = await response.json();
+        const budgets = data.map((budget: BudgetData) => ({
+          ...budget,
+          createdAt: new Date(budget.createdAt),
+        }));
+        setter(budgets);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: `Failed to load ${key} budgets`,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(prev => ({ ...prev, [key]: false }));
+      }
+    };
+
+    fetchBudgets('http://localhost:5000/api/finance/budgets', setExistingBudgets, 'existing');
+    fetchBudgets('http://localhost:5000/api/finance/budgets/pending', setPendingBudgets, 'pending');
+    fetchBudgets('http://localhost:5000/api/finance/budgets/approved', setApprovedBudgets, 'approved');
+    fetchBudgets('http://localhost:5000/api/finance/budgets/rejected', setRejectedBudgets, 'rejected');
+  }, []);
 
   const addNewBudgetItem = () => {
     setBudgetItems([
@@ -122,7 +116,7 @@ const BudgetCreation = () => {
     return budgetItems.reduce((total, item) => total + (Number(item.amount) || 0), 0);
   };
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (!budgetTitle || !fiscalYear) {
       toast({
         title: 'Validation Error',
@@ -142,14 +136,44 @@ const BudgetCreation = () => {
       return;
     }
 
-    // Here you would save to a database
-    toast({
-      title: 'Budget Saved',
-      description: `Draft budget "${budgetTitle}" saved successfully`,
-    });
+    try {
+      const response = await fetch('http://localhost:5000/api/finance/budgets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          title: budgetTitle,
+          fiscalYear,
+          items: budgetItems,
+          status: 'draft',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save draft');
+      }
+
+      toast({
+        title: 'Budget Saved',
+        description: `Draft budget "${budgetTitle}" saved successfully`,
+      });
+      setBudgetTitle('');
+      setFiscalYear('');
+      setBudgetItems([{ id: '1', category: '', description: '', amount: 0 }]);
+      setActiveTab('existing');
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save budget draft',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleSubmitBudget = () => {
+  const handleSubmitBudget = async () => {
     if (!budgetTitle || !fiscalYear) {
       toast({
         title: 'Validation Error',
@@ -169,11 +193,41 @@ const BudgetCreation = () => {
       return;
     }
 
-    // Here you would submit to a database
-    toast({
-      title: 'Budget Submitted',
-      description: `Budget "${budgetTitle}" submitted for approval`,
-    });
+    try {
+      const response = await fetch('http://localhost:5000/api/finance/budgets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          title: budgetTitle,
+          fiscalYear,
+          items: budgetItems,
+          status: 'submitted',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit budget');
+      }
+
+      toast({
+        title: 'Budget Submitted',
+        description: `Budget "${budgetTitle}" submitted for approval`,
+      });
+      setBudgetTitle('');
+      setFiscalYear('');
+      setBudgetItems([{ id: '1', category: '', description: '', amount: 0 }]);
+      setActiveTab('pending'); // Switch to pending tab after submission
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to submit budget',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getStatusColor = (status: BudgetData['status']) => {
@@ -185,6 +239,63 @@ const BudgetCreation = () => {
       default: return 'bg-gray-100';
     }
   };
+
+  const renderBudgetList = (budgets: BudgetData[], tabName: string) => (
+    <div className="grid gap-6">
+      {loading[tabName as keyof typeof loading] ? (
+        <p>Loading {tabName} budgets...</p>
+      ) : budgets.length === 0 ? (
+        <p>No {tabName} budgets found.</p>
+      ) : (
+        budgets.map((budget) => (
+          <Card key={budget.id}>
+            <CardHeader className="flex flex-row items-start justify-between pb-2">
+              <div>
+                <CardTitle className="text-xl">{budget.title}</CardTitle>
+                <CardDescription>Fiscal Year: {budget.fiscalYear}</CardDescription>
+              </div>
+              <Badge className={getStatusColor(budget.status)}>
+                {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
+              </Badge>
+            </CardHeader>
+            <CardContent className="pb-2">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Created on</span>
+                  <span>{budget.createdAt instanceof Date ? budget.createdAt.toLocaleDateString() : new Date(budget.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between font-medium">
+                  <span>Total Amount</span>
+                  <span>${budget.totalAmount.toLocaleString()}</span>
+                </div>
+                <Separator />
+                <div className="space-y-2 pt-2">
+                  <h4 className="font-medium text-sm">Budget Items</h4>
+                  {budget.items.map((item) => (
+                    <div key={item.id} className="grid grid-cols-4 text-sm py-1">
+                      <div className="font-medium">{item.category}</div>
+                      <div className="col-span-2 text-gray-600">{item.description}</div>
+                      <div className="text-right">${item.amount.toLocaleString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setActiveTab('new')}>
+                Create Similar
+              </Button>
+              {budget.status === 'draft' && (
+                <Button size="sm">
+                  Continue Editing
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+        ))
+      )}
+    </div>
+  );
 
   return (
     <SidebarProvider>
@@ -202,59 +313,27 @@ const BudgetCreation = () => {
               <div className="flex justify-between items-center mb-6">
                 <TabsList>
                   <TabsTrigger value="existing">Existing Budgets</TabsTrigger>
+                  <TabsTrigger value="pending">Pending Budgets</TabsTrigger>
+                  <TabsTrigger value="approved">Approved Budgets</TabsTrigger>
+                  <TabsTrigger value="rejected">Rejected Budgets</TabsTrigger>
                   <TabsTrigger value="new">Create New Budget</TabsTrigger>
                 </TabsList>
               </div>
               
               <TabsContent value="existing">
-                <div className="grid gap-6">
-                  {sampleBudgets.map((budget) => (
-                    <Card key={budget.id}>
-                      <CardHeader className="flex flex-row items-start justify-between pb-2">
-                        <div>
-                          <CardTitle className="text-xl">{budget.title}</CardTitle>
-                          <CardDescription>Fiscal Year: {budget.fiscalYear}</CardDescription>
-                        </div>
-                        <Badge className={getStatusColor(budget.status)}>
-                          {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
-                        </Badge>
-                      </CardHeader>
-                      <CardContent className="pb-2">
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Created on</span>
-                            <span>{budget.createdAt.toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex justify-between font-medium">
-                            <span>Total Amount</span>
-                            <span>${budget.totalAmount.toLocaleString()}</span>
-                          </div>
-                          <Separator />
-                          <div className="space-y-2 pt-2">
-                            <h4 className="font-medium text-sm">Budget Items</h4>
-                            {budget.items.map((item) => (
-                              <div key={item.id} className="grid grid-cols-4 text-sm py-1">
-                                <div className="font-medium">{item.category}</div>
-                                <div className="col-span-2 text-gray-600">{item.description}</div>
-                                <div className="text-right">${item.amount.toLocaleString()}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-end gap-2 pt-2">
-                        <Button variant="outline" size="sm" onClick={() => setActiveTab('new')}>
-                          Create Similar
-                        </Button>
-                        {budget.status === 'draft' && (
-                          <Button size="sm">
-                            Continue Editing
-                          </Button>
-                        )}
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
+                {renderBudgetList(existingBudgets, 'existing')}
+              </TabsContent>
+              
+              <TabsContent value="pending">
+                {renderBudgetList(pendingBudgets, 'pending')}
+              </TabsContent>
+              
+              <TabsContent value="approved">
+                {renderBudgetList(approvedBudgets, 'approved')}
+              </TabsContent>
+              
+              <TabsContent value="rejected">
+                {renderBudgetList(rejectedBudgets, 'rejected')}
               </TabsContent>
               
               <TabsContent value="new">
@@ -304,7 +383,7 @@ const BudgetCreation = () => {
                       </div>
 
                       <div className="space-y-4">
-                        {budgetItems.map((item, index) => (
+                        {budgetItems.map((item) => (
                           <div key={item.id} className="grid grid-cols-12 gap-4 items-start bg-gray-50 p-4 rounded-md">
                             <div className="col-span-12 md:col-span-3 space-y-2">
                               <Label htmlFor={`category-${item.id}`}>Category</Label>
