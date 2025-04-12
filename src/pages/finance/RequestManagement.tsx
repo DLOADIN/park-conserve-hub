@@ -95,14 +95,14 @@ const RequestManagement = () => {
           />
           <main className="p-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Fund Requests</CardTitle>
-                <PrintDownloadTable
-                  tableId="fund-requests-table"
-                  title="Fund Requests Report"
-                  filename="fund_requests_report"
-                />
-              </CardHeader>
+            <CardHeader className="flex flex-row justify-between items-center">
+              <CardTitle>Fund Requests</CardTitle>
+              <PrintDownloadTable
+                tableId="fund-requests-table"
+                title="Fund Requests Report"
+                filename="fund_requests_report"
+              />
+            </CardHeader>
               <CardContent>
                 <div id="fund-requests-table">
                   <Table>

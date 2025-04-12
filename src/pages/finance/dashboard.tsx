@@ -123,7 +123,7 @@ const FinanceDashboard = () => {
         setStats([
           { title: 'Total Donations', value: `$${totalDonations.toLocaleString()}`, icon: PiggyBank, trend: 'up' },
           { title: 'Tours Revenue', value: `$${totalToursRevenue.toLocaleString()}`, icon: Calendar, trend: 'up' },
-          { title: 'Accepted Fund Park Requests', value: `$${acceptedFundRequests.toLocaleString()}`, icon: CheckCircle, trend: 'up' },
+          { title: 'Accepted Fund ParkStaff Requests', value: `$${acceptedFundRequests.toLocaleString()}`, icon: CheckCircle, trend: 'up' },
           { title: 'Approved Budgets', value: `$${approvedBudgets.toLocaleString()}`, icon: DollarSign, trend: 'up' },
         ]);
       } catch (error: any) {
