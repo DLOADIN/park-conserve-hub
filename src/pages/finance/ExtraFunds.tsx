@@ -12,6 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, FileText, Plus } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { toast } from 'sonner';
+import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 const ExtraFunds = () => {
@@ -194,10 +196,19 @@ const ExtraFunds = () => {
             
             <Card>
               <CardHeader>
-                <CardTitle>Extra Funds Requests</CardTitle>
-                <CardDescription>
-                  Showing {filteredRequests.length} requests
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Extra Funds Requests</CardTitle>
+                    <CardDescription>
+                      Showing {filteredRequests.length} requests
+                    </CardDescription>
+                  </div>
+                  <PrintDownloadTable
+                    tableId="extra-funds-table"
+                    title="Extra Funds Requests Report"
+                    filename="extra_funds_requests_report"
+                  />
+                </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -205,45 +216,44 @@ const ExtraFunds = () => {
                     <p className="text-gray-500">Loading...</p>
                   </div>
                 ) : filteredRequests.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredRequests.map((request: any) => (
-                      <Card key={request.id} className="hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="text-lg">{request.title}</CardTitle>
-                              <CardDescription className="text-sm mt-1">{request.park}</CardDescription>
-                            </div>
-                            <Badge className={getStatusBadgeColor(request.status)}>
-                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">{request.description}</p>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Amount:</span>
-                              <span className="font-medium">${request.amount.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Submitted:</span>
-                              <span>{request.dateSubmitted}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">By:</span>
-                              <span>{request.submittedBy}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="flex justify-end pt-0">
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <FileText className="h-4 w-4" />
-                            View Details
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
+                  <div id="extra-funds-table">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Park</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Submitted Date</TableHead>
+                          <TableHead>Submitted By</TableHead>
+                          <TableHead className="no-print">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredRequests.map((request: any) => (
+                          <TableRow key={request.id}>
+                            <TableCell>{request.id}</TableCell>
+                            <TableCell>{request.title}</TableCell>
+                            <TableCell>{request.park}</TableCell>
+                            <TableCell>${request.amount.toLocaleString()}</TableCell>
+                            <TableCell>
+                              <Badge className={getStatusBadgeColor(request.status)}>
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{request.dateSubmitted}</TableCell>
+                            <TableCell>{request.submittedBy}</TableCell>
+                            <TableCell className="no-print">
+                              <Button variant="outline" size="sm" className="gap-2">
+                                <FileText className="h-4 w-4" />
+                                View Details
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 ) : (
                   <div className="text-center py-12">

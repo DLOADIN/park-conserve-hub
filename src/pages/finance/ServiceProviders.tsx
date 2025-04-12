@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { User, Phone, Building, FileText, Calendar, File } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
 
 interface ServiceApplication {
   id: string;
@@ -108,64 +109,73 @@ const ServiceProviders = () => {
           <main className="p-6">
             <Card>
               <CardHeader>
-                <CardTitle>Service Applications</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Service Applications</CardTitle>
+                  <PrintDownloadTable
+                    tableId="service-providers-table"
+                    title="Service Providers Report"
+                    filename="service_providers_report"
+                  />
+                </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Service</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                      <TableHead>Transactions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {services.map((service) => (
-                      <TableRow key={service.id}>
-                        <TableCell>{service.id}</TableCell>
-                        <TableCell>{service.company_name}</TableCell>
-                        <TableCell>{`${service.first_name} ${service.last_name} (${service.email})`}</TableCell>
-                        <TableCell>{service.provided_service}</TableCell>
-                        <TableCell>
-                          {service.status ? service.status.charAt(0).toUpperCase() + service.status.slice(1) : 'Pending'}
-                        </TableCell>
-                        <TableCell>
-                          {service.status === 'pending' && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => updateServiceStatus(service.id, 'approved')}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                onClick={() => updateServiceStatus(service.id, 'denied')}
-                                variant="destructive"
-                              >
-                                Deny
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => viewServiceDetails(service)}
-                          >
-                            View
-                          </Button>
-                        </TableCell>
+                <div id="service-providers-table">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Service</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="no-print">Actions</TableHead>
+                        <TableHead className="no-print">Transactions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {services.map((service) => (
+                        <TableRow key={service.id}>
+                          <TableCell>{service.id}</TableCell>
+                          <TableCell>{service.company_name}</TableCell>
+                          <TableCell>{`${service.first_name} ${service.last_name} (${service.email})`}</TableCell>
+                          <TableCell>{service.provided_service}</TableCell>
+                          <TableCell>
+                            {service.status ? service.status.charAt(0).toUpperCase() + service.status.slice(1) : 'Pending'}
+                          </TableCell>
+                          <TableCell className="no-print">
+                            {service.status === 'pending' && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateServiceStatus(service.id, 'approved')}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => updateServiceStatus(service.id, 'denied')}
+                                  variant="destructive"
+                                >
+                                  Deny
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="no-print">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => viewServiceDetails(service)}
+                            >
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
 

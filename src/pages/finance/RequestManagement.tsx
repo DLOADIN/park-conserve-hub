@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { User, MapPin, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
 
 interface FundRequest {
   id: string;
@@ -96,67 +97,74 @@ const RequestManagement = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Fund Requests</CardTitle>
+                <PrintDownloadTable
+                  tableId="fund-requests-table"
+                  title="Fund Requests Report"
+                  filename="fund_requests_report"
+                />
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Park</TableHead>
-                      <TableHead>Staff</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Staff Park</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                      <TableHead>Transactions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {requests.map((request) => (
-                      <TableRow key={request.id}>
-                        <TableCell>{request.id}</TableCell>
-                        <TableCell>{request.title}</TableCell>
-                        <TableCell>${request.amount.toLocaleString()}</TableCell>
-                        <TableCell>{request.parkname}</TableCell>
-                        <TableCell>{`${request.first_name} ${request.last_name}`}</TableCell>
-                        <TableCell>{request.staff_email}</TableCell>
-                        <TableCell>{request.staff_park}</TableCell>
-                        <TableCell>{request.status}</TableCell>
-                        <TableCell>
-                          {request.status === 'pending' && (
-                            <div className='flex items-center gap-2'>
-                              <Button
-                                onClick={() => updateRequestStatus(request.id, 'approved')}
-                                className="mr-2"
-                                size="sm"
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                onClick={() => updateRequestStatus(request.id, 'rejected')}
-                                variant="destructive"
-                                size="sm"
-                              >
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => viewRequestDetails(request)}
-                          >
-                            View
-                          </Button>
-                        </TableCell>
+                <div id="fund-requests-table">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Park</TableHead>
+                        <TableHead>Staff</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Staff Park</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="no-print">Actions</TableHead>
+                        <TableHead className="no-print">Transactions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {requests.map((request) => (
+                        <TableRow key={request.id}>
+                          <TableCell>{request.id}</TableCell>
+                          <TableCell>{request.title}</TableCell>
+                          <TableCell>${request.amount.toLocaleString()}</TableCell>
+                          <TableCell>{request.parkname}</TableCell>
+                          <TableCell>{`${request.first_name} ${request.last_name}`}</TableCell>
+                          <TableCell>{request.staff_email}</TableCell>
+                          <TableCell>{request.staff_park}</TableCell>
+                          <TableCell>{request.status}</TableCell>
+                          <TableCell>
+                            {request.status === 'pending' && (
+                              <div className='flex items-center gap-2'>
+                                <Button
+                                  onClick={() => updateRequestStatus(request.id, 'approved')}
+                                  className="mr-2"
+                                  size="sm"
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  onClick={() => updateRequestStatus(request.id, 'rejected')}
+                                  variant="destructive"
+                                  size="sm"
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => viewRequestDetails(request)}
+                            >
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
 

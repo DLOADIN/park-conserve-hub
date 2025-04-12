@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
+import { Button } from '@/components/ui/button';
 
 interface TourBooking {
   id: string;
@@ -68,6 +70,10 @@ const BookedTours = () => {
     setSearchQuery(e.target.value);
   };
 
+  const viewTourDetails = (tour: TourBooking) => {
+    // Implement the viewTourDetails function
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-gray-50 w-full">
@@ -81,56 +87,72 @@ const BookedTours = () => {
             <Card>
               <CardHeader>
                 <CardTitle>All Booked Tours</CardTitle>
-                <div className="relative w-full md:w-1/3 mt-2">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search tours..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
+                <div className="flex justify-between items-center">
+                  <div className="relative w-full md:w-1/3 mt-2">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search tours..."
+                      className="pl-8"
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                    />
+                  </div>
+                  <PrintDownloadTable
+                    tableId="tours-table"
+                    title="Booked Tours Report"
+                    filename="booked_tours_report"
                   />
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Park Name</TableHead>
-                      <TableHead>Tour Name</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Tour Date</TableHead>
-                      <TableHead>Guests</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Booking Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTours.length > 0 ? (
-                      filteredTours.map((tour) => (
-                        <TableRow key={tour.id}>
-                          <TableCell>{tour.id}</TableCell>
-                          <TableCell>{tour.park_name}</TableCell>
-                          <TableCell>{tour.tour_name || 'N/A'}</TableCell>
-                          
-                          <TableCell>{`${tour.first_name} ${tour.last_name}`}</TableCell>
-                          <TableCell>{tour.email}</TableCell>
-                          <TableCell>{tour.date}</TableCell>
-                          <TableCell>{tour.guests}</TableCell>
-                          <TableCell>${tour.amount}.00</TableCell>
-                          <TableCell>{tour.created_at}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
+                <div id="tours-table">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center">
-                          No tours found
-                        </TableCell>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Park Name</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Tour Date</TableHead>
+                        <TableHead>Guests</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Booking Date</TableHead>
+                        <TableHead className="no-print">Actions</TableHead>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTours.length > 0 ? (
+                        filteredTours.map((tour) => (
+                          <TableRow key={tour.id}>
+                            <TableCell>{tour.id}</TableCell>
+                            <TableCell>{tour.park_name}</TableCell>
+                            <TableCell>{`${tour.first_name} ${tour.last_name}`}</TableCell>
+                            <TableCell>{tour.email}</TableCell>
+                            <TableCell>{tour.date}</TableCell>
+                            <TableCell>{tour.guests}</TableCell>
+                            <TableCell>${tour.amount}.00</TableCell>
+                            <TableCell>{tour.created_at}</TableCell>
+                            <TableCell className="no-print">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => viewTourDetails(tour)}
+                              >
+                                View
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={10} className="text-center">
+                            No tours found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
                 <div className="mt-4 text-sm text-gray-500">
                   Showing {filteredTours.length} of {tours.length} tours
                 </div>

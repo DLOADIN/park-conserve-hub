@@ -19,6 +19,15 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
 import { PlusCircle, Save, Trash2 } from 'lucide-react';
+import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
+  TableHead,
+} from '@/components/ui/table';
 
 interface BudgetItem {
   id: string;
@@ -247,52 +256,51 @@ const BudgetCreation = () => {
       ) : budgets.length === 0 ? (
         <p>No {tabName} budgets found.</p>
       ) : (
-        budgets.map((budget) => (
-          <Card key={budget.id}>
-            <CardHeader className="flex flex-row items-start justify-between pb-2">
-              <div>
-                <CardTitle className="text-xl">{budget.title}</CardTitle>
-                <CardDescription>Fiscal Year: {budget.fiscalYear}</CardDescription>
-              </div>
-              <Badge className={getStatusColor(budget.status)}>
-                {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
-              </Badge>
-            </CardHeader>
-            <CardContent className="pb-2">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Created on</span>
-                  <span>{budget.createdAt instanceof Date ? budget.createdAt.toLocaleDateString() : new Date(budget.createdAt).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between font-medium">
-                  <span>Total Amount</span>
-                  <span>${budget.totalAmount.toLocaleString()}</span>
-                </div>
-                <Separator />
-                <div className="space-y-2 pt-2">
-                  <h4 className="font-medium text-sm">Budget Items</h4>
-                  {budget.items.map((item) => (
-                    <div key={item.id} className="grid grid-cols-4 text-sm py-1">
-                      <div className="font-medium">{item.category}</div>
-                      <div className="col-span-2 text-gray-600">{item.description}</div>
-                      <div className="text-right">${item.amount.toLocaleString()}</div>
+        <div id="budgets-table">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Fiscal Year</TableHead>
+                <TableHead>Total Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created Date</TableHead>
+                <TableHead className="no-print">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {budgets.map((budget) => (
+                <TableRow key={budget.id}>
+                  <TableCell className="font-medium">{budget.title}</TableCell>
+                  <TableCell>{budget.fiscalYear}</TableCell>
+                  <TableCell>${budget.totalAmount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(budget.status)}>
+                      {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {budget.createdAt instanceof Date 
+                      ? budget.createdAt.toLocaleDateString() 
+                      : new Date(budget.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="no-print">
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setActiveTab('new')}>
+                        Create Similar
+                      </Button>
+                      {budget.status === 'draft' && (
+                        <Button size="sm">
+                          Continue Editing
+                        </Button>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setActiveTab('new')}>
-                Create Similar
-              </Button>
-              {budget.status === 'draft' && (
-                <Button size="sm">
-                  Continue Editing
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        ))
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   );
@@ -318,6 +326,11 @@ const BudgetCreation = () => {
                   <TabsTrigger value="rejected">Rejected Budgets</TabsTrigger>
                   <TabsTrigger value="new">Create New Budget</TabsTrigger>
                 </TabsList>
+                <PrintDownloadTable
+                  tableId="budgets-table"
+                  title="Budgets Report"
+                  filename="budgets_report"
+                />
               </div>
               
               <TabsContent value="existing">
