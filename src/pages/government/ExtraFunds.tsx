@@ -1,113 +1,60 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import DashboardHeader from '@/components/DashboardHeader';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@radix-ui/react-tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { DateRange } from 'react-day-picker';
-import { Clock, Check, FileText, Search, X, PiggyBank, Calendar, Landmark } from 'lucide-react';
+import { Clock, Check, FileText, Search, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Progress } from '@/components/ui/progress';
+import axios from 'axios';
+import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
 
-// Sample extra funds data
-const extraFundsData = [
-  {
-    id: 1,
-    parkName: 'Yellowstone',
-    title: 'Summer Conservation Program',
-    description: 'Additional funding needed for expanded summer conservation program focusing on grizzly bear habitat',
-    amount: 125000,
-    date: '2023-10-12',
-    status: 'pending',
-    requestedBy: 'Finance Officer',
-  },
-  {
-    id: 2,
-    parkName: 'Yosemite',
-    title: 'Trail Renovation Project',
-    description: 'Additional funds for comprehensive renovation of highest-traffic visitor trails',
-    amount: 180000,
-    date: '2023-10-08',
-    status: 'approved',
-    requestedBy: 'Finance Officer',
-    reviewedBy: 'Government Agent',
-    reviewedDate: '2023-10-10',
-    reason: 'Approved due to safety concerns and high visitor impact',
-  },
-  {
-    id: 3,
-    parkName: 'Grand Canyon',
-    title: 'Educational Center Expansion',
-    description: 'Funds to expand the visitor educational center with new interactive exhibits',
-    amount: 210000,
-    date: '2023-10-05',
-    status: 'declined',
-    requestedBy: 'Finance Officer',
-    reviewedBy: 'Government Agent',
-    reviewedDate: '2023-10-07',
-    reason: 'Budget constraints, suggest reapplying in next fiscal year',
-  },
-  {
-    id: 4,
-    parkName: 'Zion',
-    title: 'Research Initiative',
-    description: 'Funding for new research initiative on desert ecosystem adaptation to climate change',
-    amount: 95000,
-    date: '2023-10-15',
-    status: 'pending',
-    requestedBy: 'Finance Officer',
-  },
-  {
-    id: 5,
-    parkName: 'Acadia',
-    title: 'Visitor Management System',
-    description: 'Implementation of improved visitor management system to reduce environmental impact',
-    amount: 150000,
-    date: '2023-10-14',
-    status: 'pending',
-    requestedBy: 'Finance Officer',
-  },
-];
-
-// Parks data with budget information
-const parksData = [
-  { name: 'Yellowstone', totalBudget: 1250000, extraFunds: 305000, percentUsed: 68 },
-  { name: 'Yosemite', totalBudget: 980000, extraFunds: 180000, percentUsed: 74 },
-  { name: 'Grand Canyon', totalBudget: 1100000, extraFunds: 0, percentUsed: 62 },
-  { name: 'Zion', totalBudget: 760000, extraFunds: 0, percentUsed: 59 },
-  { name: 'Acadia', totalBudget: 690000, extraFunds: 0, percentUsed: 71 },
-  { name: 'Rocky Mountain', totalBudget: 850000, extraFunds: 0, percentUsed: 65 },
-];
-
-// Form schema for review dialog
 const reviewSchema = z.object({
-  decision: z.enum(['approved', 'declined']),
+  decision: z.enum(['approved', 'rejected']),
   reason: z.string().min(10, 'Reason must be at least 10 characters'),
 });
 
 type ReviewForm = z.infer<typeof reviewSchema>;
 
+interface ExtraFundsRequest {
+  id: string;
+  parkName: string;
+  title: string;
+  description: string;
+  amount: number;
+  dateSubmitted: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedBy: string;
+  category?: string;
+  justification?: string;
+  expectedDuration?: string;
+  reviewedBy?: string;
+  reviewedDate?: string;
+  reason?: string;
+}
+
 const ExtraFunds = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [date, setDate] = useState<DateRange | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [viewRequest, setViewRequest] = useState<typeof extraFundsData[0] | null>(null);
-  const [reviewRequest, setReviewRequest] = useState<typeof extraFundsData[0] | null>(null);
+  const [viewRequest, setViewRequest] = useState<ExtraFundsRequest | null>(null);
+  const [reviewRequest, setReviewRequest] = useState<ExtraFundsRequest | null>(null);
+  const [requests, setRequests] = useState<ExtraFundsRequest[]>([]);
   const [activeTab, setActiveTab] = useState('requests');
-  
-  // Initialize form
+
   const form = useForm<ReviewForm>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
@@ -115,222 +62,231 @@ const ExtraFunds = () => {
       reason: '',
     },
   });
-  
-  // Filter requests based on search term, date range, and status
-  const filteredRequests = extraFundsData.filter(request => {
-    const matchesSearch = 
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/government/extra-funds', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        setRequests(response.data);
+      } catch (error) {
+        console.error('Error fetching extra funds requests:', error);
+        toast.error('Failed to load extra funds requests');
+      }
+    };
+    if (user?.role === 'government') {
+      fetchRequests();
+    }
+  }, [user]);
+
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch =
       request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.parkName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesDate = 
-      !date?.from || 
-      (new Date(request.date) >= date.from && 
-       (!date.to || new Date(request.date) <= date.to));
+    const matchesDate =
+      !date?.from ||
+      (new Date(request.dateSubmitted) >= date.from &&
+       (!date.to || new Date(request.dateSubmitted) <= date.to));
     
-    const matchesStatus = 
-      statusFilter === 'all' || 
-      request.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'all' || request.status === statusFilter;
     
     return matchesSearch && matchesDate && matchesStatus;
   });
-  
-  // Handle review submission
-  const onSubmitReview = (data: ReviewForm) => {
+
+  const onSubmitReview = async (data: ReviewForm) => {
     if (!reviewRequest) return;
     
-    // In a real app, this would update the database
-    toast.success(`Extra funds request ${data.decision === 'approved' ? 'approved' : 'declined'} successfully`);
-    setReviewRequest(null);
-    form.reset();
+    try {
+      await axios.put(
+        `http://localhost:5000/api/government/extra-funds/${reviewRequest.id}/status`,
+        { status: data.decision, reason: data.reason },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      toast.success(`Request ${data.decision} successfully`);
+      setRequests(prev =>
+        prev.map(req =>
+          req.id === reviewRequest.id
+            ? { ...req, status: data.decision, reason: data.reason, reviewedDate: new Date().toISOString().split('T')[0] }
+            : req
+        )
+      );
+      setReviewRequest(null);
+      form.reset();
+    } catch (error) {
+      console.error('Error updating request status:', error);
+      toast.error('Failed to update request status');
+    }
   };
-  
+
+  const handleAction = async (request: ExtraFundsRequest, decision: 'approved' | 'rejected') => {
+    setReviewRequest({ ...request, status: decision });
+    form.setValue('decision', decision);
+  };
+
+  if (user?.role !== 'government') {
+    return <div>Unauthorized access</div>;
+  }
+
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
-        
         <div className="flex-1">
-          <DashboardHeader 
+          <DashboardHeader
             title="Extra Funds Management"
             subtitle="Review and approve additional funding requests for parks"
           />
-          
           <main className="p-6">
-  <Tabs
-    defaultValue="requests"
-    value={activeTab}
-    onValueChange={setActiveTab}
-    className="mb-6"
-  >
-    <TabsList className="grid grid-cols-2 w-full max-w-md">
-      <TabsTrigger value="requests">Fund Requests</TabsTrigger>
-      <TabsTrigger value="allocations">Park Allocations</TabsTrigger>
-    </TabsList>
-
-    <TabsContent value="requests" className="mt-0 space-y-6">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Filter Requests</CardTitle>
-          <CardDescription>Search and filter extra fund requests</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                placeholder="Search by park or request details..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <DateRangePicker date={date} onSelect={setDate} />
-          </div>
-
-          <div className="mt-4">
-            <Tabs
-              defaultValue="all"
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-            >
-              <TabsList className="grid grid-cols-4 w-full max-w-md">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="approved">Approved</TabsTrigger>
-                <TabsTrigger value="declined">Declined</TabsTrigger>
-              </TabsList>
-              <TabsContent value="all">
-                {/* Additional content for "all" status */}
+            <Tabs defaultValue="requests" value={activeTab} onValueChange={setActiveTab} className="mb-6">
+              <TabsContent value="requests" className="mt-0 space-y-6">
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Filter Requests</CardTitle>
+                    <CardDescription>Search and filter extra fund requests</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex-1 relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                        <Input
+                          placeholder="Search by park or request details..."
+                          className="pl-8"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                      </div>
+                      <DateRangePicker date={date} onSelect={setDate} />
+                    </div>
+                    <div className="mt-4">
+                      <Tabs defaultValue="all" value={statusFilter} onValueChange={setStatusFilter}>
+                        <TabsList className="grid grid-cols-4 w-full max-w-md">
+                          <TabsTrigger value="all">All</TabsTrigger>
+                          <TabsTrigger value="pending">Pending</TabsTrigger>
+                          <TabsTrigger value="approved">Approved</TabsTrigger>
+                          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Extra Fund Requests</CardTitle>
+                    <CardDescription>{filteredRequests.length} requests found</CardDescription>
+                    <PrintDownloadTable
+                      tableId="extra-funds-table"
+                      title="Extra Funds Report"
+                      filename="extra_funds_report"
+                    />
+                  </CardHeader>
+                  <CardContent>
+                    <div id="extra-funds-table">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ID</TableHead>
+                            <TableHead>Park</TableHead>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Transactions</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredRequests.length > 0 ? (
+                            filteredRequests.map(request => (
+                              <TableRow key={request.id}>
+                                <TableCell className="font-medium">#{request.id}</TableCell>
+                                <TableCell>{request.parkName}</TableCell>
+                                <TableCell>{request.title}</TableCell>
+                                <TableCell>${request.amount.toLocaleString()}</TableCell>
+                                <TableCell>{request.dateSubmitted}</TableCell>
+                                <TableCell>
+                                  <div className="flex items-center">
+                                    {request.status === 'pending' && (
+                                      <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-full text-xs">
+                                        <Clock className="h-3 w-3" />
+                                        Pending
+                                      </span>
+                                    )}
+                                    {request.status === 'approved' && (
+                                      <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs">
+                                        <Check className="h-3 w-3" />
+                                        Approved
+                                      </span>
+                                    )}
+                                    {request.status === 'rejected' && (
+                                      <span className="flex items-center gap-1 text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs">
+                                        <X className="h-3 w-3" />
+                                        Rejected
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setViewRequest(request)}
+                                    >
+                                      <FileText className="h-4 w-4 mr-1" />
+                                      View
+                                    </Button>
+                                    {request.status === 'pending' && (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          className="bg-green-600 hover:bg-green-700"
+                                          onClick={() => handleAction(request, 'approved')}
+                                        >
+                                          Approve
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          className="bg-red-600 hover:bg-red-700"
+                                          onClick={() => handleAction(request, 'rejected')}
+                                        >
+                                          Reject
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center py-4 text-gray-500">
+                                No extra fund requests found
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
-              <TabsContent value="pending">
-                {/* Additional content for "pending" status */}
-              </TabsContent>
-              <TabsContent value="approved">
-                {/* Additional content for "approved" status */}
-              </TabsContent>
-              <TabsContent value="declined">
-                {/* Additional content for "declined" status */}
+              <TabsContent value="allocations" className="mt-0">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Park Fund Allocations</CardTitle>
+                    <CardDescription>Overview of budget and extra funds allocated to parks</CardDescription>
+                  </CardHeader>
+                  <CardContent>{/* Existing allocations content */}</CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Fund requests table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Extra Fund Requests</CardTitle>
-          <CardDescription>
-            {filteredRequests.length} requests found
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Park</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRequests.length > 0 ? (
-                filteredRequests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell className="font-medium">#{request.id}</TableCell>
-                    <TableCell>{request.parkName}</TableCell>
-                    <TableCell>{request.title}</TableCell>
-                    <TableCell>
-                      ${request.amount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>{request.date}</TableCell>
-                    <TableCell>
-                      {/* Status badges */}
-                      <div className="flex items-center">
-                        {request.status === "pending" && (
-                          <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-full text-xs">
-                            <Clock className="h-3 w-3" />
-                            Pending
-                          </span>
-                        )}
-                        {request.status === "approved" && (
-                          <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs">
-                            <Check className="h-3 w-3" />
-                            Approved
-                          </span>
-                        )}
-                        {request.status === "declined" && (
-                          <span className="flex items-center gap-1 text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs">
-                            <X className="h-3 w-3" />
-                            Declined
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setViewRequest(request)}
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                        {request.status === "pending" && (
-                          <Button
-                            size="sm"
-                            onClick={() => setReviewRequest(request)}
-                          >
-                            Review
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center py-4 text-gray-500"
-                  >
-                    No extra fund requests found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </TabsContent>
-
-    <TabsContent value="allocations" className="mt-0">
-      {/* Allocations content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Park Fund Allocations</CardTitle>
-          <CardDescription>
-            Overview of budget and extra funds allocated to parks
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Allocation cards */}
-        </CardContent>
-      </Card>
-    </TabsContent>
-  </Tabs>
-</main>
-
+          </main>
         </div>
       </div>
-      
-      {/* View Request Details Dialog */}
+
       <Dialog open={!!viewRequest} onOpenChange={(open) => !open && setViewRequest(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -339,7 +295,6 @@ const ExtraFunds = () => {
               Request #{viewRequest?.id} - {viewRequest?.parkName} National Park
             </DialogDescription>
           </DialogHeader>
-          
           {viewRequest && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -357,7 +312,7 @@ const ExtraFunds = () => {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Date Requested</h4>
-                  <p>{viewRequest.date}</p>
+                  <p>{viewRequest.dateSubmitted}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Status</h4>
@@ -374,44 +329,60 @@ const ExtraFunds = () => {
                         Approved
                       </span>
                     )}
-                    {viewRequest.status === 'declined' && (
+                    {viewRequest.status === 'rejected' && (
                       <span className="flex items-center gap-1 text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs">
                         <X className="h-3 w-3" />
-                        Declined
+                        Rejected
                       </span>
                     )}
                   </div>
                 </div>
-                
-                {'reviewedBy' in viewRequest && (
+                {viewRequest.category && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500">Category</h4>
+                    <p>{viewRequest.category}</p>
+                  </div>
+                )}
+                {viewRequest.reviewedBy && (
                   <div>
                     <h4 className="text-sm font-medium text-gray-500">Reviewed By</h4>
                     <p>{viewRequest.reviewedBy}</p>
                   </div>
                 )}
               </div>
-              
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Description</h4>
                 <p className="mt-1 text-gray-700">{viewRequest.description}</p>
               </div>
-              
-              {'reason' in viewRequest && (
+              {viewRequest.justification && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Justification</h4>
+                  <p className="mt-1 text-gray-700">{viewRequest.justification}</p>
+                </div>
+              )}
+              {viewRequest.expectedDuration && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Expected Duration</h4>
+                  <p className="mt-1 text-gray-700">{viewRequest.expectedDuration}</p>
+                </div>
+              )}
+              {viewRequest.reason && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-500">Review Reason</h4>
                   <p className="mt-1 text-gray-700">{viewRequest.reason}</p>
                 </div>
               )}
-              
               <DialogFooter>
                 <Button variant="outline" onClick={() => setViewRequest(null)}>
                   Close
                 </Button>
                 {viewRequest.status === 'pending' && (
-                  <Button onClick={() => {
-                    setViewRequest(null);
-                    setReviewRequest(viewRequest);
-                  }}>
+                  <Button
+                    onClick={() => {
+                      setViewRequest(null);
+                      setReviewRequest(viewRequest);
+                    }}
+                  >
                     Review Request
                   </Button>
                 )}
@@ -420,8 +391,7 @@ const ExtraFunds = () => {
           )}
         </DialogContent>
       </Dialog>
-      
-      {/* Review Request Dialog */}
+
       <Dialog open={!!reviewRequest} onOpenChange={(open) => !open && setReviewRequest(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -430,7 +400,6 @@ const ExtraFunds = () => {
               {reviewRequest?.parkName} - {reviewRequest?.title}
             </DialogDescription>
           </DialogHeader>
-          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmitReview)} className="space-y-4">
               <FormField
@@ -451,18 +420,17 @@ const ExtraFunds = () => {
                       </Button>
                       <Button
                         type="button"
-                        variant={field.value === 'declined' ? 'default' : 'outline'}
-                        className={field.value === 'declined' ? 'bg-red-600' : ''}
-                        onClick={() => field.onChange('declined')}
+                        variant={field.value === 'rejected' ? 'default' : 'outline'}
+                        className={field.value === 'rejected' ? 'bg-red-600' : ''}
+                        onClick={() => field.onChange('rejected')}
                       >
                         <X className="mr-2 h-4 w-4" />
-                        Decline
+                        Reject
                       </Button>
                     </div>
                   </FormItem>
                 )}
               />
-              
               <FormField
                 control={form.control}
                 name="reason"
@@ -480,14 +448,11 @@ const ExtraFunds = () => {
                   </FormItem>
                 )}
               />
-              
               <DialogFooter className="gap-2 sm:gap-0">
                 <Button type="button" variant="outline" onClick={() => setReviewRequest(null)}>
                   Cancel
                 </Button>
-                <Button type="submit">
-                  Submit Review
-                </Button>
+                <Button type="submit">Submit Review</Button>
               </DialogFooter>
             </form>
           </Form>

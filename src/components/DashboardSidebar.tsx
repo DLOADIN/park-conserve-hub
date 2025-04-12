@@ -105,6 +105,9 @@ const DashboardSidebar = () => {
             <SidebarGroupLabel>Government</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                <SidebarLink to="/government/dashboard" icon={LayoutDashboard} active={isActive('/government/dashboard')}>
+                  Dashboard
+                </SidebarLink>
                 <SidebarLink to="/government/budget" icon={DollarSign} active={isActive('/government/budget')}>
                   Budget
                 </SidebarLink>
@@ -119,7 +122,7 @@ const DashboardSidebar = () => {
           </SidebarGroup>
         )}
 
-{role === 'finance' && (
+        {role === 'finance' && (
           <SidebarGroup>
             <SidebarGroupLabel>Finance</SidebarGroupLabel>
             <SidebarGroupContent>
