@@ -275,109 +275,243 @@ const EmergencyRequests = () => {
       </div>
 
       <Dialog open={!!viewRequest} onOpenChange={(open) => !open && setViewRequest(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Emergency Request Details</DialogTitle>
-            <DialogDescription>
-              Request #{viewRequest?.id} - {viewRequest?.parkName} National Park
-            </DialogDescription>
-          </DialogHeader>
-          {viewRequest && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Title</h4>
-                  <p>{viewRequest.title}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Requested Amount</h4>
-                  <p className="font-semibold">${viewRequest.amount.toLocaleString()}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Requested By</h4>
-                  <p>{viewRequest.requestedBy}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Date Requested</h4>
-                  <p>{viewRequest.submittedDate}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Status</h4>
-                  <div className="mt-1">
-                    {viewRequest.status === 'pending' && (
-                      <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-full text-xs">
-                        <AlertTriangle className="h-3 w-3" />
-                        Pending
-                      </span>
-                    )}
-                    {viewRequest.status === 'approved' && (
-                      <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs">
-                        <Check className="h-3 w-3" />
-                        Approved
-                      </span>
-                    )}
-                    {viewRequest.status === 'rejected' && (
-                      <span className="flex items-center gap-1 text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs">
-                        <X className="h-3 w-3" />
-                        Rejected
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {viewRequest.emergencyType && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500">Emergency Type</h4>
-                    <p>{viewRequest.emergencyType}</p>
-                  </div>
-                )}
-                {viewRequest.reviewedBy && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-500">Reviewed By</h4>
-                    <p>{viewRequest.reviewedBy}</p>
-                  </div>
-                )}
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">Description</h4>
-                <p className="mt-1 text-gray-700">{viewRequest.description}</p>
-              </div>
-              {viewRequest.justification && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Justification</h4>
-                  <p className="mt-1 text-gray-700">{viewRequest.justification}</p>
-                </div>
+  <DialogContent className="max-w-2xl w-full sm:max-w-lg">
+    <DialogHeader>
+      <DialogTitle>Emergency Request Details</DialogTitle>
+      <DialogDescription className="line-clamp-2">
+        Request #{viewRequest?.id} - {viewRequest?.parkName} National Park
+      </DialogDescription>
+    </DialogHeader>
+    {viewRequest && (
+      <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <h4 className="text-sm font-medium text-gray-500">Title</h4>
+            <p className="truncate">{viewRequest.title}</p>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-500">Requested Amount</h4>
+            <p className="font-semibold">${viewRequest.amount.toLocaleString()}</p>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-500">Requested By</h4>
+            <p className="truncate">{viewRequest.requestedBy}</p>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-500">Date Requested</h4>
+            <p>{viewRequest.submittedDate}</p>
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-gray-500">Status</h4>
+            <div className="mt-1">
+              {viewRequest.status === 'pending' && (
+                <span className="flex items-center gap-1 text-amber-600 bg-amber-100 px-2 py-1 rounded-full text-xs">
+                  <AlertTriangle className="h-3 w-3" />
+                  Pending
+                </span>
               )}
-              {viewRequest.timeframe && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Timeframe</h4>
-                  <p className="mt-1 text-gray-700">{viewRequest.timeframe}</p>
-                </div>
+              {viewRequest.status === 'approved' && (
+                <span className="flex items-center gap-1 text-green-600 bg-green-100 px-2 py-1 rounded-full text-xs">
+                  <Check className="h-3 w-3" />
+                  Approved
+                </span>
               )}
-              {viewRequest.reason && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-500">Review Reason</h4>
-                  <p className="mt-1 text-gray-700">{viewRequest.reason}</p>
-                </div>
+              {viewRequest.status === 'rejected' && (
+                <span className="flex items-center gap-1 text-red-600 bg-red-100 px-2 py-1 rounded-full text-xs">
+                  <X className="h-3 w-3" />
+                  Rejected
+                </span>
               )}
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setViewRequest(null)}>
-                  Close
-                </Button>
-                {viewRequest.status === 'pending' && (
-                  <Button
-                    onClick={() => {
-                      setViewRequest(null);
-                      setReviewRequest(viewRequest);
-                    }}
-                  >
-                    Review Request
-                  </Button>
-                )}
-              </DialogFooter>
+            </div>
+          </div>
+          {viewRequest.emergencyType && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500">Emergency Type</h4>
+              <p className="truncate">{viewRequest.emergencyType}</p>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+          {viewRequest.reviewedBy && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500">Reviewed By</h4>
+              <p className="truncate">{viewRequest.reviewedBy}</p>
+            </div>
+          )}
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-gray-500">Description</h4>
+          <p className="mt-1 text-gray-700 break-words">{viewRequest.description}</p>
+        </div>
+        {viewRequest.justification && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-500">Justification</h4>
+            <p className="mt-1 text-gray-700 break-words">{viewRequest.justification}</p>
+          </div>
+        )}
+        {viewRequest.timeframe && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-500">Timeframe</h4>
+            <p className="mt-1 text-gray-700 break-words">{viewRequest.timeframe}</p>
+          </div>
+        )}
+        {viewRequest.reason && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-500">Review Reason</h4>
+            <p className="mt-1 text-gray-700 break-words">{viewRequest.reason}</p>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setViewRequest(null)}>
+            Close
+          </Button>
+          {viewRequest.status === 'pending' && (
+            <Button
+              onClick={() => {
+                setViewRequest(null);
+                setReviewRequest(viewRequest);
+              }}
+            >
+              Review Request
+            </Button>
+          )}
+        </DialogFooter>
+      </div>
+    )}
+  </DialogContent>
+</Dialog>
+
+<Dialog open={!!reviewRequest} onOpenChange={(open) => !open && setReviewRequest(null)}>
+  <DialogContent className="max-w-lg w-full">
+    <DialogHeader>
+      <DialogTitle>Review Emergency Request</DialogTitle>
+      <DialogDescription className="line-clamp-2">
+        {reviewRequest?.parkName} - {reviewRequest?.title}
+      </DialogDescription>
+    </DialogHeader>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmitReview)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="decision"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Decision</FormLabel>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant={field.value === 'approved' ? 'default' : 'outline'}
+                  className={field.value === 'approved' ? 'bg-green-600' : ''}
+                  onClick={() => field.onChange('approved')}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Approve
+                </Button>
+                <Button
+                  type="button"
+                  variant={field.value === 'rejected' ? 'default' : 'outline'}
+                  className={field.value === 'rejected' ? 'bg-red-600' : ''}
+                  onClick={() => field.onChange('rejected')}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Reject
+                </Button>
+              </div>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="reason"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Reason for Decision</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Provide detailed reason for your decision..."
+                  className="min-h-[100px] resize-y"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button type="button" variant="outline" onClick={() => setReviewRequest(null)}>
+            Cancel
+          </Button>
+          <Button type="submit">Submit Review</Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  </DialogContent>
+</Dialog>
+
+<Dialog open={!!reviewRequest} onOpenChange={(open) => !open && setReviewRequest(null)}>
+  <DialogContent className="max-w-lg w-full">
+    <DialogHeader>
+      <DialogTitle>Review Emergency Request</DialogTitle>
+      <DialogDescription className="line-clamp-2">
+        {reviewRequest?.parkName} - {reviewRequest?.title}
+      </DialogDescription>
+    </DialogHeader>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmitReview)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="decision"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Decision</FormLabel>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant={field.value === 'approved' ? 'default' : 'outline'}
+                  className={field.value === 'approved' ? 'bg-green-600' : ''}
+                  onClick={() => field.onChange('approved')}
+                >
+                  <Check className="mr-2 h-4 w-4" />
+                  Approve
+                </Button>
+                <Button
+                  type="button"
+                  variant={field.value === 'rejected' ? 'default' : 'outline'}
+                  className={field.value === 'rejected' ? 'bg-red-600' : ''}
+                  onClick={() => field.onChange('rejected')}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Reject
+                </Button>
+              </div>
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="reason"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Reason for Decision</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Provide detailed reason for your decision..."
+                  className="min-h-[100px] resize-y"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button type="button" variant="outline" onClick={() => setReviewRequest(null)}>
+            Cancel
+          </Button>
+          <Button type="submit">Submit Review</Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  </DialogContent>
+</Dialog>
 
       <Dialog open={!!reviewRequest} onOpenChange={(open) => !open && setReviewRequest(null)}>
         <DialogContent className="max-w-lg">

@@ -118,7 +118,10 @@ const GovernmentDashboard = () => {
         const totalDonations = donationsResponse.data.reduce((sum: number, d: any) => sum + Number(d.amount), 0);
         const totalToursRevenue = toursResponse.data.reduce((sum: number, t: any) => sum + Number(t.amount), 0);
         const acceptedFundRequests = fundRequestsResponse.data.filter((fr: any) => fr.status === 'approved').reduce((sum: number, fr: any) => sum + Number(fr.amount), 0);
-        const approvedBudgets = approvedBudgetsResponse.data.reduce((sum: number, b: any) => sum + Number(b.totalAmount), 0);
+        const approvedBudgets = Array.isArray(approvedBudgetsResponse.data)
+        ? approvedBudgetsResponse.data.reduce((sum: number, b: any) => sum + Number(b.totalAmount), 0)
+        : 0;
+
 
         setStats([
           { title: 'Total Donations', value: `$${totalDonations.toLocaleString()}`, icon: PiggyBank, trend: 'up' },
@@ -153,6 +156,7 @@ const GovernmentDashboard = () => {
             title="Finance Officer Dashboard"
             subtitle="Overview of financial activities and budgets"
           />
+          
           <main className="p-6">
             {/* Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -252,6 +256,7 @@ const GovernmentDashboard = () => {
               </Card>
             </div>
           </main>
+
         </div>
       </div>
     </SidebarProvider>

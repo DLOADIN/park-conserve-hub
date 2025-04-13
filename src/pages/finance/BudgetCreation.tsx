@@ -1,5 +1,6 @@
+// Filename: src/components/BudgetCreation.tsx
+
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import DashboardHeader from '@/components/DashboardHeader';
@@ -28,6 +29,7 @@ import {
   TableRow,
   TableHead,
 } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface BudgetItem {
   id: string;
@@ -39,17 +41,35 @@ interface BudgetItem {
 interface BudgetData {
   id: string;
   title: string;
-  fiscalYear: string;
-  totalAmount: number;
+  fiscal_year: string;
+  total_amount: number;
+  park_name: string;
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
   createdAt: Date | string;
   items: BudgetItem[];
 }
 
-const BudgetCreation = () => {
+const NATIONAL_PARKS = [
+  'Akanda National Park',
+  'Moukalaba-Doudou National Park',
+  'Ivindo National Park',
+  'Loango National Park',
+  'Lopé National Park',
+  'Mayumba National Park',
+  'Pongara National Park',
+  'Waka National Park',
+  'Birougou National Park',
+  'Bateke Plateau National Park',
+  'Crystal Mountains National Park',
+  'Minkébé National Park',
+  'Mwagne National Park',
+];
+
+const BudgetCreation: React.FC = () => {
   const [activeTab, setActiveTab] = useState('existing');
   const [budgetTitle, setBudgetTitle] = useState('');
   const [fiscalYear, setFiscalYear] = useState('');
+  const [parkName, setParkName] = useState('');
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([
     { id: '1', category: '', description: '', amount: 0 },
   ]);
@@ -57,41 +77,68 @@ const BudgetCreation = () => {
   const [pendingBudgets, setPendingBudgets] = useState<BudgetData[]>([]);
   const [approvedBudgets, setApprovedBudgets] = useState<BudgetData[]>([]);
   const [rejectedBudgets, setRejectedBudgets] = useState<BudgetData[]>([]);
-  const [loading, setLoading] = useState({ existing: true, pending: true, approved: true, rejected: true });
+  const [loading, setLoading] = useState({
+    existing: true,
+    pending: true,
+    approved: true,
+    rejected: true,
+  });
 
   // Fetch budgets for each tab
-  useEffect(() => {
-    const fetchBudgets = async (endpoint: string, setter: React.Dispatch<React.SetStateAction<BudgetData[]>>, key: keyof typeof loading) => {
-      try {
-        const response = await fetch(endpoint, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to fetch ${key} budgets`);
-        }
-        const data = await response.json();
-        const budgets = data.map((budget: BudgetData) => ({
-          ...budget,
-          createdAt: new Date(budget.createdAt),
-        }));
-        setter(budgets);
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: `Failed to load ${key} budgets`,
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(prev => ({ ...prev, [key]: false }));
+  const fetchBudgets = async (
+    endpoint: string,
+    setter: React.Dispatch<React.SetStateAction<BudgetData[]>>,
+    key: keyof typeof loading
+  ) => {
+    try {
+      const response = await fetch(endpoint, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${key} budgets`);
       }
-    };
+      const data = await response.json();
+      const budgets = data.map((budget: any) => ({
+        id: budget.id,
+        title: budget.title,
+        fiscal_year: budget.fiscalYear,
+        total_amount: Number(budget.totalAmount),
+        park_name: budget.parkName,
+        status: budget.status,
+        createdAt: new Date(budget.createdAt),
+        items: budget.items.map((item: any) => ({
+          id: item.id.toString(),
+          category: item.category,
+          description: item.description,
+          amount: Number(item.amount),
+        })),
+      }));
+      setter(budgets);
+    } 
+    // catch (error) {
+    //   toast({
+    //     title: 'Error',
+    //     description: `Failed to load ${key} budgets`,
+    //     variant: 'destructive',
+    //   });
+    // }
+     finally {
+      setLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
 
-    fetchBudgets('http://localhost:5000/api/finance/budgets', setExistingBudgets, 'existing');
+  // Refresh all budgets
+  const refreshBudgets = () => {
+    fetchBudgets('http://localhost:5000/api/finance/budgets?status=draft', setExistingBudgets, 'existing');
     fetchBudgets('http://localhost:5000/api/finance/budgets/pending', setPendingBudgets, 'pending');
-    fetchBudgets('http://localhost:5000/api/finance/budgets/approved', setApprovedBudgets, 'approved');
+    fetchBudgets('http://localhost:5000/api/finance/budgets/newlyapproved', setApprovedBudgets, 'approved');
     fetchBudgets('http://localhost:5000/api/finance/budgets/rejected', setRejectedBudgets, 'rejected');
+  };
+
+  useEffect(() => {
+    refreshBudgets();
   }, []);
 
   const addNewBudgetItem = () => {
@@ -110,12 +157,12 @@ const BudgetCreation = () => {
       });
       return;
     }
-    setBudgetItems(budgetItems.filter(item => item.id !== idToRemove));
+    setBudgetItems(budgetItems.filter((item) => item.id !== idToRemove));
   };
 
-  const updateBudgetItem = (id: string, field: string, value: string | number) => {
+  const updateBudgetItem = (id: string, field: keyof BudgetItem, value: string | number) => {
     setBudgetItems(
-      budgetItems.map(item => 
+      budgetItems.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
       )
     );
@@ -126,16 +173,18 @@ const BudgetCreation = () => {
   };
 
   const handleSaveDraft = async () => {
-    if (!budgetTitle || !fiscalYear) {
+    if (!budgetTitle || !fiscalYear || !parkName) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in the budget title and fiscal year',
+        description: 'Please fill in the budget title, fiscal year, and park name',
         variant: 'destructive',
       });
       return;
     }
 
-    const emptyItems = budgetItems.filter(item => !item.category || !item.description || item.amount <= 0);
+    const emptyItems = budgetItems.filter(
+      (item) => !item.category || !item.description || item.amount <= 0
+    );
     if (emptyItems.length > 0) {
       toast({
         title: 'Validation Error',
@@ -150,12 +199,14 @@ const BudgetCreation = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify({
           title: budgetTitle,
-          fiscalYear,
+          fiscal_year: fiscalYear,
+          park_name: parkName,
           items: budgetItems,
+          total_amount: getTotalAmount(),
           status: 'draft',
         }),
       });
@@ -167,12 +218,14 @@ const BudgetCreation = () => {
 
       toast({
         title: 'Budget Saved',
-        description: `Draft budget "${budgetTitle}" saved successfully`,
+        description: `Draft budget "${budgetTitle}" for ${parkName} saved successfully`,
       });
       setBudgetTitle('');
       setFiscalYear('');
+      setParkName('');
       setBudgetItems([{ id: '1', category: '', description: '', amount: 0 }]);
       setActiveTab('existing');
+      refreshBudgets();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -183,16 +236,18 @@ const BudgetCreation = () => {
   };
 
   const handleSubmitBudget = async () => {
-    if (!budgetTitle || !fiscalYear) {
+    if (!budgetTitle || !fiscalYear || !parkName) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in the budget title and fiscal year',
+        description: 'Please fill in the budget title, fiscal year, and park name',
         variant: 'destructive',
       });
       return;
     }
 
-    const emptyItems = budgetItems.filter(item => !item.category || !item.description || item.amount <= 0);
+    const emptyItems = budgetItems.filter(
+      (item) => !item.category || !item.description || item.amount <= 0
+    );
     if (emptyItems.length > 0) {
       toast({
         title: 'Validation Error',
@@ -207,13 +262,15 @@ const BudgetCreation = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify({
           title: budgetTitle,
-          fiscalYear,
+          fiscal_year: fiscalYear,
+          park_name: parkName,
           items: budgetItems,
-          status: 'submitted',
+          total_amount: getTotalAmount(),
+          status: 'submitted', // Default status
         }),
       });
 
@@ -224,12 +281,14 @@ const BudgetCreation = () => {
 
       toast({
         title: 'Budget Submitted',
-        description: `Budget "${budgetTitle}" submitted for approval`,
+        description: `Budget "${budgetTitle}" for ${parkName} submitted for approval`,
       });
       setBudgetTitle('');
       setFiscalYear('');
+      setParkName('');
       setBudgetItems([{ id: '1', category: '', description: '', amount: 0 }]);
-      setActiveTab('pending'); // Switch to pending tab after submission
+      setActiveTab('pending');
+      refreshBudgets();
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -241,11 +300,16 @@ const BudgetCreation = () => {
 
   const getStatusColor = (status: BudgetData['status']) => {
     switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'submitted': return 'bg-blue-100 text-blue-800';
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'submitted':
+        return 'bg-blue-100 text-blue-800';
+      case 'draft':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100';
     }
   };
 
@@ -262,6 +326,7 @@ const BudgetCreation = () => {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Fiscal Year</TableHead>
+                <TableHead>Park Name</TableHead>
                 <TableHead>Total Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created Date</TableHead>
@@ -272,25 +337,45 @@ const BudgetCreation = () => {
               {budgets.map((budget) => (
                 <TableRow key={budget.id}>
                   <TableCell className="font-medium">{budget.title}</TableCell>
-                  <TableCell>{budget.fiscalYear}</TableCell>
-                  <TableCell>${budget.totalAmount.toLocaleString()}</TableCell>
+                  <TableCell>{budget.fiscal_year}</TableCell>
+                  <TableCell>{budget.park_name}</TableCell>
+                  <TableCell>${budget.total_amount.toLocaleString()}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(budget.status)}>
                       {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {budget.createdAt instanceof Date 
-                      ? budget.createdAt.toLocaleDateString() 
+                    {budget.createdAt instanceof Date
+                      ? budget.createdAt.toLocaleDateString()
                       : new Date(budget.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="no-print">
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setActiveTab('new')}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setBudgetTitle(budget.title);
+                          setFiscalYear(budget.fiscal_year);
+                          setParkName(budget.park_name);
+                          setBudgetItems(budget.items);
+                          setActiveTab('new');
+                        }}
+                      >
                         Create Similar
                       </Button>
                       {budget.status === 'draft' && (
-                        <Button size="sm">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setBudgetTitle(budget.title);
+                            setFiscalYear(budget.fiscal_year);
+                            setParkName(budget.park_name);
+                            setBudgetItems(budget.items);
+                            setActiveTab('new');
+                          }}
+                        >
                           Continue Editing
                         </Button>
                       )}
@@ -307,20 +392,21 @@ const BudgetCreation = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
-        
         <div className="flex-1">
-          <DashboardHeader 
+          <DashboardHeader
             title="Budget Creation"
             subtitle="Create and manage park budgets"
           />
-          
           <main className="p-6">
-            <Tabs defaultValue="existing" value={activeTab} onValueChange={setActiveTab}>
-              <div className="flex justify-between items-center mb-6">
+            <Tabs
+              defaultValue="existing"
+              value={activeTab}
+              onValueChange={setActiveTab}
+            >
+              <div className="flex justify-between items-center mb-6 gap-2">
                 <TabsList>
-                  <TabsTrigger value="existing">Existing Budgets</TabsTrigger>
                   <TabsTrigger value="pending">Pending Budgets</TabsTrigger>
                   <TabsTrigger value="approved">Approved Budgets</TabsTrigger>
                   <TabsTrigger value="rejected">Rejected Budgets</TabsTrigger>
@@ -332,23 +418,23 @@ const BudgetCreation = () => {
                   filename="budgets_report"
                 />
               </div>
-              
+
               <TabsContent value="existing">
                 {renderBudgetList(existingBudgets, 'existing')}
               </TabsContent>
-              
+
               <TabsContent value="pending">
                 {renderBudgetList(pendingBudgets, 'pending')}
               </TabsContent>
-              
+
               <TabsContent value="approved">
                 {renderBudgetList(approvedBudgets, 'approved')}
               </TabsContent>
-              
+
               <TabsContent value="rejected">
                 {renderBudgetList(rejectedBudgets, 'rejected')}
               </TabsContent>
-              
+
               <TabsContent value="new">
                 <Card>
                   <CardHeader>
@@ -358,24 +444,39 @@ const BudgetCreation = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="budget-title">Budget Title</Label>
-                        <Input 
-                          id="budget-title" 
+                        <Input
+                          id="budget-title"
                           placeholder="e.g. Annual Park Budget 2024"
                           value={budgetTitle}
-                          onChange={(e) => setBudgetTitle(e.target.value)} 
+                          onChange={(e) => setBudgetTitle(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="fiscal-year">Fiscal Year</Label>
-                        <Input 
-                          id="fiscal-year" 
-                          placeholder="e.g. 2024-2025" 
+                        <Input
+                          id="fiscal-year"
+                          placeholder="e.g. 2024-2025"
                           value={fiscalYear}
                           onChange={(e) => setFiscalYear(e.target.value)}
                         />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="park-name">National Park</Label>
+                        <Select value={parkName} onValueChange={setParkName}>
+                          <SelectTrigger id="park-name">
+                            <SelectValue placeholder="Select a park" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NATIONAL_PARKS.map((park) => (
+                              <SelectItem key={park} value={park}>
+                                {park}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -384,8 +485,8 @@ const BudgetCreation = () => {
                     <div>
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-medium">Budget Items</h3>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={addNewBudgetItem}
                           className="flex items-center gap-1"
@@ -397,40 +498,63 @@ const BudgetCreation = () => {
 
                       <div className="space-y-4">
                         {budgetItems.map((item) => (
-                          <div key={item.id} className="grid grid-cols-12 gap-4 items-start bg-gray-50 p-4 rounded-md">
+                          <div
+                            key={item.id}
+                            className="grid grid-cols-12 gap-4 items-start bg-gray-50 p-4 rounded-md"
+                          >
                             <div className="col-span-12 md:col-span-3 space-y-2">
-                              <Label htmlFor={`category-${item.id}`}>Category</Label>
-                              <Input 
-                                id={`category-${item.id}`} 
+                              <Label htmlFor={`category-${item.id}`}>
+                                Category
+                              </Label>
+                              <Input
+                                id={`category-${item.id}`}
                                 placeholder="e.g. Staff Salaries"
                                 value={item.category}
-                                onChange={(e) => updateBudgetItem(item.id, 'category', e.target.value)}
+                                onChange={(e) =>
+                                  updateBudgetItem(item.id, 'category', e.target.value)
+                                }
                               />
                             </div>
                             <div className="col-span-12 md:col-span-5 space-y-2">
-                              <Label htmlFor={`description-${item.id}`}>Description</Label>
-                              <Input 
-                                id={`description-${item.id}`} 
+                              <Label htmlFor={`description-${item.id}`}>
+                                Description
+                              </Label>
+                              <Input
+                                id={`description-${item.id}`}
                                 placeholder="Brief description of this budget item"
                                 value={item.description}
-                                onChange={(e) => updateBudgetItem(item.id, 'description', e.target.value)}
+                                onChange={(e) =>
+                                  updateBudgetItem(
+                                    item.id,
+                                    'description',
+                                    e.target.value
+                                  )
+                                }
                               />
                             </div>
                             <div className="col-span-10 md:col-span-3 space-y-2">
-                              <Label htmlFor={`amount-${item.id}`}>Amount ($)</Label>
-                              <Input 
-                                id={`amount-${item.id}`} 
+                              <Label htmlFor={`amount-${item.id}`}>
+                                Amount ($)
+                              </Label>
+                              <Input
+                                id={`amount-${item.id}`}
                                 type="number"
                                 min="0"
                                 placeholder="0.00"
                                 value={item.amount || ''}
-                                onChange={(e) => updateBudgetItem(item.id, 'amount', Number(e.target.value))}
+                                onChange={(e) =>
+                                  updateBudgetItem(
+                                    item.id,
+                                    'amount',
+                                    Number(e.target.value)
+                                  )
+                                }
                               />
                             </div>
                             <div className="col-span-2 md:col-span-1 flex items-end justify-end h-full pb-1">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => removeBudgetItem(item.id)}
                               >
@@ -444,14 +568,16 @@ const BudgetCreation = () => {
                       <div className="flex justify-end mt-6">
                         <div className="bg-gray-100 px-6 py-3 rounded-md">
                           <span className="text-gray-700">Total: </span>
-                          <span className="font-bold text-lg">${getTotalAmount().toLocaleString()}</span>
+                          <span className="font-bold text-lg">
+                            ${getTotalAmount().toLocaleString()}
+                          </span>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={handleSaveDraft}
                       className="flex items-center gap-1"
                     >

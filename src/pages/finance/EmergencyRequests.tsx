@@ -430,7 +430,7 @@ const EmergencyRequests = () => {
       
       {/* View Request Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[1500px]">
+        <DialogContent className="sm:max-w-full">
           <DialogHeader>
             <div className="flex items-center gap-3 text-amber-500 mb-1">
               <AlertTriangle className="h-5 w-5" />

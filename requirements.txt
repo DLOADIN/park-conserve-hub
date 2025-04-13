@@ -73,9 +73,9 @@ VALUES
 
 Here are the actual passwords again, so you can use them to log in or test your system:
 
-Emily Johnson: Em!lyFin2025
-Michael Chen: M1keYos!2025
-Sarah Williams: S@r@hAud!t25
-James Rodriguez: J@m3sR0d!2025
-Laura Davis: L@ur@G0v!2025
-Robert Patel: R0bP@t3l!2025
+Emily Johnson: password
+Michael Chen: password
+Sarah Williams: password
+James Rodriguez: password
+Laura Davis: password
+Robert Patel: password
