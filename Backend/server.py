@@ -2342,6 +2342,151 @@ def get_extra_funds_requests(current_user_id):
             cursor.close()
             connection.close()
 
+@app.route('/api/finance/all-approved-data', methods=['GET'])
+@token_required
+def get_all_approved_data(current_user_id):
+    """Retrieve all booked tours, donations, approved fund requests, approved extra funds requests, approved emergency requests, and approved budgets."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # 1. Booked Tours
+        cursor.execute("""
+            SELECT 
+                id, park_name, tour_name, date, time, guests, amount,
+                first_name, last_name, email, phone, special_requests,
+                created_at
+            FROM tours
+            ORDER BY created_at DESC
+        """)
+        tours = cursor.fetchall()
+        for tour in tours:
+            tour['created_at'] = tour['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            tour['date'] = tour['date'].strftime('%Y-%m-%d')
+            tour['time'] = str(tour['time'])
+            tour['amount'] = float(tour['amount'])
+        
+        # 2. Donations
+        cursor.execute("""
+            SELECT 
+                id, donation_type, amount, park_name,
+                first_name, last_name, email, message,
+                is_anonymous, created_at
+            FROM donations
+            ORDER BY created_at DESC
+        """)
+        donations = cursor.fetchall()
+        for donation in donations:
+            donation['created_at'] = donation['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            donation['amount'] = float(donation['amount'])
+        
+        # 3. Approved Fund Requests
+        cursor.execute("""
+            SELECT 
+                fr.id, fr.title, fr.description, fr.amount,
+                fr.category, fr.parkname, fr.urgency, fr.status,
+                fr.created_at, fr.created_by,
+                ps.first_name, ps.last_name, ps.email AS staff_email,
+                ps.park_name AS staff_park
+            FROM fund_requests fr
+            JOIN parkstaff ps ON fr.created_by = ps.id
+            WHERE fr.status = 'approved'
+            ORDER BY fr.created_at DESC
+        """)
+        fund_requests = cursor.fetchall()
+        for req in fund_requests:
+            req['created_at'] = req['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            req['amount'] = float(req['amount'])
+        
+        # 4. Approved Extra Funds Requests
+        cursor.execute("""
+            SELECT 
+                efr.id, efr.title, efr.description, efr.amount,
+                efr.park_name AS parkName, efr.category,
+                efr.justification, efr.expected_duration,
+                efr.status, efr.created_at, efr.created_by,
+                fo.first_name, fo.last_name, fo.email AS finance_email
+            FROM extra_funds_requests efr
+            JOIN finance_officers fo ON efr.created_by = fo.id
+            WHERE efr.status = 'approved'
+            ORDER BY efr.created_at DESC
+        """)
+        extra_funds_requests = cursor.fetchall()
+        for req in extra_funds_requests:
+            req['created_at'] = req['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            req['amount'] = float(req['amount'])
+        
+        # 5. Approved Emergency Requests
+        cursor.execute("""
+            SELECT 
+                er.id, er.title, er.description, er.amount,
+                er.park_name AS parkName, er.emergency_type,
+                er.justification, er.timeframe, er.status,
+                er.created_at, er.created_by,
+                fo.first_name, fo.last_name, fo.email AS finance_email
+            FROM emergency_requests er
+            JOIN finance_officers fo ON er.created_by = fo.id
+            WHERE er.status = 'approved'
+            ORDER BY er.created_at DESC
+        """)
+        emergency_requests = cursor.fetchall()
+        for req in emergency_requests:
+            req['created_at'] = req['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            req['amount'] = float(req['amount'])
+        
+        # 6. Approved Budgets
+        cursor.execute("""
+            SELECT 
+                b.id, b.title, b.fiscal_year, b.total_amount,
+                b.park_name, b.description, b.status,
+                b.created_at, b.created_by, b.approved_by,
+                b.approved_at,
+                fo.first_name AS created_by_name,
+                go.first_name AS approved_by_name
+            FROM budgets b
+            LEFT JOIN finance_officers fo ON b.created_by = fo.id
+            LEFT JOIN government_officers go ON b.approved_by = go.id
+            WHERE b.status = 'approved'
+            ORDER BY b.created_at DESC
+        """)
+        budgets = cursor.fetchall()
+        for budget in budgets:
+            budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            budget['total_amount'] = float(budget['total_amount'])
+            if budget['approved_at']:
+                budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+            # Fetch budget items
+            cursor.execute("""
+                SELECT id, category, description, amount
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            for item in items:
+                item['amount'] = float(item['amount'])
+            budget['items'] = items
+        
+        return jsonify({
+            "tours": tours,
+            "donations": donations,
+            "fund_requests": fund_requests,
+            "extra_funds_requests": extra_funds_requests,
+            "emergency_requests": emergency_requests,
+            "budgets": budgets
+        }), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to retrieve data: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
 
 # if __name__ == '__main__':
 #     if not os.path.exists(app.config['UPLOAD_FOLDER']):
