@@ -660,9 +660,12 @@ const FinancialReports = () => {
         <DashboardSidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
-            <div className="container mx-auto px-6 py-8">
-              <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-semibold text-gray-700">Financial Reports</h1>
+            <div className="container mx-auto px-6">
+              <div className="flex-1 space-y-4">
+                <DashboardHeader
+                    title="Financial Reports"
+                    subtitle="An Overview of all financial reports"
+                  />
               </div>
               {loading && <div>Loading...</div>}
               {error && <div className="text-red-500">{error}</div>}
