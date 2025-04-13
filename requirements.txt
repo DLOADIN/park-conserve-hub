@@ -79,3 +79,4 @@ Sarah Williams: password
 James Rodriguez: password
 Laura Davis: password
 Robert Patel: password
+Admin Joe Doe: admin@ecopark.com password
