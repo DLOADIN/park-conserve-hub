@@ -167,9 +167,6 @@ const DashboardSidebar = () => {
                 <SidebarLink to="/auditor/dashboard" icon={LayoutDashboard} active={isActive('/auditor/dashboard')}>
                   Dashboard
                 </SidebarLink>
-                <SidebarLink to="/auditor/transactions" icon={Activity} active={isActive('/auditor/transactions')}>
-                  Transactions
-                </SidebarLink>
                 <SidebarLink to="/auditor/financial-reports" icon={FileBarChart} active={isActive('/auditor/financial-reports')}>
                   Financial Reports
                 </SidebarLink>
