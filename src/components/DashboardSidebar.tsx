@@ -164,6 +164,9 @@ const DashboardSidebar = () => {
             <SidebarGroupLabel>Auditor</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                <SidebarLink to="/auditor/dashboard" icon={LayoutDashboard} active={isActive('/auditor/dashboard')}>
+                  Dashboard
+                </SidebarLink>
                 <SidebarLink to="/auditor/transactions" icon={Activity} active={isActive('/auditor/transactions')}>
                   Transactions
                 </SidebarLink>
