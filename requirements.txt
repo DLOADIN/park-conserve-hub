@@ -3,80 +3,26 @@ mysql.connector
 flask_cors 
 
 
+The admin credentials are:
+1. Email: admin@ecopark.com Password: password
+
+The government credentials are:
+1. Email: laura.davis@gov.org Password: password
+2. Email: robert.patel@gov.org Password: password
+
+The auditors credentials are:
+1. Email: sarah.williams@auditgov.org Password: password  
+2. Email: james.rodriguez@auditgov.org Password: password  
+
+The finance officers credentials are:
+1. Email: emily.johnson@parkfinance.org Password: password  
+2. Email: michael.chen@parkfinance.org Password: password  
+
+The parkstaff credentials are:
+1. Email: Ganza.dany@yahoo.com Password: password
+2. Email: bob.audit@park.com Password: password
+3. Email: carol.gov@park.com Password: password
 
 
 
--- Insert Finance Officer
--- Plain Password: Finance123
-INSERT INTO `parkstaff` (
-    `first_name`, `last_name`, `email`, `password_hash`, `park_name`, `role`, `created_at`, `last_login`
-) VALUES (
-    'Alice', 
-    'Smith', 
-    'alice.finance@park.com', 
-    'fc2c9f6a8f7e8f9e0a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8', 
-    'Yellowstone', 
-    'finance-officer', 
-    CURRENT_TIMESTAMP, 
-    NULL
-);
 
--- Insert Auditor
--- Plain Password: Audit456
-INSERT INTO `parkstaff` (
-    `first_name`, `last_name`, `email`, `password_hash`, `park_name`, `role`, `created_at`, `last_login`
-) VALUES (
-    'Bob', 
-    'Johnson', 
-    'bob.audit@park.com', 
-    'b9e8d7c6f5a4b3e2d1c0f9e8d7c6b5a4f3e2d1c0b9e8d7c6f5a4', 
-    'Grand Canyon', 
-    'auditor', 
-    CURRENT_TIMESTAMP, 
-    NULL
-);
-
--- Insert Government Officer
--- Plain Password: Gov789
-INSERT INTO `parkstaff` (
-    `first_name`, `last_name`, `email`, `password_hash`, `park_name`, `role`, `created_at`, `last_login`
-) VALUES (
-    'Carol', 
-    'Williams', 
-    'carol.gov@park.com', 
-    'e6f5d4c3b2a1e0f9d8c7b6a5f4e3d2c1b0a9f8e7d6c5b4a3f2e1', 
-    'Yosemite', 
-    'government-officer', 
-    CURRENT_TIMESTAMP, 
-    NULL
-);
-
-
-INSERT INTO finance_officers (first_name, last_name, email, password_hash, phone, park_name, role, last_login, created_at, updated_at)
-VALUES 
-    ('Emily', 'Johnson', 'emily.johnson@parkfinance.org', '$2y$10$K8vJ9pX5QzL2mW3nR4tY6u7vB8cD9eF0gH1iJ2kL3mN4oP5qR6sT', '555-123-4567', 'Yellowstone National Park', 'finance', '2025-04-08 14:30:00', '2025-01-15 09:00:00', '2025-04-08 14:30:00'),
-    ('Michael', 'Chen', 'michael.chen@parkfinance.org', '$2y$10$X7yZ6vW5uT4rS3qP2nM1kL9jH8gF7eD6cB5aN4mK3lJ2iH1tY0uR', '555-987-6543', 'Yosemite National Park', 'finance', '2025-04-07 10:15:00', '2025-02-10 12:00:00', '2025-04-07 10:15:00');
-
-
-
-INSERT INTO auditors (first_name, last_name, email, password_hash, phone, role, last_login, created_at, updated_at)
-VALUES 
-    ('Sarah', 'Williams', 'sarah.williams@auditgov.org', '$2y$10$P6qR5nM4lK3jH2iG1fD0eB9aC8vL7uT6sY5wZ4xN3mK2lJ1hP0qR', '555-456-7890', 'auditor', '2025-04-09 09:45:00', '2025-03-01 08:30:00', '2025-04-09 09:45:00'),
-    ('James', 'Rodriguez', 'james.rodriguez@auditgov.org', '$2y$10$Y0uR1tH2iJ3mK4lN5oP6qR7sT8vW9xY0zA1bC2dD3eF4gH5iJ6kL', '555-321-6547', 'auditor', '2025-04-06 16:20:00', '2025-02-20 14:00:00', '2025-04-06 16:20:00');
-
-
-INSERT INTO government_officers (first_name, last_name, email, password_hash, phone, role, last_login, created_at, updated_at)
-VALUES 
-    ('Laura', 'Davis', 'laura.davis@gov.org', '$2y$10$H1iJ2kL3mN4oP5qR6sT7uW8vX9yZ0aB1cD2eF3gH4iJ5kL6mN7oP', '555-654-3210', 'government', '2025-04-09 11:00:00', '2025-01-25 10:00:00', '2025-04-09 11:00:00'),
-    ('Robert', 'Patel', 'robert.patel@gov.org', '$2y$10$K6mN7oP8qR9sT0uV1wX2yZ3aB4cD5eF6gH7iJ8kL9mN0oP1qR2sT', '555-789-1234', 'government', '2025-04-08 13:10:00', '2025-03-15 15:00:00', '2025-04-08 13:10:00');
-
-
-Here are the actual passwords again, so you can use them to log in or test your system:
-
-Emily Johnson: password
-Michael Chen: password
-Sarah Williams: password
-James Rodriguez: password
-Laura Davis: password
-Robert Patel: password
-Admin Joe Doe: admin@ecopark.com password
