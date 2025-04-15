@@ -110,11 +110,15 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
+
+
+
+
 @app.route('/api/login', methods=['POST'])
 def login():
     connection = get_db_connection()
     if isinstance(connection, tuple):  # Check if connection failed
-        return connection
+        return jsonify({"error": "Database connection failed"}), 500
     
     try:
         data = request.json
@@ -148,7 +152,29 @@ def login():
                 user_table = table
                 break
         
-        if not user or hashlib.sha256(password.encode()).hexdigest() != user['password_hash']:
+        if not user:
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Check password: try SHA-256 first, then bcrypt as fallback
+        sha256_hash = hashlib.sha256(password.encode()).hexdigest()
+        password_match = sha256_hash == user['password_hash']
+        
+        if not password_match:
+            try:
+                # Attempt bcrypt check for legacy passwords
+                password_match = bcrypt.checkpw(password.encode(), user['password_hash'].encode())
+                if password_match:
+                    # Rehash to SHA-256 and update database
+                    cursor.execute(
+                        f"UPDATE {user_table} SET password_hash = %s WHERE id = %s",
+                        (sha256_hash, user['id'])
+                    )
+                    connection.commit()
+            except ValueError:
+                # Invalid bcrypt hash (e.g., not bcrypt format)
+                return jsonify({"error": "Invalid credentials"}), 401
+
+        if not password_match:
             return jsonify({"error": "Invalid credentials"}), 401
 
         # Update last login
@@ -169,7 +195,6 @@ def login():
             "firstName": user['first_name'],
             "lastName": user['last_name'],
             "email": user['email'],
-            "phone": user.get('phone', ''),
             "role": user_role,
             "park": user.get('park_name', ''),
             "avatarUrl": user.get('avatar_url', '')
@@ -192,6 +217,11 @@ def login():
 
 
 
+
+
+
+
+
 @app.route('/api/book-tour', methods=['POST'])
 def book_tour():
     connection = get_db_connection()
@@ -201,7 +231,7 @@ def book_tour():
 
     try:
         data = request.json
-        required_fields = ['parkName', 'tourName', 'date', 'time', 'guests', 'amount', 'firstName', 'lastName', 'email']
+        required_fields = ['parkName', 'tourName', 'date', 'time', 'guests', 'amount']
 
         if not all(field in data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
@@ -229,8 +259,8 @@ def book_tour():
         cursor.execute('''
             INSERT INTO tours (
                 park_name, tour_name, date, time, guests, amount,
-                first_name, last_name, email, phone, special_requests
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                first_name, last_name, email, special_requests
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             data['parkName'],
             data['tourName'],
@@ -241,7 +271,6 @@ def book_tour():
             data['firstName'],
             data['lastName'],
             data['email'],
-            data.get('phone', ''),
             data.get('specialRequests', '')
         ))
         connection.commit()
@@ -284,7 +313,7 @@ def services():
                 first_name, last_name, email, phone, company_type, 
                 provided_service, company_name, tax_id, 
                 company_registration, application_letter
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
             data['firstName'],
             data['lastName'],
@@ -721,7 +750,6 @@ def admin_login():
                 "firstName": admin['first_name'],
                 "lastName": admin['last_name'],
                 "email": admin['email'],
-                "phone": admin['phone'],
                 "role": admin['role'],
                 "park": admin['park_name'],
                 "avatarUrl": admin['avatar_url']
@@ -745,7 +773,7 @@ def update_admin_profile(current_user_id):
     
     try:
         data = request.json
-        required_fields = ['firstName', 'lastName', 'email', 'phone']
+        required_fields = ['firstName', 'lastName', 'email']
         
         if not all(field in data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
@@ -756,14 +784,12 @@ def update_admin_profile(current_user_id):
                 first_name = %s,
                 last_name = %s,
                 email = %s,
-                phone = %s,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = %s
         ''', (
             data['firstName'],
             data['lastName'],
             data['email'],
-            data['phone'],
             current_user_id
         ))
         connection.commit()
@@ -1953,6 +1979,113 @@ def get_approved_newlybudgets(current_user_id):
             cursor.close()
             connection.close()
 
+
+
+
+
+
+
+
+@app.route('/api/staff', methods=['POST'])
+def add_staff():
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email', 'role', 'password']
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+        if data['role'] not in ['park-staff', 'auditor', 'government', 'finance']:
+            return jsonify({"error": "Invalid role"}), 400
+
+        # Check if email already exists
+        cursor = connection.cursor()
+        for table in ['parkstaff', 'auditors', 'government_officers', 'finance_officers']:
+            cursor.execute(f"SELECT id FROM {table} WHERE email = %s", (data['email'],))
+            if cursor.fetchone():
+                return jsonify({"error": "Email already exists"}), 409
+
+        # Hash password with SHA-256
+        password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
+
+        # Insert into appropriate table
+        if data['role'] == 'park-staff':
+            if not data.get('park'):
+                return jsonify({"error": "Park is required for park staff"}), 400
+            cursor.execute('''
+                INSERT INTO parkstaff (
+                    first_name, last_name, email, password_hash, park_name, role
+                ) VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (
+                data['firstName'],
+                data['lastName'],
+                data['email'],
+                password_hash,
+                data['park'],
+                'park-staff'
+            ))
+        elif data['role'] == 'auditor':
+            cursor.execute('''
+                INSERT INTO auditors (
+                    first_name, last_name, email, password_hash, role
+                ) VALUES (%s, %s, %s, %s, %s)
+            ''', (
+                data['firstName'],
+                data['lastName'],
+                data['email'],
+                password_hash,
+                'auditor'
+            ))
+        elif data['role'] == 'government':
+            cursor.execute('''
+                INSERT INTO government_officers (
+                    first_name, last_name, email, password_hash, role
+                ) VALUES (%s, %s, %s, %s, %s)
+            ''', (
+                data['firstName'],
+                data['lastName'],
+                data['email'],
+                password_hash,
+                'government'
+            ))
+        elif data['role'] == 'finance':
+            cursor.execute('''
+                INSERT INTO finance_officers (
+                    first_name, last_name, email, password_hash, park_name, role
+                ) VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (
+                data['firstName'],
+                data['lastName'],
+                data['email'],
+                password_hash,
+                data.get('park', None),
+                'finance'
+            ))
+
+        connection.commit()
+        new_staff_id = cursor.lastrowid
+        
+        return jsonify({
+            "message": "Staff member added successfully",
+            "id": new_staff_id
+        }), 201
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to add staff: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
 @app.route('/api/finance/budgets/rejected', methods=['GET'])
 @token_required
 def get_rejected_budgets(current_user_id):
@@ -2487,6 +2620,239 @@ def get_all_approved_data(current_user_id):
             connection.close()
 
 
+
+
+@app.route('/api/staff', methods=['GET'])
+@token_required
+def get_staff(current_user_id):
+    """Retrieve all staff members across all roles."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        # Verify the user is an admin
+        cursor.execute("SELECT id FROM admintable WHERE id = %s", (current_user_id,))
+        if not cursor.fetchone():
+            return jsonify({"error": "Unauthorized: Admin access required"}), 403
+
+        # Query all staff tables with UNION
+        query = """
+            SELECT id, first_name, last_name, email, park_name, role, last_login, created_at
+            FROM parkstaff
+            UNION
+            SELECT id, first_name, last_name, email, NULL AS park_name, role, last_login, created_at
+            FROM auditors
+            UNION
+            SELECT id, first_name, last_name, email, NULL AS park_name, role, last_login, created_at
+            FROM government_officers
+            UNION
+            SELECT id, first_name, last_name, email, park_name, role, last_login, created_at
+            FROM finance_officers
+            ORDER BY created_at DESC
+        """
+        cursor.execute(query)
+        staff = cursor.fetchall()
+
+        # Format dates and clean up response
+        for member in staff:
+            member['id'] = str(member['id'])  # Convert to string for frontend
+            if member['last_login']:
+                member['last_login'] = member['last_login'].strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                member['last_login'] = None
+            member['created_at'] = member['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            # Ensure role is consistent
+            if member['role'] == 'park-staff':
+                member['role'] = 'park-staff'
+            elif member['role'] == 'auditor':
+                member['role'] = 'auditor'
+            elif member['role'] == 'government':
+                member['role'] = 'government'
+            elif member['role'] == 'finance':
+                member['role'] = 'finance'
+
+        return jsonify(staff), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve staff"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/staff/<int:staff_id>', methods=['DELETE'])
+@token_required
+def delete_staff(current_user_id, staff_id):
+    """Delete a staff member from any role."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        role = request.args.get('role')
+        if not role:
+            return jsonify({"error": "Role parameter is required"}), 400
+
+        cursor = connection.cursor()
+        
+        # Map role to table name
+        table_map = {
+            'park-staff': 'parkstaff',
+            'auditor': 'auditors',
+            'government': 'government_officers',
+            'finance': 'finance_officers'
+        }
+        
+        table = table_map.get(role)
+        if not table:
+            return jsonify({"error": "Invalid role"}), 400
+        
+        # Check if staff exists
+        cursor.execute(f"SELECT id FROM {table} WHERE id = %s", (staff_id,))
+        existing_staff = cursor.fetchone()
+        
+        if not existing_staff:
+            return jsonify({"error": "Staff member not found"}), 404
+        
+        # Delete staff member
+        cursor.execute(f"DELETE FROM {table} WHERE id = %s", (staff_id,))
+        connection.commit()
+        
+        return jsonify({
+            "message": "Staff member deleted successfully"
+        }), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to delete staff: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+@app.route('/api/staff/<int:staff_id>', methods=['PUT'])
+@token_required
+def update_staff(current_user_id, staff_id):
+    """Update an existing staff member."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        role = request.args.get('role')
+        required_fields = ['firstName', 'lastName', 'email', 'role']
+        
+        # Validate required fields
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+        
+        if not role:
+            return jsonify({"error": "Role parameter is required"}), 400
+            
+        if role not in ['park-staff', 'auditor', 'government', 'finance']:
+            return jsonify({"error": "Invalid role"}), 400
+
+        cursor = connection.cursor()
+        
+        # Map role to table name
+        table_map = {
+            'park-staff': 'parkstaff',
+            'auditor': 'auditors',
+            'government': 'government_officers',
+            'finance': 'finance_officers'
+        }
+        
+        table = table_map.get(role)
+        if not table:
+            return jsonify({"error": "Invalid role"}), 400
+        
+        # Check if staff exists
+        cursor.execute(f"SELECT id FROM {table} WHERE id = %s", (staff_id,))
+        existing_staff = cursor.fetchone()
+        
+        if not existing_staff:
+            return jsonify({"error": "Staff member not found"}), 404
+        
+        # Check if email is already in use by another user
+        for tbl in ['parkstaff', 'auditors', 'government_officers', 'finance_officers']:
+            cursor.execute(f"SELECT id FROM {tbl} WHERE email = %s AND id != %s", (data['email'], staff_id))
+            if cursor.fetchone():
+                return jsonify({"error": "Email already in use by another staff member"}), 409
+        
+        # Update staff member
+        if role == 'park-staff':
+            if not data.get('park'):
+                return jsonify({"error": "Park is required for park staff"}), 400
+            cursor.execute(f"""
+                UPDATE {table} SET
+                    first_name = %s,
+                    last_name = %s,
+                    email = %s,
+                    park_name = %s
+                WHERE id = %s
+            """, (
+                data['firstName'],
+                data['lastName'],
+                data['email'],
+                data['park'],
+                staff_id
+            ))
+        elif role == 'finance':
+            cursor.execute(f"""
+                UPDATE {table} SET
+                    first_name = %s,
+                    last_name = %s,
+                    email = %s,
+                    park_name = %s
+                WHERE id = %s
+            """, (
+                data['firstName'],
+                data['lastName'],
+                data['email'],
+                data.get('park', None),
+                staff_id
+            ))
+        else:  # auditor, government
+            cursor.execute(f"""
+                UPDATE {table} SET
+                    first_name = %s,
+                    last_name = %s,
+                    email = %s
+                WHERE id = %s
+            """, (
+                data['firstName'],
+                data['lastName'],
+                data['email'],
+                staff_id
+            ))
+        
+        # Update password if provided
+        if data.get('password'):
+            password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
+            cursor.execute(f"""
+                UPDATE {table} SET password_hash = %s WHERE id = %s
+            """, (password_hash, staff_id))
+        
+        connection.commit()
+        
+        return jsonify({
+            "message": "Staff member updated successfully",
+            "id": staff_id
+        }), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to update staff: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 # if __name__ == '__main__':
 #     if not os.path.exists(app.config['UPLOAD_FOLDER']):

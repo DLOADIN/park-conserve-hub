@@ -662,14 +662,14 @@ const FinancialReports = () => {
           <div className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
             <div className="container mx-auto px-6">
               <div className="flex-1 space-y-4">
-                <DashboardHeader
-                    title="Financial Reports"
+          <DashboardHeader
+            title="Financial Reports"
                     subtitle="An Overview of all financial reports"
-                  />
+          />
               </div>
-              {loading && <div>Loading...</div>}
-              {error && <div className="text-red-500">{error}</div>}
-              {!loading && !error && (
+            {loading && <div>Loading...</div>}
+            {error && <div className="text-red-500">{error}</div>}
+            {!loading && !error && (
                 <Tabs defaultValue="overview" className="space-y-4">
                   <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -712,25 +712,25 @@ const FinancialReports = () => {
                       </Card>
                     </div>
                     <Card className="mt-4">
-                      <CardHeader>
+                        <CardHeader>
                         <CardTitle>Revenue vs Expenses</CardTitle>
-                      </CardHeader>
-                      <CardContent>
+                        </CardHeader>
+                        <CardContent>
                         <div className="h-[300px]">
-                          <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={monthlyMetricsData}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="month" />
-                              <YAxis />
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="month" />
+                                <YAxis />
                               <Tooltip />
-                              <Legend />
+                                <Legend />
                               <Bar dataKey="revenue" fill="#8884d8" />
                               <Bar dataKey="expenses" fill="#82ca9d" />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                       <Card>
@@ -817,38 +817,38 @@ const FinancialReports = () => {
                               <Bar dataKey="spent" fill="#82ca9d" name="Spent Amount" />
                             </BarChart>
                           </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
+                            </div>
+                          </CardContent>
+                        </Card>
 
                     <Card className="mt-4">
-                      <CardHeader>
+                          <CardHeader>
                         <CardTitle>Monthly Revenue Trend</CardTitle>
-                      </CardHeader>
-                      <CardContent>
+                          </CardHeader>
+                          <CardContent>
                         <div className="h-[300px]">
-                          <ResponsiveContainer width="100%" height="100%">
+                              <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={revenueData}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="month" />
-                              <YAxis />
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="month" />
+                                  <YAxis />
                               <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Amount']} />
-                              <Legend />
+                                  <Legend />
                               <Line type="monotone" dataKey="donations" stroke="#8884d8" name="Donations" />
                               <Line type="monotone" dataKey="tourBookings" stroke="#82ca9d" name="Tour Bookings" />
                               <Line type="monotone" dataKey="total" stroke="#ff7300" name="Total Revenue" />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
                   <TabsContent value="transactions">
-                    <Card>
-                      <CardHeader>
+                        <Card>
+                          <CardHeader>
                         <CardTitle>Recent Transactions</CardTitle>
-                      </CardHeader>
-                      <CardContent>
+                          </CardHeader>
+                          <CardContent>
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -875,33 +875,33 @@ const FinancialReports = () => {
                             ))}
                           </TableBody>
                         </Table>
-                      </CardContent>
-                    </Card>
+                          </CardContent>
+                        </Card>
                   </TabsContent>
                   <TabsContent value="budgets">
-                    <Card>
-                      <CardHeader>
+                      <Card>
+                        <CardHeader>
                         <CardTitle>Budget Allocation</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
+                        </CardHeader>
+                        <CardContent>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
                               <TableHead>Category</TableHead>
                               <TableHead>Allocated</TableHead>
                               <TableHead>Spent</TableHead>
                               <TableHead>Remaining</TableHead>
                               <TableHead>Utilization</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
                             {data.budgets.map((budget) => (
-                              <TableRow key={budget.id}>
-                                <TableCell>{budget.title}</TableCell>
+                                  <TableRow key={budget.id}>
+                                    <TableCell>{budget.title}</TableCell>
                                 <TableCell>${budget.total_amount.toFixed(2)}</TableCell>
                                 <TableCell>${parkBudgetData.find((p) => p.name === budget.park_name)?.spent.toFixed(2) || 'N/A'}</TableCell>
                                 <TableCell>${(budget.total_amount - (parkBudgetData.find((p) => p.name === budget.park_name)?.spent || 0)).toFixed(2)}</TableCell>
-                                <TableCell>
+                                    <TableCell>
                                   <div className="w-full bg-gray-200 rounded-full h-2.5">
                                     {(() => {
                                       const spent = parkBudgetData.find((p) => p.name === budget.park_name)?.spent || 0;
@@ -917,17 +917,17 @@ const FinancialReports = () => {
                                       );
                                     })()}
                                   </div>
-                                </TableCell>
-                              </TableRow>
+                                    </TableCell>
+                                  </TableRow>
                             ))}
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              )}
-              {renderDetailsDialog()}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+            )}
+            {renderDetailsDialog()}
             </div>
           </div>
         </div>

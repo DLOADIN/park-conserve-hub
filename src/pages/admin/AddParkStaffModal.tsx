@@ -1,21 +1,21 @@
 import React, { useEffect } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import axios from 'axios';
 
 interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
-  lastLogin: string;
   park?: string;
 }
 
@@ -26,23 +26,19 @@ interface AddParkStaffModalProps {
   onSuccess?: () => void;
 }
 
-// Updated form schema to include password (required for new users, optional for edits)
+// Password regex: 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
 const formSchema = z.object({
-  firstName: z.string().min(2, {
-    message: "First name must be at least 2 characters.",
-  }),
-  lastName: z.string().min(2, {
-    message: "Last name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  park: z.string().min(1, {
-    message: "Please select a park.",
-  }),
-  password: z.string().min(8, {
-    message: "Password must be at least 8 characters.",
-  }).optional().or(z.literal('')), // Optional for edits
+  firstName: z.string().min(2, 'First name must be at least 2 characters.'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters.'),
+  email: z.string().email('Please enter a valid email address.'),
+  role: z.enum(['park-staff', 'auditor', 'government', 'finance'], { required_error: 'Please select a role.' }),
+  park: z.string().optional(),
+  password: z.string().refine(
+    (value) => !value || passwordRegex.test(value),
+    'Password must be 8+ characters with uppercase, lowercase, number, and special character.'
+  ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,27 +50,28 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
       firstName: '',
       lastName: '',
       email: '',
+      role: 'park-staff',
       park: '',
       password: '',
     },
   });
 
-  // Populate form with user data when editing
   useEffect(() => {
     if (userToEdit) {
-      const nameParts = userToEdit.name.split(' ');
       form.reset({
-        firstName: nameParts[0] || '',
-        lastName: nameParts.slice(1).join(' ') || '',
+        firstName: userToEdit.firstName,
+        lastName: userToEdit.lastName,
         email: userToEdit.email,
+        role: userToEdit.role as FormValues['role'],
         park: userToEdit.park || '',
-        password: '', // Leave password blank for edits
+        password: '',
       });
     } else {
       form.reset({
         firstName: '',
         lastName: '',
         email: '',
+        role: 'park-staff',
         park: '',
         password: '',
       });
@@ -84,26 +81,26 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
   const onSubmit = async (values: FormValues) => {
     try {
       const API_URL = 'http://localhost:5000/api';
-      
-      if (userToEdit) {
-        // Update existing user (password not included in edit)
-        const { password, ...updateValues } = values; // Exclude password from update payload
-        await axios.put(`${API_URL}/park-staff/${userToEdit.id}`, updateValues);
-        toast.success('Park staff updated successfully!');
-      } else {
-        // Create new user (include password)
-        await axios.post(`${API_URL}/park-staff`, values);
-        toast.success('Park staff added successfully!');
+      if (!values.password && !userToEdit) {
+        toast.error('Password is required for new staff.');
+        return;
       }
-      
+
+      if (userToEdit) {
+        await axios.put(`${API_URL}/staff/${userToEdit.id}?role=${values.role}`, {
+          ...values,
+          password: values.password || undefined,
+        });
+        toast.success('Staff member updated successfully!');
+      } else {
+        await axios.post(`${API_URL}/staff`, values);
+        toast.success('Staff member added successfully!');
+      }
+
       onSuccess?.();
       onClose();
     } catch (error: any) {
-      if (error.response && error.response.data && error.response.data.error) {
-        toast.error(error.response.data.error);
-      } else {
-        toast.error('An error occurred while saving the staff member.');
-      }
+      toast.error(error.response?.data?.error || 'An error occurred while saving the staff member.');
       console.error('Error saving staff member:', error);
     }
   };
@@ -112,16 +109,33 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>{userToEdit ? 'Edit Park Staff' : 'Add New Park Staff'}</DialogTitle>
-          <DialogDescription>
-            {userToEdit 
-              ? 'Update the information for this park staff member.' 
-              : 'Fill in the details to add a new park staff member.'}
-          </DialogDescription>
+          <DialogTitle>{userToEdit ? 'Edit Staff Member' : 'Add New Staff Member'}</DialogTitle>
         </DialogHeader>
-        
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="park-staff">Park Staff</SelectItem>
+                      <SelectItem value="auditor">Auditor</SelectItem>
+                      <SelectItem value="government">Government Officer</SelectItem>
+                      <SelectItem value="finance">Finance Officer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -136,7 +150,6 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                   </FormItem>
                 )}
               />
-              
               <FormField
                 control={form.control}
                 name="lastName"
@@ -151,7 +164,6 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                 )}
               />
             </div>
-            
             <FormField
               control={form.control}
               name="email"
@@ -161,25 +173,17 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                   <FormControl>
                     <Input placeholder="Email address" type="email" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    This will be used for login and communication.
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
             <FormField
               control={form.control}
               name="park"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Assigned Park</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
+                  <FormLabel>Assigned Park (Required for Park Staff)</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a park" />
@@ -205,33 +209,24 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                 </FormItem>
               )}
             />
-            
-            {!userToEdit && ( // Only show password field when adding a new user
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter password" type="password" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Password must be at least 8 characters long.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password {userToEdit ? '(Leavestickers' : null} Optional for edits)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter password" type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {userToEdit ? 'Update Staff' : 'Add Staff'}
-              </Button>
+              <Button type="submit">{userToEdit ? 'Update Staff' : 'Add Staff'}</Button>
             </DialogFooter>
           </form>
         </Form>
