@@ -54,9 +54,9 @@ const DashboardSidebar = () => {
       <SidebarHeader className="flex flex-col items-center p-4 border-b">
         <Link to="/" className="flex items-center space-x-2">
           <div className="w-10 h-10 rounded-full bg-consevation-600 flex items-center justify-center">
-            <span className="text-white font-bold text-lg">Park Pro</span>
+            <span className="text-conservation-600 font-bold text-lg">Park Pro</span>
           </div>
-          <span className="text-xl font-bold text-primary">Loango National Park</span>
+          <span className="text-xl font-bold text-primary">{user.park ? user.park : 'Loaungo National Park'}</span>
         </Link>
         <div className="mt-4 w-full">
           <SidebarTrigger />

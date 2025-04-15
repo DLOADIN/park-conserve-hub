@@ -14,7 +14,7 @@ const NavBar = () => {
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
               <span className="ml-2 text-xl font-semibold text-conservation-800">
-                PARK CONSERVATION HUB
+              PARK PRO
               </span>
             </Link>
           </div>

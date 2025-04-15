@@ -56,7 +56,7 @@ const Login = () => {
               <div className="w-10 h-10 rounded-full bg-conservation-600 flex items-center justify-center">
                 <span className="text-white font-bold text-lg">PCH</span>
               </div>
-              <span className="text-xl font-bold text-conservation-700">PARK CONSERVATION HUB</span>
+              <span className="text-xl font-bold text-conservation-700">PARK PRO</span>
             </div>
             <h2 className="text-3xl font-extrabold text-conservation-700">Welcome back</h2>
             <p className="mt-2 text-sm text-gray-600">

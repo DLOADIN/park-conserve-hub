@@ -10,7 +10,7 @@ const Footer = () => {
           <div>
             <Link to="/" className="flex items-center mb-4">
               <span className="ml-2 text-xl font-semibold">
-                Park Conservation Hub
+              PARK PRO
               </span>
             </Link>
             <p className="mt-2 text-conservation-200 text-sm">
@@ -73,7 +73,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-conservation-800 mt-12 pt-8 text-sm text-conservation-300 flex flex-col md:flex-row justify-between items-center">
-          <p>&copy; {new Date().getFullYear()} Park Conservation Hub. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} PARK PRO. All rights reserved.</p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <Link to="#" className="hover:text-white">Privacy Policy</Link>
             <Link to="#" className="hover:text-white">Terms of Service</Link>
