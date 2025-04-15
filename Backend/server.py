@@ -1607,6 +1607,59 @@ def update_emergency_request_status(current_user_id, request_id):
             cursor.close()
             connection.close()
 
+
+
+
+@app.route('/api/admin/officer-counts', methods=['GET'])
+@token_required
+def get_officer_counts(current_user_id):
+    """Retrieve the total count of each officer type."""
+    print(f"Handling GET request for /api/admin/officer-counts by user {current_user_id}")
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # Count finance officers
+        cursor.execute("SELECT COUNT(*) as finance_count FROM finance_officers")
+        finance_count = cursor.fetchone()['finance_count']
+        
+        # Count government officers
+        cursor.execute("SELECT COUNT(*) as government_count FROM government_officers")
+        government_count = cursor.fetchone()['government_count']
+        
+        # Count auditors
+        cursor.execute("SELECT COUNT(*) as auditor_count FROM auditors")
+        auditor_count = cursor.fetchone()['auditor_count']
+        
+        # Count park staff
+        cursor.execute("SELECT COUNT(*) as park_staff_count FROM parkstaff")
+        park_staff_count = cursor.fetchone()['park_staff_count']
+
+        officer_counts = [
+            {"title": "Finance Officers", "value": finance_count, "icon": "Users", "trend": "neutral"},
+            {"title": "Government Officers", "value": government_count, "icon": "Users", "trend": "neutral"},
+            {"title": "Auditors", "value": auditor_count, "icon": "Users", "trend": "neutral"},
+            {"title": "Park Staff", "value": park_staff_count, "icon": "Users", "trend": "neutral"},
+        ]
+        
+        return jsonify({"officer_counts": officer_counts}), 200
+    except Exception as e:
+        print(f"Error fetching officer counts: {e}")
+        return jsonify({"error": "Failed to fetch officer counts"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+
+
 @app.route('/api/government/extra-funds/<int:request_id>/status', methods=['PUT'])
 @token_required
 def update_extra_funds_request_status(current_user_id, request_id):
@@ -2853,6 +2906,11 @@ def update_staff(current_user_id, staff_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+    
+
+
+
 
 # if __name__ == '__main__':
 #     if not os.path.exists(app.config['UPLOAD_FOLDER']):
