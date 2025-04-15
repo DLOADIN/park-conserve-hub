@@ -169,12 +169,19 @@ const EmergencyRequestForm = () => {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="Yellowstone">Yellowstone</SelectItem>
-                                <SelectItem value="Yosemite">Yosemite</SelectItem>
-                                <SelectItem value="Grand Canyon">Grand Canyon</SelectItem>
-                                <SelectItem value="Zion">Zion</SelectItem>
-                                <SelectItem value="Acadia">Acadia</SelectItem>
-                                <SelectItem value="Rocky Mountain">Rocky Mountain</SelectItem>
+                                <SelectItem value="Akanda National Park">Akanda National Park</SelectItem>
+                                                                <SelectItem value="Moukalaba-Doudou National Park">Moukalaba-Doudou National Park</SelectItem>
+                                                                <SelectItem value="Ivindo National Park">Ivindo National Park</SelectItem>
+                                                                <SelectItem value="Loango National Park">Loango National Park</SelectItem>
+                                                                <SelectItem value="Lopé National Park">Lopé National Park</SelectItem>
+                                                                <SelectItem value="Mayumba National Park">Mayumba National Park</SelectItem>
+                                                                <SelectItem value="Pongara National Park">Pongara National Park</SelectItem>
+                                                                <SelectItem value="Waka National Park">Waka National Park</SelectItem>
+                                                                <SelectItem value="Birougou National Park">Birougou National Park</SelectItem>
+                                                                <SelectItem value="Bateke Plateau National Park">Bateke Plateau National Park</SelectItem>
+                                                                <SelectItem value="Crystal Mountains National Park">Crystal Mountains National Park</SelectItem>
+                                                                <SelectItem value="Minkébé National Park">Minkébé National Park</SelectItem>
+                                                                <SelectItem value="Mwagne National Park">Mwagne National Park</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -201,19 +208,10 @@ const EmergencyRequestForm = () => {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="Akanda National Park">Akanda National Park</SelectItem>
-                                <SelectItem value="Moukalaba-Doudou National Park">Moukalaba-Doudou National Park</SelectItem>
-                                <SelectItem value="Ivindo National Park">Ivindo National Park</SelectItem>
-                                <SelectItem value="Loango National Park">Loango National Park</SelectItem>
-                                <SelectItem value="Lopé National Park">Lopé National Park</SelectItem>
-                                <SelectItem value="Mayumba National Park">Mayumba National Park</SelectItem>
-                                <SelectItem value="Pongara National Park">Pongara National Park</SelectItem>
-                                <SelectItem value="Waka National Park">Waka National Park</SelectItem>
-                                <SelectItem value="Birougou National Park">Birougou National Park</SelectItem>
-                                <SelectItem value="Bateke Plateau National Park">Bateke Plateau National Park</SelectItem>
-                                <SelectItem value="Crystal Mountains National Park">Crystal Mountains National Park</SelectItem>
-                                <SelectItem value="Minkébé National Park">Minkébé National Park</SelectItem>
-                                <SelectItem value="Mwagne National Park">Mwagne National Park</SelectItem>
+                                <SelectItem value="Renovation">Renovation</SelectItem>
+                                <SelectItem value="Hiring New Stuff">Hiring New Stuff</SelectItem>
+                                <SelectItem value="Maintenance">Maintenance</SelectItem>
+                                <SelectItem value="Buying New Trees">Buying New Trees</SelectItem>
                               </SelectContent>
 
                             </Select>

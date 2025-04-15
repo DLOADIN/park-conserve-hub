@@ -24,5 +24,24 @@ The parkstaff credentials are:
 3. Email: carol.gov@park.com Password: password
 
 
+How to run the frontend:
+ npm run dev
 
 
+How to run the Backend:
+ cd Backend/
+ python server.py
+
+
+
+
+
+
+1. Make sure the Parks are represented on the dashboard after login
+2. Add the new staff members added by the admin
+3. Those who are not among the five roles of the system; Should be able to login auditors
+   services, booked-tourings and donors
+4. Make sure that there are the expenses and income of the individual parks mentioned by the finance officer to the government
+5. Make sure the categories mentioned by the finance officer are well represented under their categories
+6. Allow the finance officer & government officer to get the a notification about the budget and if the expenses are above the budget
+   he/she should be notified about the budget and the expenses & not allowed to do anything about it

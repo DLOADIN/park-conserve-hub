@@ -290,6 +290,7 @@ const Services = () => {
                       <SelectValue placeholder="Select Type">{companyInfo.companyType || 'Select Type'}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
+                    <SelectItem value="None">None</SelectItem>
                       <SelectItem value="LLC">LLC</SelectItem>
                       <SelectItem value="Corporation">Corporation</SelectItem>
                       <SelectItem value="Sole Proprietorship">Sole Proprietorship</SelectItem>
