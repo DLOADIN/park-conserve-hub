@@ -1041,7 +1041,6 @@ def get_dashboard_stats(current_user_id):
             cursor.close()
             connection.close()    
 
-
 @app.route('/api/fund-requests', methods=['POST'])
 @token_required
 def create_fund_request(current_user_id):
@@ -1052,7 +1051,7 @@ def create_fund_request(current_user_id):
     
     try:
         data = request.json
-        required_fields = ['title', 'description', 'amount', 'category', 'urgency', 'parkname']  # Adjusted parkName to parkname
+        required_fields = ['title', 'description', 'amount', 'category', 'urgency']
         
         if not all(field in data for field in required_fields):
             missing_fields = [field for field in required_fields if field not in data]
@@ -1066,7 +1065,15 @@ def create_fund_request(current_user_id):
         except ValueError:
             return jsonify({"error": "Invalid amount"}), 400
 
+        # Get user's park_name
         cursor = connection.cursor()
+        cursor.execute("SELECT park_name FROM parkstaff WHERE id = %s", (current_user_id,))
+        user = cursor.fetchone()
+        if not user or not user[0]:
+            return jsonify({"error": "User or park not found"}), 404
+        
+        park_name = user[0]
+        
         cursor.execute("""
             INSERT INTO fund_requests (
                 title, description, amount, category, parkname, urgency, status, created_by
@@ -1076,7 +1083,7 @@ def create_fund_request(current_user_id):
             data['description'],
             amount,
             data['category'],
-            data['parkname'],  # Use parkname consistently
+            park_name,  # Use park_name from user
             data['urgency'],
             'pending',
             current_user_id
@@ -1089,7 +1096,7 @@ def create_fund_request(current_user_id):
             "message": "Fund request created successfully",
             "id": new_request_id
         }), 201
-
+    
     except Exception as e:
         print(f"Database error: {e}")
         return jsonify({"error": f"Failed to create fund request: {str(e)}"}), 500
@@ -1101,23 +1108,34 @@ def create_fund_request(current_user_id):
 
 
 
+
 @app.route('/api/fund-requests', methods=['GET'])
 @token_required
 def get_fund_requests(current_user_id):
-    """Retrieve all fund requests for the user's park."""
+    """Retrieve fund requests for the user's park."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
     
     try:
         cursor = connection.cursor(dictionary=True)
+        
+        # First, get the user's park_name
+        cursor.execute("SELECT park_name FROM parkstaff WHERE id = %s", (current_user_id,))
+        user = cursor.fetchone()
+        if not user or not user['park_name']:
+            return jsonify({"error": "User or park not found"}), 404
+        
+        park_name = user['park_name']
+        
+        # Query fund requests for the user's park
         cursor.execute("""
             SELECT 
                 id, title, description, amount, category, parkname, urgency, status,
                 created_at
             FROM fund_requests
-            WHERE created_by = %s
-        """, (current_user_id,))
+            WHERE parkname = %s
+        """, (park_name,))
         requests = cursor.fetchall()
         
         # Format dates for frontend
@@ -1126,7 +1144,7 @@ def get_fund_requests(current_user_id):
             del req['created_at']  # Remove raw timestamp
         
         return jsonify(requests), 200
-
+    
     except Exception as e:
         print(f"Database error: {e}")
         return jsonify({"error": "Failed to retrieve fund requests"}), 500
@@ -1149,15 +1167,24 @@ def update_fund_request(request_id, current_user_id):
     
     try:
         data = request.json
-        required_fields = ['title', 'description', 'amount', 'category', 'urgency', 'parkname']  # Adjusted parkName to parkname
+        required_fields = ['title', 'description', 'amount', 'category', 'urgency']
         
         if not all(field in data for field in required_fields):
             missing_fields = [field for field in required_fields if field not in data]
             return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
 
+        # Get user's park_name
         cursor = connection.cursor()
-        cursor.execute("SELECT id FROM fund_requests WHERE id = %s AND created_by = %s", 
-                       (request_id, current_user_id))
+        cursor.execute("SELECT park_name FROM parkstaff WHERE id = %s", (current_user_id,))
+        user = cursor.fetchone()
+        if not user or not user[0]:
+            return jsonify({"error": "User or park not found"}), 404
+        
+        park_name = user[0]
+        
+        # Verify the request exists and belongs to the user's park
+        cursor.execute("SELECT id FROM fund_requests WHERE id = %s AND parkname = %s", 
+                       (request_id, park_name))
         if not cursor.fetchone():
             return jsonify({"error": "Fund request not found or unauthorized"}), 404
 
@@ -1168,12 +1195,12 @@ def update_fund_request(request_id, current_user_id):
             WHERE id = %s
         """, (
             data['title'], data['description'], float(data['amount']),
-            data['category'], data['parkname'], data['urgency'], request_id
+            data['category'], park_name, data['urgency'], request_id
         ))
         connection.commit()
         
         return jsonify({"message": "Fund request updated successfully"}), 200
-
+    
     except Exception as e:
         print(f"Database error: {e}")
         return jsonify({"error": f"Failed to update fund request: {str(e)}"}), 500
@@ -1181,6 +1208,8 @@ def update_fund_request(request_id, current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
 
 
 
@@ -1195,8 +1224,17 @@ def delete_fund_request(request_id, current_user_id):
     
     try:
         cursor = connection.cursor()
-        cursor.execute("SELECT id FROM fund_requests WHERE id = %s AND created_by = %s", 
-                       (request_id, current_user_id))
+        # Get user's park_name
+        cursor.execute("SELECT park_name FROM parkstaff WHERE id = %s", (current_user_id,))
+        user = cursor.fetchone()
+        if not user or not user[0]:
+            return jsonify({"error": "User or park not found"}), 404
+        
+        park_name = user[0]
+        
+        # Verify the request exists and belongs to the user's park
+        cursor.execute("SELECT id FROM fund_requests WHERE id = %s AND parkname = %s", 
+                       (request_id, park_name))
         if not cursor.fetchone():
             return jsonify({"error": "Fund request not found or unauthorized"}), 404
 
@@ -1204,7 +1242,7 @@ def delete_fund_request(request_id, current_user_id):
         connection.commit()
         
         return jsonify({"message": "Fund request deleted successfully"}), 200
-
+    
     except Exception as e:
         print(f"Database error: {e}")
         return jsonify({"error": f"Failed to delete fund request: {str(e)}"}), 500
@@ -1212,6 +1250,12 @@ def delete_fund_request(request_id, current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+
+
+
+
 
 
 @app.route('/api/park-staff/fund-request-stats', methods=['GET'])
@@ -1461,7 +1505,26 @@ def update_fund_request_status(current_user_id, request_id):
         if status not in ['approved', 'rejected']:
             return jsonify({"error": "Invalid status"}), 400
             
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
+        
+        # Fetch the fund request details
+        cursor.execute("""
+            SELECT amount
+            FROM fund_requests
+            WHERE id = %s
+        """, (request_id,))
+        request_data = cursor.fetchone()
+        
+        if not request_data:
+            return jsonify({"error": "Fund request not found"}), 404
+        
+        # Check if amount exceeds $2000 when approving
+        if status == 'approved' and float(request_data['amount']) > 2000:
+            return jsonify({
+                "error": "Cannot approve fund requests exceeding our fiscal year budget"
+            }), 403
+        
+        # Update the fund request status
         cursor.execute("""
             UPDATE fund_requests 
             SET status = %s
@@ -1700,10 +1763,15 @@ def update_extra_funds_request_status(current_user_id, request_id):
             cursor.close()
             connection.close()
 
+
+
+
+
+
 @app.route('/api/finance/budgets', methods=['GET'])
 @token_required
 def get_budgets(current_user_id):
-    """Retrieve all budgets for finance officer"""
+    """Retrieve all budgets for finance officer with item types."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
@@ -1729,6 +1797,16 @@ def get_budgets(current_user_id):
             budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
             if budget['approved_at']:
                 budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+            # Fetch budget items with type
+            cursor.execute("""
+                SELECT id, category, description, amount, type
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            for item in items:
+                item['amount'] = float(item['amount'])
+            budget['items'] = items
             
         return jsonify(budgets), 200
         
@@ -1740,10 +1818,12 @@ def get_budgets(current_user_id):
             cursor.close()
             connection.close()
 
+
+
 @app.route('/api/finance/budgets', methods=['POST'])
 @token_required
 def create_budget(current_user_id):
-    """Create a new budget with items"""
+    """Create a new budget with items, specifying expense or income."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
@@ -1754,6 +1834,15 @@ def create_budget(current_user_id):
         
         if not all(field in data for field in required_fields):
             return jsonify({"error": "Missing required fields"}), 400
+
+        # Validate items
+        for item in data['items']:
+            if 'type' not in item or item['type'] not in ['expense', 'income']:
+                return jsonify({"error": "Each item must specify type as 'expense' or 'income'"}), 400
+            if not all(key in item for key in ['category', 'description', 'amount', 'type']):
+                return jsonify({"error": "Invalid budget item format"}), 400
+            if not isinstance(item['amount'], (int, float)) or item['amount'] <= 0:
+                return jsonify({"error": "Item amount must be positive"}), 400
 
         cursor = connection.cursor()
         # Insert budget
@@ -1774,17 +1863,18 @@ def create_budget(current_user_id):
         
         budget_id = cursor.lastrowid
         
-        # Insert budget items
+        # Insert budget items with type
         for item in data['items']:
             cursor.execute("""
                 INSERT INTO budget_items (
-                    budget_id, category, description, amount
-                ) VALUES (%s, %s, %s, %s)
+                    budget_id, category, description, amount, type
+                ) VALUES (%s, %s, %s, %s, %s)
             """, (
                 budget_id,
                 item['category'],
                 item['description'],
-                float(item['amount'])
+                float(item['amount']),
+                item['type']
             ))
         
         connection.commit()
@@ -1805,10 +1895,13 @@ def create_budget(current_user_id):
 
 
 
+
+
+
 @app.route('/api/government/budgets', methods=['GET'])
 @token_required
 def get_government_budgets(current_user_id):
-    """Retrieve all submitted budgets for government officer review"""
+    """Retrieve all submitted budgets for government officer review with item types."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
@@ -1833,7 +1926,7 @@ def get_government_budgets(current_user_id):
         # Fetch items for each budget
         for budget in budgets:
             cursor.execute("""
-                SELECT id, category, description, amount
+                SELECT id, category, description, amount, type
                 FROM budget_items
                 WHERE budget_id = %s
             """, (budget['id'],))
@@ -1857,7 +1950,6 @@ def get_government_budgets(current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
-
 
 
 
@@ -2188,10 +2280,11 @@ def get_rejected_budgets(current_user_id):
 
 
 
+
 @app.route('/api/government/budgets/<int:budget_id>', methods=['PUT'])
 @token_required
 def update_budget(current_user_id, budget_id):
-    """Update an existing budget and its items"""
+    """Update an existing budget and its items with expense/income type."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
@@ -2205,7 +2298,9 @@ def update_budget(current_user_id, budget_id):
 
         # Validate items
         for item in data['items']:
-            if not all(key in item for key in ['category', 'description', 'amount']):
+            if 'type' not in item or item['type'] not in ['expense', 'income']:
+                return jsonify({"error": "Each item must specify type as 'expense' or 'income'"}), 400
+            if not all(key in item for key in ['category', 'description', 'amount', 'type']):
                 return jsonify({"error": "Invalid budget item format"}), 400
             if not isinstance(item['amount'], (int, float)) or item['amount'] <= 0:
                 return jsonify({"error": "Item amount must be positive"}), 400
@@ -2239,17 +2334,18 @@ def update_budget(current_user_id, budget_id):
         # Delete existing items
         cursor.execute("DELETE FROM budget_items WHERE budget_id = %s", (budget_id,))
 
-        # Insert updated items
+        # Insert updated items with type
         for item in data['items']:
             cursor.execute("""
                 INSERT INTO budget_items (
-                    budget_id, category, description, amount
-                ) VALUES (%s, %s, %s, %s)
+                    budget_id, category, description, amount, type
+                ) VALUES (%s, %s, %s, %s, %s)
             """, (
                 budget_id,
                 item['category'],
                 item['description'],
-                float(item['amount'])
+                float(item['amount']),
+                item['type']
             ))
         
         connection.commit()
@@ -2264,6 +2360,8 @@ def update_budget(current_user_id, budget_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
 
 
 

@@ -1,5 +1,3 @@
-// Filename: src/components/BudgetCreation.tsx
-
 import React, { useState, useEffect } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -36,6 +34,7 @@ interface BudgetItem {
   category: string;
   description: string;
   amount: number;
+  type: 'expense' | 'income';
 }
 
 interface BudgetData {
@@ -47,6 +46,16 @@ interface BudgetData {
   status: 'draft' | 'submitted' | 'approved' | 'rejected';
   createdAt: Date | string;
   items: BudgetItem[];
+}
+
+interface IncomeItem {
+  type: string;
+  amount: number;
+}
+
+interface ExpenseItem {
+  type: string;
+  amount: number;
 }
 
 const NATIONAL_PARKS = [
@@ -71,17 +80,21 @@ const BudgetCreation: React.FC = () => {
   const [fiscalYear, setFiscalYear] = useState('');
   const [parkName, setParkName] = useState('');
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([
-    { id: '1', category: '', description: '', amount: 0 },
+    { id: '1', category: '', description: '', amount: 0, type: 'expense' },
   ]);
   const [existingBudgets, setExistingBudgets] = useState<BudgetData[]>([]);
   const [pendingBudgets, setPendingBudgets] = useState<BudgetData[]>([]);
   const [approvedBudgets, setApprovedBudgets] = useState<BudgetData[]>([]);
   const [rejectedBudgets, setRejectedBudgets] = useState<BudgetData[]>([]);
+  const [incomeItems, setIncomeItems] = useState<IncomeItem[]>([]);
+  const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
   const [loading, setLoading] = useState({
     existing: true,
     pending: true,
     approved: true,
     rejected: true,
+    income: true,
+    expenses: true,
   });
 
   // Fetch budgets for each tab
@@ -103,29 +116,117 @@ const BudgetCreation: React.FC = () => {
       const budgets = data.map((budget: any) => ({
         id: budget.id,
         title: budget.title,
-        fiscal_year: budget.fiscalYear,
-        total_amount: Number(budget.totalAmount),
-        park_name: budget.parkName,
+        fiscal_year: budget.fiscal_year,
+        total_amount: Number(budget.total_amount),
+        park_name: budget.park_name,
         status: budget.status,
-        createdAt: new Date(budget.createdAt),
+        createdAt: new Date(budget.created_at),
         items: budget.items.map((item: any) => ({
           id: item.id.toString(),
           category: item.category,
           description: item.description,
           amount: Number(item.amount),
+          type: item.type,
         })),
       }));
       setter(budgets);
-    } 
-    // catch (error) {
-    //   toast({
-    //     title: 'Error',
-    //     description: `Failed to load ${key} budgets`,
-    //     variant: 'destructive',
-    //   });
-    // }
-     finally {
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `Failed to load ${key} budgets`,
+        variant: 'destructive',
+      });
+    } finally {
       setLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
+  // Fetch income data (donations and tours)
+  const fetchIncomeData = async () => {
+    try {
+      const [donationsRes, toursRes] = await Promise.all([
+        fetch('http://localhost:5000/api/finance/donations', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }),
+        fetch('http://localhost:5000/api/finance/tours', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }),
+      ]);
+
+      if (!donationsRes.ok || !toursRes.ok) {
+        throw new Error('Failed to fetch income data');
+      }
+
+      const donationsData = await donationsRes.json();
+      const toursData = await toursRes.json();
+
+      const donationTotal = donationsData.reduce((sum: number, donation: any) => sum + Number(donation.amount), 0);
+      const tourTotal = toursData.reduce((sum: number, tour: any) => sum + Number(tour.amount), 0);
+
+      // Calculate Government Support as 15% of total income
+      const baseIncome = donationTotal + tourTotal;
+      const govSupport = baseIncome * 0.15 / (1 - 0.15);
+
+      setIncomeItems([
+        { type: 'Donations', amount: donationTotal },
+        { type: 'Booked Tours', amount: tourTotal },
+        { type: 'Government Support', amount: govSupport },
+      ]);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load income data',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, income: false }));
+    }
+  };
+
+  // Fetch expense data
+  const fetchExpenseData = async () => {
+    try {
+      const [fundRequestsRes, extraFundsRes, emergencyRes] = await Promise.all([
+        fetch('http://localhost:5000/api/finance/fund-requests?status=approved', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }),
+        fetch('http://localhost:5000/api/finance/extra-funds', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }),
+        fetch('http://localhost:5000/api/finance/emergency-requests', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }),
+      ]);
+
+      if (!fundRequestsRes.ok || !extraFundsRes.ok || !emergencyRes.ok) {
+        throw new Error('Failed to fetch expense data');
+      }
+
+      const fundRequestsData = await fundRequestsRes.json();
+      const extraFundsData = await extraFundsRes.json();
+      const emergencyData = await emergencyRes.json();
+
+      const fundRequestTotal = fundRequestsData.reduce((sum: number, req: any) => sum + Number(req.amount), 0);
+      const extraFundsTotal = extraFundsData
+        .filter((req: any) => req.status === 'approved')
+        .reduce((sum: number, req: any) => sum + Number(req.amount), 0);
+      const emergencyTotal = emergencyData
+        .filter((req: any) => req.status === 'approved')
+        .reduce((sum: number, req: any) => sum + Number(req.amount), 0);
+
+      setExpenseItems([
+        { type: 'Park Staff Fund Requests', amount: fundRequestTotal },
+        { type: 'Extra Funds Requests', amount: extraFundsTotal },
+        { type: 'Emergency Requests', amount: emergencyTotal },
+      ]);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load expense data',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading((prev) => ({ ...prev, expenses: false }));
     }
   };
 
@@ -135,6 +236,8 @@ const BudgetCreation: React.FC = () => {
     fetchBudgets('http://localhost:5000/api/finance/budgets/pending', setPendingBudgets, 'pending');
     fetchBudgets('http://localhost:5000/api/finance/budgets/newlyapproved', setApprovedBudgets, 'approved');
     fetchBudgets('http://localhost:5000/api/finance/budgets/rejected', setRejectedBudgets, 'rejected');
+    fetchIncomeData();
+    fetchExpenseData();
   };
 
   useEffect(() => {
@@ -144,7 +247,7 @@ const BudgetCreation: React.FC = () => {
   const addNewBudgetItem = () => {
     setBudgetItems([
       ...budgetItems,
-      { id: `${budgetItems.length + 1}`, category: '', description: '', amount: 0 },
+      { id: `${budgetItems.length + 1}`, category: '', description: '', amount: 0, type: 'expense' },
     ]);
   };
 
@@ -160,7 +263,7 @@ const BudgetCreation: React.FC = () => {
     setBudgetItems(budgetItems.filter((item) => item.id !== idToRemove));
   };
 
-  const updateBudgetItem = (id: string, field: keyof BudgetItem, value: string | number) => {
+  const updateBudgetItem = (id: string, field: keyof BudgetItem, value: string | number | 'expense' | 'income') => {
     setBudgetItems(
       budgetItems.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
@@ -168,8 +271,12 @@ const BudgetCreation: React.FC = () => {
     );
   };
 
-  const getTotalAmount = () => {
-    return budgetItems.reduce((total, item) => total + (Number(item.amount) || 0), 0);
+  const getTotalAmount = (items: { amount: number }[]) => {
+    return items.reduce((total, item) => total + (Number(item.amount) || 0), 0);
+  };
+
+  const getPercentage = (amount: number, total: number) => {
+    return total > 0 ? ((amount / total) * 100).toFixed(2) : '0.00';
   };
 
   const handleSaveDraft = async () => {
@@ -182,13 +289,13 @@ const BudgetCreation: React.FC = () => {
       return;
     }
 
-    const emptyItems = budgetItems.filter(
-      (item) => !item.category || !item.description || item.amount <= 0
+    const invalidItems = budgetItems.filter(
+      (item) => !item.category || !item.description || item.amount <= 0 || !item.type
     );
-    if (emptyItems.length > 0) {
+    if (invalidItems.length > 0) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in all budget items with valid amounts',
+        description: 'Please fill in all budget items with valid amounts and types',
         variant: 'destructive',
       });
       return;
@@ -206,7 +313,7 @@ const BudgetCreation: React.FC = () => {
           fiscal_year: fiscalYear,
           park_name: parkName,
           items: budgetItems,
-          total_amount: getTotalAmount(),
+          total_amount: getTotalAmount(budgetItems),
           status: 'draft',
         }),
       });
@@ -223,7 +330,7 @@ const BudgetCreation: React.FC = () => {
       setBudgetTitle('');
       setFiscalYear('');
       setParkName('');
-      setBudgetItems([{ id: '1', category: '', description: '', amount: 0 }]);
+      setBudgetItems([{ id: '1', category: '', description: '', amount: 0, type: 'expense' }]);
       setActiveTab('existing');
       refreshBudgets();
     } catch (error: any) {
@@ -245,13 +352,13 @@ const BudgetCreation: React.FC = () => {
       return;
     }
 
-    const emptyItems = budgetItems.filter(
-      (item) => !item.category || !item.description || item.amount <= 0
+    const invalidItems = budgetItems.filter(
+      (item) => !item.category || !item.description || item.amount <= 0 || !item.type
     );
-    if (emptyItems.length > 0) {
+    if (invalidItems.length > 0) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in all budget items with valid amounts',
+        description: 'Please fill in all budget items with valid amounts and types',
         variant: 'destructive',
       });
       return;
@@ -269,8 +376,8 @@ const BudgetCreation: React.FC = () => {
           fiscal_year: fiscalYear,
           park_name: parkName,
           items: budgetItems,
-          total_amount: getTotalAmount(),
-          status: 'submitted', // Default status
+          total_amount: getTotalAmount(budgetItems),
+          status: 'submitted',
         }),
       });
 
@@ -286,7 +393,7 @@ const BudgetCreation: React.FC = () => {
       setBudgetTitle('');
       setFiscalYear('');
       setParkName('');
-      setBudgetItems([{ id: '1', category: '', description: '', amount: 0 }]);
+      setBudgetItems([{ id: '1', category: '', description: '', amount: 0, type: 'expense' }]);
       setActiveTab('pending');
       refreshBudgets();
     } catch (error: any) {
@@ -390,6 +497,9 @@ const BudgetCreation: React.FC = () => {
     </div>
   );
 
+  const totalIncome = getTotalAmount(incomeItems);
+  const totalExpenses = getTotalAmount(expenseItems);
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-gray-50 w-full">
@@ -407,6 +517,7 @@ const BudgetCreation: React.FC = () => {
             >
               <div className="flex justify-between items-center mb-6 gap-2">
                 <TabsList>
+                  <TabsTrigger value="existing">Draft Budgets</TabsTrigger>
                   <TabsTrigger value="pending">Pending Budgets</TabsTrigger>
                   <TabsTrigger value="approved">Approved Budgets</TabsTrigger>
                   <TabsTrigger value="rejected">Rejected Budgets</TabsTrigger>
@@ -440,7 +551,7 @@ const BudgetCreation: React.FC = () => {
                   <CardHeader>
                     <CardTitle>Create New Budget</CardTitle>
                     <CardDescription>
-                      Define the details and line items for a new park budget
+                      Review income and expenses, and add new budget items
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -482,9 +593,78 @@ const BudgetCreation: React.FC = () => {
 
                     <Separator />
 
+                    {/* Income Section */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Income</h3>
+                      {loading.income ? (
+                        <p>Loading income data...</p>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Source</TableHead>
+                              <TableHead>Amount ($)</TableHead>
+                              <TableHead>Percentage</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {incomeItems.map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{item.type}</TableCell>
+                                <TableCell>${item.amount.toLocaleString()}</TableCell>
+                                <TableCell>{getPercentage(item.amount, totalIncome)}%</TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="font-bold">
+                              <TableCell>Total Income</TableCell>
+                              <TableCell>${totalIncome.toLocaleString()}</TableCell>
+                              <TableCell>100%</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Expenses Section */}
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Expenses</h3>
+                      {loading.expenses ? (
+                        <p>Loading expense data...</p>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Type</TableHead>
+                              <TableHead>Amount ($)</TableHead>
+                              <TableHead>Percentage</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {expenseItems.map((item, index) => (
+                              <TableRow key={index}>
+                                <TableCell>{item.type}</TableCell>
+                                <TableCell>${item.amount.toLocaleString()}</TableCell>
+                                <TableCell>{getPercentage(item.amount, totalExpenses)}%</TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow className="font-bold">
+                              <TableCell>Total Expenses</TableCell>
+                              <TableCell>${totalExpenses.toLocaleString()}</TableCell>
+                              <TableCell>100%</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* New Budget Items Section */}
                     <div>
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-medium">Budget Items</h3>
+                        <h3 className="text-lg font-medium">New Budget Items</h3>
                         <Button
                           variant="outline"
                           size="sm"
@@ -503,9 +683,7 @@ const BudgetCreation: React.FC = () => {
                             className="grid grid-cols-12 gap-4 items-start bg-gray-50 p-4 rounded-md"
                           >
                             <div className="col-span-12 md:col-span-3 space-y-2">
-                              <Label htmlFor={`category-${item.id}`}>
-                                Category
-                              </Label>
+                              <Label htmlFor={`category-${item.id}`}>Category</Label>
                               <Input
                                 id={`category-${item.id}`}
                                 placeholder="e.g. Staff Salaries"
@@ -515,27 +693,36 @@ const BudgetCreation: React.FC = () => {
                                 }
                               />
                             </div>
-                            <div className="col-span-12 md:col-span-5 space-y-2">
-                              <Label htmlFor={`description-${item.id}`}>
-                                Description
-                              </Label>
+                            <div className="col-span-12 md:col-span-4 space-y-2">
+                              <Label htmlFor={`description-${item.id}`}>Description</Label>
                               <Input
                                 id={`description-${item.id}`}
                                 placeholder="Brief description of this budget item"
                                 value={item.description}
                                 onChange={(e) =>
-                                  updateBudgetItem(
-                                    item.id,
-                                    'description',
-                                    e.target.value
-                                  )
+                                  updateBudgetItem(item.id, 'description', e.target.value)
                                 }
                               />
                             </div>
-                            <div className="col-span-10 md:col-span-3 space-y-2">
-                              <Label htmlFor={`amount-${item.id}`}>
-                                Amount ($)
-                              </Label>
+                            <div className="col-span-12 md:col-span-2 space-y-2">
+                              <Label htmlFor={`type-${item.id}`}>Type</Label>
+                              <Select
+                                value={item.type}
+                                onValueChange={(value) =>
+                                  updateBudgetItem(item.id, 'type', value as 'expense' | 'income')
+                                }
+                              >
+                                <SelectTrigger id={`type-${item.id}`}>
+                                  <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="expense">Expense</SelectItem>
+                                  <SelectItem value="income">Income</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="col-span-10 md:col-span-2 space-y-2">
+                              <Label htmlFor={`amount-${item.id}`}>Amount ($)</Label>
                               <Input
                                 id={`amount-${item.id}`}
                                 type="number"
@@ -543,11 +730,7 @@ const BudgetCreation: React.FC = () => {
                                 placeholder="0.00"
                                 value={item.amount || ''}
                                 onChange={(e) =>
-                                  updateBudgetItem(
-                                    item.id,
-                                    'amount',
-                                    Number(e.target.value)
-                                  )
+                                  updateBudgetItem(item.id, 'amount', Number(e.target.value))
                                 }
                               />
                             </div>
@@ -567,9 +750,9 @@ const BudgetCreation: React.FC = () => {
 
                       <div className="flex justify-end mt-6">
                         <div className="bg-gray-100 px-6 py-3 rounded-md">
-                          <span className="text-gray-700">Total: </span>
+                          <span className="text-gray-700">Total New Budget Items: </span>
                           <span className="font-bold text-lg">
-                            ${getTotalAmount().toLocaleString()}
+                            ${getTotalAmount(budgetItems).toLocaleString()}
                           </span>
                         </div>
                       </div>

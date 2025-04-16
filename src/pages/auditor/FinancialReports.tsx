@@ -677,7 +677,7 @@ const FinancialReports = () => {
                     <TabsTrigger value="budgets">Budgets</TabsTrigger>
                   </TabsList>
                   <TabsContent value="overview">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid lg:grid-cols-3 gap-6 mt-8">
                       <Card>
                         <CardHeader>
                           <CardTitle>Total Revenue</CardTitle>
@@ -702,14 +702,14 @@ const FinancialReports = () => {
                           <div className="text-2xl font-bold">${netIncome.toFixed(2)}</div>
                         </CardContent>
                       </Card>
-                      <Card>
+                      {/* <Card>
                         <CardHeader>
                           <CardTitle>Budget Utilization</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">{((totalExpenses / data.budgets.reduce((sum, b) => sum + b.total_amount, 0)) * 100).toFixed(1)}%</div>
+                          <div className="text-2xl font-bold">{((totalExpenses / data.budgets.reduce((sum, b) => sum + b.total_amount, 0))).toFixed(1)}%</div>
                         </CardContent>
-                      </Card>
+                      </Card> */}
                     </div>
                     <Card className="mt-4">
                         <CardHeader>

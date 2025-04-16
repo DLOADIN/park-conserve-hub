@@ -112,56 +112,6 @@ const ParkStaffDashboard = () => {
                     />
                   ))}
                 </div>
-
-                {/* Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Tour Bookings */}
-                  <Card className="animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                    <CardHeader>
-                      <CardTitle>Tour Bookings for {user.park}</CardTitle>
-                      <CardDescription>Monthly tour bookings</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={tourBookings}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="bookings"
-                            name="Bookings"
-                            stroke="#0ea5e9"
-                            strokeWidth={2}
-                            activeDot={{ r: 8 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-
-                  {/* Donations */}
-                  <Card className="animate-fade-in" style={{ animationDelay: '0.5s' }}>
-                    <CardHeader>
-                      <CardTitle>Donations for {user.park}</CardTitle>
-                      <CardDescription>Monthly donation amounts</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={donations}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="amount" name="Donation Amount ($)" fill="#22c55e" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                </div>
               </>
             )}
           </main>

@@ -65,17 +65,22 @@ const RequestManagement = () => {
         },
         body: JSON.stringify({ status }),
       });
-
+  
       if (response.ok) {
         setRequests(requests.map(req =>
           req.id === id ? { ...req, status } : req
         ));
         toast({ title: "Success", description: `Request ${status}` });
       } else {
-        toast({ title: "Error", description: "Failed to update status" });
+        const errorData = await response.json();
+        toast({ 
+          title: "Error", 
+          description: errorData.error || "Failed to update status", 
+          variant: "destructive" 
+        });
       }
     } catch (error) {
-      toast({ title: "Error", description: "Network error occurred" });
+      toast({ title: "Error", description: "Network error occurred", variant: "destructive" });
     }
   };
 

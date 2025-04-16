@@ -42,10 +42,6 @@ const DashboardHeader = ({ title, subtitle, className }: DashboardHeaderProps) =
         {subtitle && <p className="text-gray-500">{subtitle}</p>}
       </div>
       <div className="flex items-center space-x-4">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full"></span>
-        </Button>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

@@ -9,6 +9,14 @@ import { Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog'; // Assuming these exist
 
 interface TourBooking {
   id: string;
@@ -31,6 +39,8 @@ const BookedTours = () => {
   const [tours, setTours] = useState<TourBooking[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTours, setFilteredTours] = useState<TourBooking[]>([]);
+  const [selectedTour, setSelectedTour] = useState<TourBooking | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchTours();
@@ -71,7 +81,8 @@ const BookedTours = () => {
   };
 
   const viewTourDetails = (tour: TourBooking) => {
-    // Implement the viewTourDetails function
+    setSelectedTour(tour);
+    setIsDialogOpen(true);
   };
 
   return (
@@ -133,13 +144,75 @@ const BookedTours = () => {
                             <TableCell>${tour.amount}.00</TableCell>
                             <TableCell>{tour.created_at}</TableCell>
                             <TableCell className="no-print">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => viewTourDetails(tour)}
-                              >
-                                View
-                              </Button>
+                              <Dialog open={isDialogOpen && selectedTour?.id === tour.id} onOpenChange={setIsDialogOpen}>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => viewTourDetails(tour)}
+                                  >
+                                    View
+                                  </Button>
+                                </DialogTrigger>
+                                {selectedTour && (
+                                  <DialogContent className="sm:max-w-[600px]">
+                                    <DialogHeader>
+                                      <DialogTitle>Tour Booking Details</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">ID:</span>
+                                        <span className="col-span-3">{selectedTour.id}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Park:</span>
+                                        <span className="col-span-3">{selectedTour.park_name}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Customer:</span>
+                                        <span className="col-span-3">{`${selectedTour.first_name} ${selectedTour.last_name}`}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Email:</span>
+                                        <span className="col-span-3">{selectedTour.email}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Phone:</span>
+                                        <span className="col-span-3">{selectedTour.phone}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Date:</span>
+                                        <span className="col-span-3">{selectedTour.date}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Time:</span>
+                                        <span className="col-span-3">{selectedTour.time}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Guests:</span>
+                                        <span className="col-span-3">{selectedTour.guests}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Amount:</span>
+                                        <span className="col-span-3">${selectedTour.amount}.00</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Special Requests:</span>
+                                        <span className="col-span-3">{selectedTour.special_requests || 'None'}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium col-span-1">Booked On:</span>
+                                        <span className="col-span-3">{selectedTour.created_at}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                      <DialogClose asChild>
+                                        <Button variant="outline">Close</Button>
+                                      </DialogClose>
+                                    </div>
+                                  </DialogContent>
+                                )}
+                              </Dialog>
                             </TableCell>
                           </TableRow>
                         ))

@@ -10,9 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
+// Updated form schema without parkname
 const formSchema = z.object({
   title: z.string().min(5, { message: 'Title must be at least 5 characters.' }),
-  parkname: z.string().min(1, { message: 'Please enter your park name.' }),
   description: z.string().min(10, { message: 'Description must be at least 10 characters.' }),
   amount: z.coerce.number().positive({ message: 'Amount must be a positive number.' }),
   category: z.string().min(1, { message: 'Please select a category.' }),
@@ -21,7 +21,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-// Align with FundRequests.tsx
+// Align with FundRequests.tsx and backend expectations
 interface FundRequest {
   id: string;
   title: string;
@@ -50,19 +50,39 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
 }) => {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      title: '',
-      parkname: '',
-      description: '',
-      amount: undefined,
-      category: '',
-      urgency: 'medium',
-    },
+    defaultValues: initialData
+      ? {
+          title: initialData.title,
+          description: initialData.description,
+          amount: initialData.amount,
+          category: initialData.category,
+          urgency: initialData.urgency,
+        }
+      : {
+          title: '',
+          description: '',
+          amount: undefined,
+          category: '',
+          urgency: 'medium',
+        },
   });
 
-  const handleSubmit = (values: FormValues) => {
-    onSubmit(values);
-    if (!initialData) form.reset(); // Only reset on create, not edit
+  const handleSubmit = async (values: FormValues) => {
+    try {
+      await onSubmit(values);
+      if (!initialData) {
+        form.reset({
+          title: '',
+          description: '',
+          amount: undefined,
+          category: '',
+          urgency: 'medium',
+        });
+      }
+      toast.success(initialData ? 'Fund request updated successfully!' : 'Fund request submitted successfully!');
+    } catch (error) {
+      toast.error(`Failed to ${initialData ? 'update' : 'submit'} fund request`);
+    }
   };
 
   return (
@@ -73,7 +93,7 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
           <DialogDescription>
             {initialData
               ? 'Modify the details of your existing fund request.'
-              : 'Fill in the details to submit a new fund request to the finance department.'}
+              : 'Fill in the details to submit a new fund request for your park.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -87,20 +107,6 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                   <FormLabel>Request Title</FormLabel>
                   <FormControl>
                     <Input placeholder="E.g., Trail Maintenance Equipment" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="parkname"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Park Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="E.g., Luango National Park" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -139,7 +145,7 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                       <Input
                         type="number"
                         placeholder="0.00"
-                        {...field}
+                        value={field.value ?? ''}
                         onChange={(e) => {
                           const value = e.target.value;
                           field.onChange(value === '' ? undefined : Number(value));
@@ -157,7 +163,7 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
@@ -186,7 +192,7 @@ const CreateFundRequestModal: React.FC<CreateFundRequestModalProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Urgency Level</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select urgency level" />

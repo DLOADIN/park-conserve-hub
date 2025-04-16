@@ -430,11 +430,11 @@ const EmergencyRequests = () => {
       
       {/* View Request Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-full">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader className="">
             <div className="flex items-center gap-3 text-amber-500 mb-1">
               <AlertTriangle className="h-5 w-5" />
-              <span className="text-sm font-medium">Emergency Request</span>
+              <span className="text-sm font-medium ">Emergency Request</span>
             </div>
             <DialogTitle>{selectedRequest?.title}</DialogTitle>
             <DialogDescription>
@@ -443,7 +443,7 @@ const EmergencyRequests = () => {
           </DialogHeader>
           
           <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 ">
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Park</h4>
                 <p>{selectedRequest?.parkName}</p>
@@ -468,19 +468,20 @@ const EmergencyRequests = () => {
                 <h4 className="text-sm font-medium text-gray-500">Submitted Date</h4>
                 <p>{selectedRequest?.submittedDate || 'Not submitted yet'}</p>
               </div>
-            </div>
+            
             
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
-              <p className="text-sm">{selectedRequest?.description}</p>
+              <p className="text-sm w-[100px] word-wrap">{selectedRequest?.description}</p>
             </div>
             
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-1">Justification</h4>
-              <p className="text-sm">{selectedRequest?.justification}</p>
+              <p className="text-sm w-[100px]">{selectedRequest?.justification}</p>
             </div>
           </div>
-          
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
               Close
