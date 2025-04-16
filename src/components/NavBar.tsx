@@ -24,6 +24,7 @@ const NavBar = () => {
             <Link to="/services" className="nav-item">Partnaire Services</Link>
             <Link to="/book-tour" className="nav-item">Book Tours</Link>
             <Link to="/donate" className="nav-item">Make Donations</Link>
+            <Link to="/visitors" className="nav-item">Visitors</Link>
           </div>
           
           <div className="hidden sm:ml-6 sm:flex sm:items-center">

@@ -39,6 +39,7 @@ const Footer = () => {
               <li><Link to="/services" className="nav-item">Partnaire Services</Link></li>
               <li><Link to="/book-tour" className="nav-item">Book Tours</Link></li>
               <li><Link to="/donate" className="nav-item">Make Donations</Link></li>
+              <li><Link to="/visitors" className="nav-item">Visitors</Link></li>
             </ul>
           </div>
           
@@ -66,7 +67,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center">
                 <Mail className="mr-2 h-5 w-5 flex-shrink-0 text-conservation-400" />
-                <span>contact@parkconservation.org</span>
+                <span>contact@parkpro.org</span>
               </li>
             </ul>
           </div>

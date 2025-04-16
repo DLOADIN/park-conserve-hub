@@ -11,6 +11,8 @@ import hashlib
 import jwt
 from functools import wraps
 import bcrypt
+import os
+import re
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -41,6 +43,9 @@ def get_db_connection():
     except Error as f:
         return(f"The error '{f}' occurred")
 
+
+def generate_salt():
+    return os.urandom(16).hex()
 
 @app.route('/api/donate', methods=['POST'])
 def donate():
@@ -110,7 +115,8 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
-
+def hash_password(password, salt):
+    return hashlib.sha256((password + salt).encode()).hexdigest()
 
 
 
@@ -3005,9 +3011,403 @@ def update_staff(current_user_id, staff_id):
             cursor.close()
             connection.close()
 
+
+
+
+
+
+
+
+
+
+@app.route('/api/visitor/data', methods=['GET'])
+@token_required
+def get_visitor_data(current_user_id):
+    """Retrieve all donations, tours, and services for the logged-in visitor."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
     
+    try:
+        cursor = connection.cursor(dictionary=True)
+        # Get visitor's email
+        cursor.execute("SELECT email FROM visitors WHERE id = %s", (current_user_id,))
+        visitor = cursor.fetchone()
+        if not visitor:
+            return jsonify({"error": "Visitor not found"}), 404
+        email = visitor['email']
+
+        # Fetch donations
+        cursor.execute("""
+            SELECT 
+                id, donation_type AS donationType, amount, park_name AS parkName,
+                first_name AS firstName, last_name AS lastName, email,
+                message, is_anonymous AS isAnonymous, created_at AS createdAt
+            FROM donations
+            WHERE email = %s
+            ORDER BY created_at DESC
+        """, (email,))
+        donations = cursor.fetchall()
+        for donation in donations:
+            donation['createdAt'] = donation['createdAt'].strftime('%Y-%m-%d %H:%M:%S')
+            donation['amount'] = float(donation['amount'])
+
+        # Fetch tours
+        cursor.execute("""
+            SELECT 
+                id, park_name AS parkName, tour_name AS tourName, date, time,
+                guests, amount, first_name AS firstName, last_name AS lastName,
+                email, special_requests AS specialRequests, created_at AS createdAt
+            FROM tours
+            WHERE email = %s
+            ORDER BY created_at DESC
+        """, (email,))
+        tours = cursor.fetchall()
+        for tour in tours:
+            tour['createdAt'] = tour['createdAt'].strftime('%Y-%m-%d %H:%M:%S')
+            tour['date'] = tour['date'].strftime('%Y-%m-%d')
+            tour['time'] = str(tour['time'])
+            tour['amount'] = float(tour['amount'])
+
+        # Fetch services
+        cursor.execute("""
+            SELECT 
+                id, first_name AS firstName, last_name AS lastName, email, phone,
+                company_type AS companyType, provided_service AS providedService,
+                company_name AS companyName, tax_id AS taxId, status,
+                created_at AS createdAt
+            FROM services
+            WHERE email = %s
+            ORDER BY created_at DESC
+        """, (email,))
+        services = cursor.fetchall()
+        for service in services:
+            service['createdAt'] = service['createdAt'].strftime('%Y-%m-%d %H:%M:%S')
+
+        return jsonify({
+            "donations": donations,
+            "tours": tours,
+            "services": services
+        }), 200
+
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve visitor data"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# # Existing endpoints (keeping only the relevant ones for brevity)
+# @app.route('/api/donate', methods=['POST'])
+# def donate():
+#     """Handles donation submissions."""
+#     connection = get_db_connection()
+#     if not connection:
+#         return jsonify({"error": "Database connection failed"}), 500
+    
+#     try:
+#         data = request.json
+#         required_fields = ['donationType', 'amount', 'parkName', 'firstName', 'lastName', 'email']
+        
+#         if not all(field in data for field in required_fields):
+#             return jsonify({"error": "Missing required fields"}), 400
+
+#         try:
+#             donation_amount = float(data['amount'])
+#             if donation_amount <= 0:
+#                 return jsonify({"error": "Donation amount must be positive"}), 400
+#         except ValueError:
+#             return jsonify({"error": "Invalid donation amount"}), 400
+
+#         cursor = connection.cursor()
+#         cursor.execute('''
+#             INSERT INTO donations (
+#                 donation_type, amount, park_name, 
+#                 first_name, last_name, email, 
+#                 message, is_anonymous
+#             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+#         ''', (
+#             data['donationType'],
+#             donation_amount,
+#             data['parkName'],
+#             data['firstName'],
+#             data['lastName'],
+#             data['email'],
+#             data.get('message', ''),
+#             False
+#         ))
+#         connection.commit()
+#         return jsonify({"message": "Donation recorded successfully"}), 201
+
+#     except Exception as e:
+#         print(f"Database error: {e}")
+#         return jsonify({"error": "Database operation failed"}), 500
+#     finally:
+#         if connection.is_connected():
+#             cursor.close()
+#             connection.close()
+
+# @app.route('/api/book-tour', methods=['POST'])
+# def book_tour():
+#     connection = get_db_connection()
+#     cursor = None
+#     if not connection:
+#         return jsonify({"error": "Database connection failed"}), 500
+
+#     try:
+#         data = request.json
+#         required_fields = ['parkName', 'tourName', 'date', 'time', 'guests', 'amount']
+
+#         if not all(field in data for field in required_fields):
+#             return jsonify({"error": "Missing required fields"}), 400
+
+#         try:
+#             guests = int(data['guests'])
+#             amount = int(data['amount'])
+#         except (ValueError, TypeError):
+#             return jsonify({"error": "Guests and amount must be valid integers"}), 400
+
+#         if guests < 1 or guests > 20:
+#             return jsonify({"error": "Guests must be between 1 and 20"}), 400
+
+#         if amount != guests * 75:
+#             return jsonify({"error": "Invalid amount: must be $75 per guest"}), 400
+
+#         try:
+#             datetime.strptime(data['date'], '%Y-%m-%d')
+#             datetime.strptime(data['time'], '%H:%M')
+#         except ValueError:
+#             return jsonify({"error": "Invalid date or time format"}), 400
+
+#         cursor = connection.cursor()
+#         cursor.execute('''
+#             INSERT INTO tours (
+#                 park_name, tour_name, date, time, guests, amount,
+#                 first_name, last_name, email, special_requests
+#             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+#         ''', (
+#             data['parkName'],
+#             data['tourName'],
+#             data['date'],
+#             data['time'],
+#             guests,
+#             amount,
+#             data['firstName'],
+#             data['lastName'],
+#             data['email'],
+#             data.get('specialRequests', '')
+#         ))
+#         connection.commit()
+#         return jsonify({"message": "Tour booked successfully"}), 201
+
+#     except Error as e:
+#         print(f"Database error: {e}")
+#         return jsonify({"error": f"Database operation failed: {str(e)}"}), 500
+
+#     finally:
+#         if cursor:
+#             cursor.close()
+#         if connection.is_connected():
+#             connection.close()
+
+# @app.route('/api/services', methods=['POST'])
+# def services():
+#     connection = get_db_connection()
+#     if not connection:
+#         return jsonify({"error": "Database connection failed"}), 500
+    
+#     try:
+#         data = request.form
+#         files = request.files
+
+#         required_fields = ['firstName', 'lastName', 'email', 'companyType', 'companyName', 'taxId']
+#         if not all(field in data for field in required_fields):
+#             return jsonify({"error": "Missing required fields"}), 400
+
+#         if 'companyRegistration' not in files:
+#             return jsonify({"error": "Company registration file is required"}), 400
+
+#         company_registration = files['companyRegistration'].read()
+#         application_letter = files['applicationLetter'].read() if 'applicationLetter' in files else None
+
+#         cursor = connection.cursor()
+#         cursor.execute('''
+#             INSERT INTO services (
+#                 first_name, last_name, email, phone, company_type, 
+#                 provided_service, company_name, tax_id, 
+#                 company_registration, application_letter
+#             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+#         ''', (
+#             data['firstName'],
+#             data['lastName'],
+#             data['email'],
+#             data.get('phone', ''),
+#             data['companyType'],
+#             data.get('providedService', ''),
+#             data['companyName'],
+#             data['taxId'],
+#             company_registration,
+#             application_letter
+#         ))
+
+#         connection.commit()
+#         return jsonify({"message": "Service application submitted successfully"}), 201
+
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
+
+#     finally:
+#         if connection.is_connected():
+#             cursor.close()
+#             connection.close()
 
 
+
+@app.route('/api/visitor/register', methods=['POST'])
+def visitor_register():
+    """Register a new visitor."""
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email', 'password']
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        # Validate email format
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", data['email']):
+            return jsonify({"error": "Invalid email format"}), 400
+
+        # Validate password strength
+        if len(data['password']) < 8:
+            return jsonify({"error": "Password must be at least 8 characters long"}), 400
+        if not re.search(r"[A-Z]", data['password']) or not re.search(r"[0-9]", data['password']):
+            return jsonify({"error": "Password must contain at least one uppercase letter and one number"}), 400
+
+        cursor = connection.cursor()
+        # Check if email already exists
+        cursor.execute("SELECT id FROM visitors WHERE email = %s", (data['email'],))
+        if cursor.fetchone():
+            return jsonify({"error": "Email already exists"}), 409
+
+        # Generate salt and hash password
+        salt = generate_salt()
+        password_hash = hash_password(data['password'], salt)
+
+        # Store salt and hash together (e.g., "salt:hash")
+        stored_password = f"{salt}:{password_hash}"
+
+        # Insert new visitor
+        cursor.execute("""
+            INSERT INTO visitors (
+                first_name, last_name, email, password_hash
+            ) VALUES (%s, %s, %s, %s)
+        """, (
+            data['firstName'],
+            data['lastName'],
+            data['email'],
+            stored_password
+        ))
+        connection.commit()
+        
+        new_visitor_id = cursor.lastrowid
+        
+        return jsonify({
+            "message": "Visitor registered successfully",
+            "id": new_visitor_id
+        }), 201
+
+    except Exception as e:
+        print(f"Visitor registration error: {str(e)}")
+        return jsonify({"error": f"Failed to register visitor: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/visitor/login', methods=['POST'])
+def visitor_login():
+    """Authenticate a visitor using email and password."""
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM visitors WHERE email = %s", (email,))
+        visitor = cursor.fetchone()
+        
+        if not visitor:
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Check if password is in salted format
+        password_match = False
+        if ':' in visitor['password_hash']:
+            # New salted format
+            stored_salt, stored_hash = visitor['password_hash'].split(':')
+            password_hash = hash_password(password, stored_salt)
+            password_match = password_hash == stored_hash
+        else:
+            # Legacy unsalted SHA-256
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            password_match = password_hash == visitor['password_hash']
+            if password_match:
+                # Upgrade to salted hash
+                salt = generate_salt()
+                new_hash = hash_password(password, salt)
+                new_stored_password = f"{salt}:{new_hash}"
+                cursor.execute("UPDATE visitors SET password_hash = %s WHERE id = %s", 
+                              (new_stored_password, visitor['id']))
+                connection.commit()
+
+        if not password_match:
+            return jsonify({"error": "Invalid credentials"}), 401
+
+        # Update last login
+        cursor.execute("UPDATE visitors SET last_login = CURRENT_TIMESTAMP WHERE id = %s", (visitor['id'],))
+        connection.commit()
+
+        # Create JWT token
+        token = jwt.encode({
+            'user_id': str(visitor['id']),
+            'email': visitor['email'],
+            'role': 'visitor',
+            'exp': int(datetime.utcnow().timestamp() + 86400)
+        }, app.config['SECRET_KEY'], algorithm='HS256')
+
+        return jsonify({
+            "message": "Login successful",
+            "token": token,
+            "user": {
+                "id": str(visitor['id']),
+                "firstName": visitor['first_name'],
+                "lastName": visitor['last_name'],
+                "email": visitor['email'],
+                "role": "visitor"
+            },
+            "dashboard": "/visitors/Dashboard"
+        }), 200
+
+    except Exception as e:
+        print(f"Visitor login error: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 
 # if __name__ == '__main__':

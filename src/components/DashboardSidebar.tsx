@@ -64,6 +64,19 @@ const DashboardSidebar = () => {
       </SidebarHeader>
 
       <SidebarContent className="p-2">
+      {/* {role === 'visitors' && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Visitors</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+              <SidebarLink to="/visitors/Dashboard" icon={LayoutDashboard} active={isActive('/visitors/Dashboard')}>
+                  Dashboard
+                </SidebarLink>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )} */}
+
 
         {role === 'admin' && (
           <SidebarGroup>

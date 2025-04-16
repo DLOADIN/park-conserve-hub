@@ -41,6 +41,11 @@ import ExtraFunds from "./pages/government/ExtraFunds";
 import Budget from "./pages/government/Budget";
 import EmergencyRequests from "./pages/government/EmergencyRequests";
 
+
+import Visitors from "@/pages/Visitors";
+import Visitorregister from "@/pages/visitors/Register";
+import Visitorsdashboard from "@/pages/visitors/Dashboard"
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -56,6 +61,7 @@ const App = () => (
             <Route path="/book-tour" element={<BookTour />} />
             <Route path="/donate" element={<Donate />} />
             <Route path="/payment" element={<Payment />} />
+            <Route path="/visitors" element={<Visitors />} />
             <Route path="/Login" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />{/* Admin routes */}
 
@@ -91,6 +97,11 @@ const App = () => (
             <Route path="/auditor/financial-reports" element={<FinancialReports />} />
             <Route path="/auditor/invoices" element={<InvoiceView />} />
             
+
+            {/* Visitors routes */}
+            <Route path="/visitors/login" element={<Visitors />} />
+            <Route path="/visitors/Register" element={<Visitorregister />} />
+            <Route path="/visitors/dashboard" element={<Visitorsdashboard />} />
           </Routes>
 
         </BrowserRouter>

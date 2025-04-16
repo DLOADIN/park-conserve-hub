@@ -54,7 +54,7 @@ const Login = () => {
           <div className="text-center">
             <div onClick={() => navigate('/')} className="cursor-pointer mx-auto flex items-center justify-center space-x-2 mb-5">
               <div className="w-10 h-10 rounded-full bg-conservation-600 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">PCH</span>
+                <span className="text-white font-bold text-lg">P</span>
               </div>
               <span className="text-xl font-bold text-conservation-700">PARK PRO</span>
             </div>
