@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Sidebar,
@@ -13,12 +13,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarHeader,
-  SidebarTrigger,
-
 } from '@/components/ui/sidebar';
-import { LogOut, User, LayoutDashboard, Users, Settings, FileText, DollarSign, PiggyBank, Calendar, Clock, CreditCard, Landmark, AlertTriangle, FileBarChart, Activity, ClipboardCheck, UserCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
-
+import { LogOut, User, LayoutDashboard, DollarSign, Calendar, ClipboardCheck } from 'lucide-react';
 
 interface Donation {
   id: number;
@@ -62,10 +58,11 @@ interface Service {
   createdAt: string;
 }
 
-const Visitorsdashboard: React.FC = () => {
+const VisitorsDashboard: React.FC = () => {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [tours, setTours] = useState<Tour[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [visitorName, setVisitorName] = useState<string>('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -83,6 +80,12 @@ const Visitorsdashboard: React.FC = () => {
         setDonations(response.data.donations);
         setTours(response.data.tours);
         setServices(response.data.services);
+
+        // Fetch visitor profile for name
+        const profileResponse = await axios.get('http://localhost:5000/api/visitor/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setVisitorName(`${profileResponse.data.user.firstName} ${profileResponse.data.user.lastName}`);
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load data');
         if (err.response?.status === 401) {
@@ -100,126 +103,131 @@ const Visitorsdashboard: React.FC = () => {
   };
 
   return (
-    <>  
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Visitor Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Logout
-          </button>
-        </div>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
+    <div className="flex flex-col h-screen bg-gray-100">
+      {/* Navbar */}
+      <nav className="bg-white shadow-md p-4 flex justify-between items-center">
+        <div className="text-xl font-bold text-conservation-600">Park Pro</div>
+        <div className="text-lg text-gray-700">{visitorName || 'Loading...'}</div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center text-red-600 hover:text-red-1000"
+        >
+          <LogOut className="w-5 h-5 mr-2 text-red-600" />
+          Logout
+        </button>
+      </nav>
 
-        {/* Donations Table */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Your Donations</h2>
-          {donations.length === 0 ? (
-            <p>No donations found.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg shadow">
-                <thead>
-                  <tr className="bg-gray-200">
-                    <th className="p-3 text-left">Park</th>
-                    <th className="p-3 text-left">Type</th>
-                    <th className="p-3 text-left">Amount</th>
-                    <th className="p-3 text-left">Date</th>
-                    <th className="p-3 text-left">Message</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donations.map((donation) => (
-                    <tr key={donation.id} className="border-b">
-                      <td className="p-3">{donation.parkName}</td>
-                      <td className="p-3">{donation.donationType}</td>
-                      <td className="p-3">${donation.amount.toFixed(2)}</td>
-                      <td className="p-3">{donation.createdAt}</td>
-                      <td className="p-3">{donation.message || 'N/A'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+      {/* Main Content */}
+      <div className="flex-1 p-6 overflow-auto">
+        <div className="max-w-7xl mx-auto">
+          {error && <p className="text-red-500 mb-4">{error}</p>}
 
-        {/* Tours Table */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Your Booked Tours</h2>
-          {tours.length === 0 ? (
-            <p>No tours booked.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg shadow">
-                <thead>
-                  <tr className="bg-gray-200">
-                    <th className="p-3 text-left">Park</th>
-                    <th className="p-3 text-left">Tour</th>
-                    <th className="p-3 text-left">Date</th>
-                    <th className="p-3 text-left">Time</th>
-                    <th className="p-3 text-left">Guests</th>
-                    <th className="p-3 text-left">Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tours.map((tour) => (
-                    <tr key={tour.id} className="border-b">
-                      <td className="p-3">{tour.parkName}</td>
-                      <td className="p-3">{tour.tourName}</td>
-                      <td className="p-3">{tour.date}</td>
-                      <td className="p-3">{tour.time}</td>
-                      <td className="p-3">{tour.guests}</td>
-                      <td className="p-3">${tour.amount.toFixed(2)}</td>
+          {/* Donations Table */}
+          <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Donations</h2>
+            {donations.length === 0 ? (
+              <p className="text-gray-600">No donations found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Park</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {donations.map((donation) => (
+                      <tr key={donation.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.parkName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.donationType}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${donation.amount.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.createdAt}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{donation.message || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
-        {/* Services Table */}
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">Your Service Applications</h2>
-          {services.length === 0 ? (
-            <p>No service applications found.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg shadow">
-                <thead>
-                  <tr className="bg-gray-200">
-                    <th className="p-3 text-left">Company Name</th>
-                    <th className="p-3 text-left">Company Type</th>
-                    <th className="p-3 text-left">Service</th>
-                    <th className="p-3 text-left">Tax ID</th>
-                    <th className="p-3 text-left">Status</th>
-                    <th className="p-3 text-left">Applied On</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {services.map((service) => (
-                    <tr key={service.id} className="border-b">
-                      <td className="p-3">{service.companyName}</td>
-                      <td className="p-3">{service.companyType}</td>
-                      <td className="p-3">{service.providedService || 'N/A'}</td>
-                      <td className="p-3">{service.taxId}</td>
-                      <td className="p-3">{service.status || 'Pending'}</td>
-                      <td className="p-3">{service.createdAt}</td>
+          {/* Tours Table */}
+          <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Booked Tours</h2>
+            {tours.length === 0 ? (
+              <p className="text-gray-600">No tours booked.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Park</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tour</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {tours.map((tour) => (
+                      <tr key={tour.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tour.parkName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tour.tourName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tour.date}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tour.time}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{tour.guests}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${tour.amount.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Services Table */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Service Applications</h2>
+            {services.length === 0 ? (
+              <p className="text-gray-600">No service applications found.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied On</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {services.map((service) => (
+                      <tr key={service.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{service.companyName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{service.companyType}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{service.providedService || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{service.taxId}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{service.status || 'Pending'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{service.createdAt}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
-    </>
   );
 };
 
-export default Visitorsdashboard;
+export default VisitorsDashboard;

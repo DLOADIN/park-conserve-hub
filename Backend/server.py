@@ -3410,6 +3410,48 @@ def visitor_login():
             connection.close()
 
 
+
+@app.route('/api/visitor/profile', methods=['GET'])
+@token_required
+def visitor_profile(current_user):
+    """Get the profile of the logged-in visitor."""
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT id, first_name, last_name, email FROM visitors WHERE id = %s", (current_user['user_id'],))
+        visitor = cursor.fetchone()
+        
+        if not visitor:
+            return jsonify({"error": "Visitor not found"}), 404
+
+        return jsonify({
+            "user": {
+                "id": str(visitor['id']),
+                "firstName": visitor['first_name'],
+                "lastName": visitor['last_name'],
+                "email": visitor['email'],
+                "role": "visitor"
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"Visitor profile error: {str(e)}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+
+
+
 # if __name__ == '__main__':
 #     if not os.path.exists(app.config['UPLOAD_FOLDER']):
 #         os.makedirs(app.config['UPLOAD_FOLDER'])
