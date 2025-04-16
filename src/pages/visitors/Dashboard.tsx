@@ -71,7 +71,7 @@ const VisitorsDashboard: React.FC = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          navigate('/visitor/login');
+          navigate('../Visitors');
           return;
         }
         const response = await axios.get('http://localhost:5000/api/visitor/data', {
@@ -90,7 +90,7 @@ const VisitorsDashboard: React.FC = () => {
         setError(err.response?.data?.error || 'Failed to load data');
         if (err.response?.status === 401) {
           localStorage.removeItem('token');
-          navigate('/visitor/login');
+          navigate('/..visitors');
         }
       }
     };
@@ -103,7 +103,7 @@ const VisitorsDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Navbar */}
       <nav className="bg-white shadow-md p-4 flex justify-between items-center">
         <div className="text-xl font-bold text-conservation-600">Park Pro</div>

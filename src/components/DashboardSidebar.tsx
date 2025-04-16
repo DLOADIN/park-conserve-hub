@@ -52,11 +52,11 @@ const DashboardSidebar = () => {
   return (
     <Sidebar className="border-r">
       <SidebarHeader className="flex flex-col items-center p-4 border-b">
-        <Link to="/" className="flex items-center space-x-2">
-          <div className="w-10 h-10 rounded-full bg-consevation-600 flex items-center justify-center">
-            <span className="text-conservation-600 font-bold text-lg">Park Pro</span>
+        <Link to="/" className="grid items-center space-x-2">
+          <div className="rounded-full bg-consevation-600 flex items-center justify-center">
+            <span className="text-conservation-600 font-bold text-2xl">Park Pro</span>
           </div>
-          <span className="text-xl font-bold text-primary">{user.park ? user.park : 'Loaungo National Park'}</span>
+          <span className="text-md font-bold text-primary mt-4">{user.park ? user.park : 'Loaungo National Park'}</span>
         </Link>
         <div className="mt-4 w-full">
           <SidebarTrigger />
@@ -83,7 +83,7 @@ const DashboardSidebar = () => {
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-              <SidebarLink to="/admin/admindashboard" icon={LayoutDashboard} active={isActive('/admin/admindashboard')}>
+              <SidebarLink to="/admin/dashboard" icon={LayoutDashboard} active={isActive('/admin/dashboard')}>
                   Dashboard
                 </SidebarLink>
                 <SidebarLink to="/admin/users" icon={Settings} active={isActive('/admin/users')}>

@@ -103,7 +103,7 @@ const ServiceProviders = () => {
         <DashboardSidebar />
         <div className="flex-1">
           <DashboardHeader
-            title="Service Providers"
+            title="Service Partners"
             subtitle="Manage service applications"
           />
           <main className="p-6">
@@ -113,7 +113,7 @@ const ServiceProviders = () => {
                   <CardTitle>Service Applications</CardTitle>
                   <PrintDownloadTable
                     tableId="service-providers-table"
-                    title="Service Providers Report"
+                    title="Service Paterners Report"
                     filename="service_providers_report"
                   />
                 </div>

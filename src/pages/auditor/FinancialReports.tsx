@@ -674,7 +674,6 @@ const FinancialReports = () => {
                   <TabsList>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                    <TabsTrigger value="budgets">Budgets</TabsTrigger>
                   </TabsList>
                   <TabsContent value="overview">
                     <div className="grid lg:grid-cols-3 gap-6 mt-8">

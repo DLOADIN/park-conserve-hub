@@ -24,7 +24,7 @@ const VisitorRegister: React.FC = () => {
       });
       navigate('../Visitors/');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+      setError(err.response?.data?.error || 'The inserted Password is small & less than 8 characters');
     }
   };
 
@@ -48,7 +48,7 @@ const VisitorRegister: React.FC = () => {
           {error && <p className="text-red-500 mb-4">{error}</p>}
           <form onSubmit={handleRegister}>
             <div className="mb-4">
-              <label className="block text-gray-700">First Name</label>
+              <label className="block text-gray-700">First Name*</label>
               <input
                 type="text"
                 value={firstName}
@@ -64,6 +64,7 @@ const VisitorRegister: React.FC = () => {
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 className="w-full p-2 border rounded"
+                required
               />
             </div>
             <div className="mb-4">
