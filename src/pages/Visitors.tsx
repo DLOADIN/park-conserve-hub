@@ -47,11 +47,12 @@ const Visitors: React.FC = () => {
         <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label className="block text-gray-700">Email</label>
+            
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded-sm bg-gray-50"
               required
             />
           </div>
@@ -61,7 +62,7 @@ const Visitors: React.FC = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded-sm bg-gray-50"
               required
             />
           </div>

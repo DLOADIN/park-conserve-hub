@@ -2139,6 +2139,7 @@ def get_approved_newlybudgets(current_user_id):
 
 @app.route('/api/staff', methods=['POST'])
 def add_staff():
+    """Add a new staff member."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
@@ -2147,75 +2148,103 @@ def add_staff():
         data = request.json
         required_fields = ['firstName', 'lastName', 'email', 'role', 'password']
         
+        # Validate required fields
         if not all(field in data for field in required_fields):
             missing_fields = [field for field in required_fields if field not in data]
             return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
-        if data['role'] not in ['park-staff', 'auditor', 'government', 'finance']:
-            return jsonify({"error": "Invalid role"}), 400
+        
+        # Validate role
+        valid_roles = ['park-staff', 'auditor', 'government', 'finance']
+        if data['role'] not in valid_roles:
+            return jsonify({"error": f"Invalid role. Must be one of: {', '.join(valid_roles)}"}), 400
 
-        # Check if email already exists
+        # Validate park_name for roles requiring it
+        roles_requiring_park = ['park-staff', 'auditor', 'government']
+        if data['role'] in roles_requiring_park and not data.get('park_name'):
+            return jsonify({"error": f"park_name is required for {data['role']} role"}), 400
+
         cursor = connection.cursor()
-        for table in ['parkstaff', 'auditors', 'government_officers', 'finance_officers']:
+        
+        # Check if email already exists across all staff tables
+        tables = ['parkstaff', 'auditors', 'government_officers', 'finance_officers']
+        for table in tables:
             cursor.execute(f"SELECT id FROM {table} WHERE email = %s", (data['email'],))
             if cursor.fetchone():
                 return jsonify({"error": "Email already exists"}), 409
 
-        # Hash password with SHA-256
+        # Hash password
         password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
+
+        # Map role to table
+        table_map = {
+            'park-staff': 'parkstaff',
+            'auditor': 'auditors',
+            'government': 'government_officers',
+            'finance': 'finance_officers'
+        }
+        table = table_map[data['role']]
+
+        # Log query details for debugging
+        print(f"Inserting into table: {table}")
+        print(f"Data: {data}")
 
         # Insert into appropriate table
         if data['role'] == 'park-staff':
-            if not data.get('park'):
-                return jsonify({"error": "Park is required for park staff"}), 400
-            cursor.execute('''
+            query = """
                 INSERT INTO parkstaff (
-                    first_name, last_name, email, password_hash, park_name, role
-                ) VALUES (%s, %s, %s, %s, %s, %s)
-            ''', (
+                    first_name, last_name, email, password_hash, park_name
+                ) VALUES (%s, %s, %s, %s, %s)
+            """
+            params = (
                 data['firstName'],
                 data['lastName'],
                 data['email'],
                 password_hash,
-                data['park'],
-                'park-staff'
-            ))
+                data['park_name']
+            )
         elif data['role'] == 'auditor':
-            cursor.execute('''
+            query = """
                 INSERT INTO auditors (
-                    first_name, last_name, email, password_hash, role
+                    first_name, last_name, email, password_hash, park_name
                 ) VALUES (%s, %s, %s, %s, %s)
-            ''', (
+            """
+            params = (
                 data['firstName'],
                 data['lastName'],
                 data['email'],
                 password_hash,
-                'auditor'
-            ))
+                data['park_name']
+            )
         elif data['role'] == 'government':
-            cursor.execute('''
+            query = """
                 INSERT INTO government_officers (
-                    first_name, last_name, email, password_hash, role
+                    first_name, last_name, email, password_hash, park_name
                 ) VALUES (%s, %s, %s, %s, %s)
-            ''', (
+            """
+            params = (
                 data['firstName'],
                 data['lastName'],
                 data['email'],
                 password_hash,
-                'government'
-            ))
+                data['park_name']
+            )
         elif data['role'] == 'finance':
-            cursor.execute('''
+            query = """
                 INSERT INTO finance_officers (
-                    first_name, last_name, email, password_hash, park_name, role
-                ) VALUES (%s, %s, %s, %s, %s, %s)
-            ''', (
+                    first_name, last_name, email, password_hash, park_name
+                ) VALUES (%s, %s, %s, %s, %s)
+            """
+            params = (
                 data['firstName'],
                 data['lastName'],
                 data['email'],
                 password_hash,
-                data.get('park', None),
-                'finance'
-            ))
+                data.get('park_name')  # Fixed: Changed data('park_name') to data.get('park_name')
+            )
+
+        print(f"Executing query: {query}")
+        print(f"Parameters: {params}")
+        cursor.execute(query, params)
 
         connection.commit()
         new_staff_id = cursor.lastrowid
@@ -2226,12 +2255,17 @@ def add_staff():
         }), 201
 
     except Exception as e:
-        print(f"Database error: {e}")
+        print(f"Database error: {str(e)}")
         return jsonify({"error": f"Failed to add staff: {str(e)}"}), 500
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+
+
+
 
 
 
@@ -2799,10 +2833,10 @@ def get_staff(current_user_id):
             SELECT id, first_name, last_name, email, park_name, role, last_login, created_at
             FROM parkstaff
             UNION
-            SELECT id, first_name, last_name, email, NULL AS park_name, role, last_login, created_at
+            SELECT id, first_name, last_name, email, park_name, role, last_login, created_at
             FROM auditors
             UNION
-            SELECT id, first_name, last_name, email, NULL AS park_name, role, last_login, created_at
+            SELECT id, first_name, last_name, email, park_name, role, last_login, created_at
             FROM government_officers
             UNION
             SELECT id, first_name, last_name, email, park_name, role, last_login, created_at

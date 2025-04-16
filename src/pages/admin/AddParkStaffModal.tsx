@@ -16,7 +16,7 @@ interface User {
   lastName: string;
   email: string;
   role: string;
-  park?: string;
+  park_name?: string;
 }
 
 interface AddParkStaffModalProps {
@@ -26,7 +26,6 @@ interface AddParkStaffModalProps {
   onSuccess?: () => void;
 }
 
-// Password regex: 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 const formSchema = z.object({
@@ -34,7 +33,7 @@ const formSchema = z.object({
   lastName: z.string().min(2, 'Last name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email address.'),
   role: z.enum(['park-staff', 'auditor', 'government', 'finance'], { required_error: 'Please select a role.' }),
-  park: z.string().optional(),
+  park_name: z.string().optional(),
   password: z.string().refine(
     (value) => !value || passwordRegex.test(value),
     'Password must be 8+ characters with uppercase, lowercase, number, and special character.'
@@ -51,7 +50,7 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
       lastName: '',
       email: '',
       role: 'park-staff',
-      park: '',
+      park_name: '',
       password: '',
     },
   });
@@ -63,7 +62,7 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
         lastName: userToEdit.lastName,
         email: userToEdit.email,
         role: userToEdit.role as FormValues['role'],
-        park: userToEdit.park || '',
+        park_name: userToEdit.park_name || '',
         password: '',
       });
     } else {
@@ -72,7 +71,7 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
         lastName: '',
         email: '',
         role: 'park-staff',
-        park: '',
+        park_name: '',
         password: '',
       });
     }
@@ -81,26 +80,39 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
   const onSubmit = async (values: FormValues) => {
     try {
       const API_URL = 'http://localhost:5000/api';
+      // Ensure park_name is required for park-staff, auditor, and government roles
+      if (['park-staff', 'auditor', 'government'].includes(values.role) && !values.park_name) {
+        toast.error(`Park is required for ${values.role} role.`);
+        return;
+      }
+      // Ensure password is provided for new staff
       if (!values.password && !userToEdit) {
         toast.error('Password is required for new staff.');
         return;
       }
 
+      const payload = {
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        role: values.role,
+        park_name: values.park_name || null,
+        password: values.password || undefined,
+      };
+
       if (userToEdit) {
-        await axios.put(`${API_URL}/staff/${userToEdit.id}?role=${values.role}`, {
-          ...values,
-          password: values.password || undefined,
-        });
+        await axios.put(`${API_URL}/staff/${userToEdit.id}?role=${values.role}`, payload);
         toast.success('Staff member updated successfully!');
       } else {
-        await axios.post(`${API_URL}/staff`, values);
+        await axios.post(`${API_URL}/staff`, payload);
         toast.success('Staff member added successfully!');
       }
 
       onSuccess?.();
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'An error occurred while saving the staff member.');
+      const errorMessage = error.response?.data?.error || 'An error occurred while saving the staff member.';
+      toast.error(errorMessage);
       console.error('Error saving staff member:', error);
     }
   };
@@ -179,10 +191,10 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
             />
             <FormField
               control={form.control}
-              name="park"
+              name="park_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Assigned Park (Required for Park Staff)</FormLabel>
+                  <FormLabel>Assigned Park</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -196,7 +208,7 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                       <SelectItem value="Crystal Mountains National Park">Crystal Mountains National Park</SelectItem>
                       <SelectItem value="Ivindo National Park">Ivindo National Park</SelectItem>
                       <SelectItem value="Loango National Park">Loango National Park</SelectItem>
-                      <SelectItem value="Lope National Park">Lope National Park</SelectItem>
+                      <SelectItem value="Lopé National Park">Lopé National Park</SelectItem>
                       <SelectItem value="Mayumba National Park">Mayumba National Park</SelectItem>
                       <SelectItem value="Minkébé National Park">Minkébé National Park</SelectItem>
                       <SelectItem value="Moukalaba-Doudou National Park">Moukalaba-Doudou National Park</SelectItem>
@@ -214,7 +226,7 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password {userToEdit ? '(Leavestickers' : null} Optional for edits)</FormLabel>
+                  <FormLabel>Password {userToEdit ? '(Leave blank to keep unchanged)' : ''}</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter password" type="password" {...field} />
                   </FormControl>

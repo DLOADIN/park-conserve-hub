@@ -219,7 +219,7 @@ const UserManagement = () => {
                           <th className="text-left py-3 px-4 font-medium text-gray-600">User</th>
                           <th className="text-left py-3 px-4 font-medium text-gray-600">Role</th>
                           <th className="text-left py-3 px-4 font-medium text-gray-600">Park</th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                          {/* <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th> */}
                           <th className="text-left py-3 px-4 font-medium text-gray-600">Last Login</th>
                           <th className="text-right py-3 px-4 font-medium text-gray-600">Actions</th>
                         </tr>
@@ -262,11 +262,11 @@ const UserManagement = () => {
                                 </Badge>
                               </td>
                               <td className="py-3 px-4">{user.park || '-'}</td>
-                              <td className="py-3 px-4">
+                              {/* <td className="py-3 px-4">
                                 <Badge variant="outline" className={getStatusBadgeColor(user.status)}>
                                   <span className="capitalize">{user.status}</span>
                                 </Badge>
-                              </td>
+                              </td> */}
                               <td className="py-3 px-4 text-sm text-gray-500">{user.lastLogin}</td>
                               <td className="py-3 px-4 text-right">
                                 <DropdownMenu>
