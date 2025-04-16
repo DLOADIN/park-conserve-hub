@@ -159,7 +159,7 @@ const AdminDashboard = () => {
                                  member.role === 'auditor' ? 'Auditor' : 'Park Staff'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {member.park_name || 'N/A'}
+                                {member.park_name || 'Luongo National Park'}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 {member.last_login ? new Date(member.last_login).toLocaleString() : 'Never'}

@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-  SidebarHeader,
-} from '@/components/ui/sidebar';
-import { LogOut, User, LayoutDashboard, DollarSign, Calendar, ClipboardCheck } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, DollarSign, Calendar, ClipboardCheck, Edit } from 'lucide-react';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 
 interface Donation {
   id: number;
@@ -64,6 +53,13 @@ const VisitorsDashboard: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [visitorName, setVisitorName] = useState<string>('');
   const [error, setError] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: ''
+  });
+  const [formError, setFormError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -71,7 +67,7 @@ const VisitorsDashboard: React.FC = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
-          navigate('../Visitors');
+          navigate('/Visitors');
           return;
         }
         const response = await axios.get('http://localhost:5000/api/visitor/data', {
@@ -81,16 +77,18 @@ const VisitorsDashboard: React.FC = () => {
         setTours(response.data.tours);
         setServices(response.data.services);
 
-        // Fetch visitor profile for name
+        // Fetch visitor profile for name and form data
         const profileResponse = await axios.get('http://localhost:5000/api/visitor/profile', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setVisitorName(`${profileResponse.data.user.firstName} ${profileResponse.data.user.lastName}`);
+        const { firstName, lastName, email } = profileResponse.data.user;
+        setVisitorName(`${firstName} ${lastName}`);
+        setFormData({ firstName, lastName, email });
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load data');
         if (err.response?.status === 401) {
           localStorage.removeItem('token');
-          navigate('/..visitors');
+          navigate('/Visitors');
         }
       }
     };
@@ -102,20 +100,163 @@ const VisitorsDashboard: React.FC = () => {
     navigate('/Visitors');
   };
 
+  const openDialog = () => {
+    setIsDialogOpen(true);
+    setFormError('');
+  };
+
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setFormError('');
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/Visitors');
+        return;
+      }
+      await axios.put('http://localhost:5000/api/visitor/profile', formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setVisitorName(`${formData.firstName} ${formData.lastName}`);
+      closeDialog();
+    } catch (err: any) {
+      setFormError(err.response?.data?.error || 'Failed to update profile');
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       {/* Navbar */}
       <nav className="bg-white shadow-md p-4 flex justify-between items-center">
         <div className="text-xl font-bold text-conservation-600">Park Pro</div>
-        <div className="text-lg text-gray-700">{visitorName || 'Loading...'}</div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center text-red-600 hover:text-red-1000"
-        >
-          <LogOut className="w-5 h-5 mr-2 text-red-600" />
-          Logout
-        </button>
+        <div className="text-lg text-black">{visitorName || 'Loading...'}</div>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={openDialog}
+            className="flex items-center text-conservation-600 hover:text-conservation-800 transition-colors"
+          >
+            <Edit className="w-5 h-5 mr-2 text-conservation-600" />
+            <p className='text-conservation-600'>Edit Profile</p>
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex items-center text-red-600 hover:text-red-800 transition-colors"
+          >
+            <LogOut className="w-5 h-5 mr-2 text-red-600" />
+            Logout
+          </button>
+        </div>
       </nav>
+
+      {/* Profile Update Dialog */}
+      <Transition appear show={isDialogOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={closeDialog}>
+          <Transition.Child
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium leading-6 text-gray-900"
+                  >
+                    Update Profile
+                  </Dialog.Title>
+                  <form onSubmit={handleUpdateProfile} className="mt-4 space-y-4">
+                    <div>
+                      <label htmlFor="firstName" className="block text-lg font-medium text-gray-700">
+                        First Name
+                      </label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        id="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="lastName" className="block text-lg font-medium text-gray-700">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        id="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="email" className="block text-lg font-medium text-gray-700">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        id="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                        required
+                      />
+                    </div>
+                    {formError && (
+                      <p className="text-red-500 text-sm">{formError}</p>
+                    )}
+                    <div className="mt-6 flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={closeDialog}
+                        className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-conservation-500 focus:ring-offset-2"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="inline-flex justify-center rounded-md border border-transparent bg-conservation-600 px-4 py-2 text-sm font-medium text-white hover:bg-conservation-700 focus:outline-none focus:ring-2 focus:ring-conservation-500 focus:ring-offset-2"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </form>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
 
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-auto">

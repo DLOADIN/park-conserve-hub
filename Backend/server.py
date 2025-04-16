@@ -3015,6 +3015,94 @@ def update_staff(current_user_id, staff_id):
 
 
 
+@app.route('/api/visitor/profile', methods=['GET'])
+@token_required
+def get_visitor_profile(current_user_id):
+    """Retrieve the logged-in visitor's profile information."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id, first_name, last_name, email
+            FROM visitors
+            WHERE id = %s
+        """, (current_user_id,))
+        visitor = cursor.fetchone()
+        
+        if not visitor:
+            return jsonify({"error": "Visitor not found"}), 404
+        
+        return jsonify({
+            "user": {
+                "id": str(visitor['id']),
+                "firstName": visitor['first_name'],
+                "lastName": visitor['last_name'],
+                "email": visitor['email']
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve visitor profile"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/visitor/profile', methods=['PUT'])
+@token_required
+def update_visitor_profile(current_user_id):
+    """Update the logged-in visitor's profile information."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email']
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        # Validate email format
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", data['email']):
+            return jsonify({"error": "Invalid email format"}), 400
+
+        cursor = connection.cursor()
+        # Check if email is already in use by another visitor
+        cursor.execute("SELECT id FROM visitors WHERE email = %s AND id != %s", (data['email'], current_user_id))
+        if cursor.fetchone():
+            return jsonify({"error": "Email already in use by another visitor"}), 409
+
+        # Update visitor profile
+        cursor.execute("""
+            UPDATE visitors
+            SET first_name = %s, last_name = %s, email = %s
+            WHERE id = %s
+        """, (
+            data['firstName'],
+            data['lastName'],
+            data['email'],
+            current_user_id
+        ))
+        connection.commit()
+        
+        return jsonify({"message": "Profile updated successfully"}), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": f"Failed to update visitor profile: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
 
 
 
