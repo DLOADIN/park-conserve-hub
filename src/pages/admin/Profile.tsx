@@ -38,10 +38,6 @@ const AdminProfile = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
 
     if (user) {
       setProfileForm({

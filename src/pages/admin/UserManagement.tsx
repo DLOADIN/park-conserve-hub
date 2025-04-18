@@ -41,10 +41,7 @@ const UserManagement = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+    
 
     const fetchUsers = async () => {
       try {
