@@ -76,10 +76,6 @@ const FinanceDashboard = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      navigate('/login');
-      return;
-    }
 
     const token = localStorage.getItem('token');
     if (!token) {

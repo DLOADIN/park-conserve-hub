@@ -34,10 +34,6 @@ const AdminDashboard = () => {
   const [staff, setStaff] = useState<StaffMember[]>([]);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      navigate('/login');
-      return;
-    }
 
     const token = localStorage.getItem('token');
     if (!token) {

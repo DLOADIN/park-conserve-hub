@@ -21,10 +21,6 @@ const ParkStaffDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated || !user || user.role !== 'park-staff') {
-      navigate('/login');
-      return;
-    }
 
     const token = localStorage.getItem('token');
     if (!token) {

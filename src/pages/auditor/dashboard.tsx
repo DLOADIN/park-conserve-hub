@@ -36,10 +36,6 @@ const AuditorDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      navigate('/login');
-      return;
-    }
 
     const token = localStorage.getItem('token');
     if (!token) {

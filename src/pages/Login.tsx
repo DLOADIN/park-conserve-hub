@@ -18,11 +18,18 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isEmailInvalid, setIsEmailInvalid] = useState(false);
+  const [isPasswordInvalid, setIsPasswordInvalid] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsEmailInvalid(false);
+    setIsPasswordInvalid(false);
+
     if (!email || !password) {
       toast.error('Please enter both email and password');
+      setIsEmailInvalid(!email);
+      setIsPasswordInvalid(!password);
       return;
     }
 
@@ -40,7 +47,12 @@ const Login = () => {
       navigate(dashboard);
     } catch (error: any) {
       console.error('Login error:', error);
-      toast.error(error.response?.data?.error || 'Login failed');
+      const errorMessage = error.response?.data?.error || 'Login failed';
+      toast.error(errorMessage);
+      if (errorMessage === 'Invalid credentials') {
+        setIsEmailInvalid(true);
+        setIsPasswordInvalid(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +79,7 @@ const Login = () => {
           <div className="mt-8 bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
-                <Label htmlFor="email">Email address</Label>
+                <Label htmlFor="email">Email address*</Label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-gray-400" />
@@ -78,16 +90,19 @@ const Login = () => {
                     type="email"
                     autoComplete="email"
                     required
-                    className="pl-10"
+                    className={`pl-10 ${isEmailInvalid ? 'border-red-500' : ''}`}
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
+                  {isEmailInvalid && (
+                    <p className="text-red-500 text-sm mt-1">Invalid email</p>
+                  )}
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Password*</Label>
                 <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-gray-400" />
@@ -98,11 +113,14 @@ const Login = () => {
                     type="password"
                     autoComplete="current-password"
                     required
-                    className="pl-10"
+                    className={`pl-10 ${isPasswordInvalid ? 'border-red-500' : ''}`}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
+                  {isPasswordInvalid && (
+                    <p className="text-red-500 text-sm mt-1">Invalid password</p>
+                  )}
                 </div>
               </div>
 

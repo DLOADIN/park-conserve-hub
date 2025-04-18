@@ -262,7 +262,7 @@ const UserManagement = () => {
                                 </Badge>
                               </td>
                               <td className="py-3 px-4">{user.park || '-'}</td>
-                              {/* <td className="py-3 px-4">
+                              {/* d<td className="py-3 px-4">
                                 <Badge variant="outline" className={getStatusBadgeColor(user.status)}>
                                   <span className="capitalize">{user.status}</span>
                                 </Badge>

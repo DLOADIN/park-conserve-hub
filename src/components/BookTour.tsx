@@ -58,6 +58,7 @@ const BookTour = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           parkName: parkTours.find(p => p.id.toString() === selectedPark)?.name,

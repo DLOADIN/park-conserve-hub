@@ -13,10 +13,15 @@ from functools import wraps
 import bcrypt
 import os
 import re
+from dotenv import load_dotenv
+
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['SECRET_KEY'] = 'x7k9p2m4q8v5n3j6h1t0r2y5u8w3z6b9'
+
+load_dotenv()
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'x7k9p2m4q8v5n3j6h1t0r2y5u8w3z6b9')
+
 
 # Allow specific origins
 CORS(app, resources={
@@ -98,22 +103,30 @@ def donate():
             cursor.close()
             connection.close()
 
-
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get('Authorization')
         if not token:
+            print("Token missing")
             return jsonify({'error': 'Token is missing'}), 401
         try:
             data = jwt.decode(token.split()[1], app.config['SECRET_KEY'], algorithms=["HS256"])
+            print(f"Token valid for user_id: {data['user_id']}")
             kwargs['current_user_id'] = data['user_id']
         except jwt.ExpiredSignatureError:
+            print("Token expired")
             return jsonify({'error': 'Token has expired'}), 401
         except Exception as e:
+            print(f"Token error: {str(e)}")
             return jsonify({'error': f'Invalid token: {str(e)}'}), 401
         return f(*args, **kwargs)
     return decorated
+
+
+
+
+
 
 def hash_password(password, salt):
     return hashlib.sha256((password + salt).encode()).hexdigest()
