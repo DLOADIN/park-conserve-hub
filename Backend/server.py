@@ -2070,7 +2070,6 @@ def get_approved_budgets(current_user_id):
 
 
 
-
 @app.route('/api/finance/budgets/pending', methods=['GET'])
 @token_required
 def get_pending_budgets(current_user_id):
@@ -2089,11 +2088,12 @@ def get_pending_budgets(current_user_id):
         
         park_name = officer['park_name']
         
-        # Retrieve budgets filtered by park_name and status
+        # Retrieve pending budgets filtered by park_name
         cursor.execute("""
             SELECT 
                 id, title, fiscal_year AS fiscalYear, total_amount AS totalAmount,
-                park_name AS parkName, status, created_at AS createdAt
+                park_name AS parkName, status, created_at AS createdAt,
+                created_by, description
             FROM budgets
             WHERE park_name = %s AND status = 'submitted'
             ORDER BY created_at DESC
@@ -2101,6 +2101,7 @@ def get_pending_budgets(current_user_id):
         budgets = cursor.fetchall()
         
         for budget in budgets:
+            # Fetch budget items with type
             cursor.execute("""
                 SELECT id, category, description, amount, type
                 FROM budget_items
@@ -2110,10 +2111,20 @@ def get_pending_budgets(current_user_id):
             for item in items:
                 item['amount'] = float(item['amount'])
                 item['id'] = str(item['id'])
+                # Ensure type is included (expense/income)
+                item['type'] = item['type'] if item['type'] in ['expense', 'income'] else 'expense'
             budget['items'] = items
             budget['id'] = str(budget['id'])
             budget['totalAmount'] = float(budget['totalAmount'])
             budget['createdAt'] = budget['createdAt'].isoformat()
+            # Include creator details
+            cursor.execute("""
+                SELECT CONCAT(first_name, ' ', last_name) AS created_by_name
+                FROM finance_officers
+                WHERE id = %s
+            """, (budget['created_by'],))
+            creator = cursor.fetchone()
+            budget['createdByName'] = creator['created_by_name'] if creator else 'Unknown'
         
         return jsonify(budgets), 200
     
@@ -2124,6 +2135,9 @@ def get_pending_budgets(current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+
 
 
 

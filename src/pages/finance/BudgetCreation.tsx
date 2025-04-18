@@ -28,6 +28,7 @@ import {
   TableHead,
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BudgetItem {
   id: string;
@@ -41,11 +42,14 @@ interface BudgetData {
   id: string;
   title: string;
   fiscal_year: string;
-  total_amount: number;
   park_name: string;
-  status: 'draft' | 'submitted' | 'approved' | 'rejected';
-  createdAt: Date | string;
+  total_amount: number;
+  status: string;
+  createdAt: string;
   items: BudgetItem[];
+  created_by?: string;
+  createdByName?: string;
+  description?: string;
 }
 
 interface IncomeItem {
@@ -75,10 +79,11 @@ const NATIONAL_PARKS = [
 ];
 
 const BudgetCreation: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('existing');
   const [budgetTitle, setBudgetTitle] = useState('');
   const [fiscalYear, setFiscalYear] = useState('');
-  const [parkName, setParkName] = useState('');
+  const [parkName, setParkName] = useState(user?.park || '');
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([
     { id: '1', category: '', description: '', amount: 0, type: 'expense' },
   ]);
@@ -97,48 +102,55 @@ const BudgetCreation: React.FC = () => {
     expenses: true,
   });
 
+  useEffect(() => {
+    if (user?.park) {
+      setParkName(user.park);
+    }
+  }, [user?.park]);
+
   // Fetch budgets for each tab
   const fetchBudgets = async (
     endpoint: string,
     setter: React.Dispatch<React.SetStateAction<BudgetData[]>>,
     key: keyof typeof loading
   ) => {
-    try {
-      const response = await fetch(endpoint, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${key} budgets`);
+      try {
+        const response = await fetch(endpoint, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${key} budgets`);
+        }
+        const data = await response.json();
+        const filteredData = data.filter((budget: any) => budget.park_name === user?.park);
+        const budgets = filteredData.map((budget: any) => ({
+          id: budget.id,
+          title: budget.title,
+          fiscal_year: budget.fiscal_year,
+          total_amount: Number(budget.total_amount),
+          park_name: budget.park_name,
+          status: budget.status,
+          createdAt: new Date(budget.created_at),
+          items: budget.items.map((item: any) => ({
+            id: item.id.toString(),
+            category: item.category,
+            description: item.description,
+            amount: Number(item.amount),
+            type: item.type,
+          })),
+        }));
+        setter(budgets);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: `Failed to load ${key} budgets`,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading((prev) => ({ ...prev, [key]: false }));
       }
-      const data = await response.json();
-      const budgets = data.map((budget: any) => ({
-        id: budget.id,
-        title: budget.title,
-        fiscal_year: budget.fiscal_year,
-        total_amount: Number(budget.total_amount),
-        park_name: budget.park_name,
-        status: budget.status,
-        createdAt: new Date(budget.created_at),
-        items: budget.items.map((item: any) => ({
-          id: item.id.toString(),
-          category: item.category,
-          description: item.description,
-          amount: Number(item.amount),
-          type: item.type,
-        })),
-      }));
-      setter(budgets);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: `Failed to load ${key} budgets`,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading((prev) => ({ ...prev, [key]: false }));
-    }
   };
 
   // Fetch income data (donations and tours)
@@ -435,6 +447,7 @@ const BudgetCreation: React.FC = () => {
                 <TableHead>Fiscal Year</TableHead>
                 <TableHead>Park Name</TableHead>
                 <TableHead>Total Amount</TableHead>
+                {/* <TableHead>Created By</TableHead> */}
                 <TableHead>Status</TableHead>
                 <TableHead>Created Date</TableHead>
                 <TableHead className="no-print">Actions</TableHead>
@@ -447,15 +460,14 @@ const BudgetCreation: React.FC = () => {
                   <TableCell>{budget.fiscal_year}</TableCell>
                   <TableCell>{budget.park_name}</TableCell>
                   <TableCell>${budget.total_amount.toLocaleString()}</TableCell>
+                  {/* <TableCell>{budget.createdByName || 'Unknown'}</TableCell> */}
                   <TableCell>
-                    <Badge className={getStatusColor(budget.status)}>
-                      {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
-                    </Badge>
+              <Badge className={getStatusColor(budget.status)}>
+                {budget.status.charAt(0).toUpperCase() + budget.status.slice(1)}
+              </Badge>
                   </TableCell>
                   <TableCell>
-                    {budget.createdAt instanceof Date
-                      ? budget.createdAt.toLocaleDateString()
-                      : new Date(budget.createdAt).toLocaleDateString()}
+                    {new Date(budget.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="no-print">
                     <div className="flex gap-2">
@@ -470,9 +482,9 @@ const BudgetCreation: React.FC = () => {
                           setActiveTab('new');
                         }}
                       >
-                        Create Similar
-                      </Button>
-                      {budget.status === 'draft' && (
+                Create Similar
+              </Button>
+              {budget.status === 'draft' && (
                         <Button
                           size="sm"
                           onClick={() => {
@@ -483,9 +495,9 @@ const BudgetCreation: React.FC = () => {
                             setActiveTab('new');
                           }}
                         >
-                          Continue Editing
-                        </Button>
-                      )}
+                  Continue Editing
+                </Button>
+              )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -505,7 +517,7 @@ const BudgetCreation: React.FC = () => {
       <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
         <div className="flex-1">
-          <DashboardHeader
+          <DashboardHeader 
             title="Budget Creation"
             subtitle="Create and manage park budgets"
           />
@@ -517,8 +529,7 @@ const BudgetCreation: React.FC = () => {
             >
               <div className="flex justify-between items-center mb-6 gap-2">
                 <TabsList>
-                  <TabsTrigger value="existing">Draft Budgets</TabsTrigger>
-                  <TabsTrigger value="pending">Pending Budgets</TabsTrigger>
+                  <TabsTrigger value="existing">Pending Budgets</TabsTrigger>
                   <TabsTrigger value="approved">Approved Budgets</TabsTrigger>
                   <TabsTrigger value="rejected">Rejected Budgets</TabsTrigger>
                   <TabsTrigger value="new">Create New Budget</TabsTrigger>
@@ -529,23 +540,19 @@ const BudgetCreation: React.FC = () => {
                   filename="budgets_report"
                 />
               </div>
-
+              
               <TabsContent value="existing">
                 {renderBudgetList(existingBudgets, 'existing')}
               </TabsContent>
-
-              <TabsContent value="pending">
-                {renderBudgetList(pendingBudgets, 'pending')}
-              </TabsContent>
-
+              
               <TabsContent value="approved">
                 {renderBudgetList(approvedBudgets, 'approved')}
               </TabsContent>
-
+              
               <TabsContent value="rejected">
                 {renderBudgetList(rejectedBudgets, 'rejected')}
               </TabsContent>
-
+              
               <TabsContent value="new">
                 <Card>
                   <CardHeader>
@@ -558,36 +565,30 @@ const BudgetCreation: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="budget-title">Budget Title</Label>
-                        <Input
-                          id="budget-title"
+                        <Input 
+                          id="budget-title" 
                           placeholder="e.g. Annual Park Budget 2024"
                           value={budgetTitle}
-                          onChange={(e) => setBudgetTitle(e.target.value)}
+                          onChange={(e) => setBudgetTitle(e.target.value)} 
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="fiscal-year">Fiscal Year</Label>
-                        <Input
-                          id="fiscal-year"
-                          placeholder="e.g. 2024-2025"
+                        <Input 
+                          id="fiscal-year" 
+                          placeholder="e.g. 2024-2025" 
                           value={fiscalYear}
                           onChange={(e) => setFiscalYear(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="park-name">National Park</Label>
-                        <Select value={parkName} onValueChange={setParkName}>
-                          <SelectTrigger id="park-name">
-                            <SelectValue placeholder="Select a park" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {NATIONAL_PARKS.map((park) => (
-                              <SelectItem key={park} value={park}>
-                                {park}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          id="park-name"
+                          value={user?.park || ''}
+                          disabled
+                          className="bg-gray-100"
+                        />
                       </div>
                     </div>
 
@@ -665,8 +666,8 @@ const BudgetCreation: React.FC = () => {
                     <div>
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-medium">New Budget Items</h3>
-                        <Button
-                          variant="outline"
+                        <Button 
+                          variant="outline" 
                           size="sm"
                           onClick={addNewBudgetItem}
                           className="flex items-center gap-1"
@@ -684,8 +685,8 @@ const BudgetCreation: React.FC = () => {
                           >
                             <div className="col-span-12 md:col-span-3 space-y-2">
                               <Label htmlFor={`category-${item.id}`}>Category</Label>
-                              <Input
-                                id={`category-${item.id}`}
+                              <Input 
+                                id={`category-${item.id}`} 
                                 placeholder="e.g. Staff Salaries"
                                 value={item.category}
                                 onChange={(e) =>
@@ -695,8 +696,8 @@ const BudgetCreation: React.FC = () => {
                             </div>
                             <div className="col-span-12 md:col-span-4 space-y-2">
                               <Label htmlFor={`description-${item.id}`}>Description</Label>
-                              <Input
-                                id={`description-${item.id}`}
+                              <Input 
+                                id={`description-${item.id}`} 
                                 placeholder="Brief description of this budget item"
                                 value={item.description}
                                 onChange={(e) =>
@@ -723,8 +724,8 @@ const BudgetCreation: React.FC = () => {
                             </div>
                             <div className="col-span-10 md:col-span-2 space-y-2">
                               <Label htmlFor={`amount-${item.id}`}>Amount ($)</Label>
-                              <Input
-                                id={`amount-${item.id}`}
+                              <Input 
+                                id={`amount-${item.id}`} 
                                 type="number"
                                 min="0"
                                 placeholder="0.00"
@@ -735,9 +736,9 @@ const BudgetCreation: React.FC = () => {
                               />
                             </div>
                             <div className="col-span-2 md:col-span-1 flex items-end justify-end h-full pb-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
                                 className="text-red-500 hover:text-red-700 hover:bg-red-50"
                                 onClick={() => removeBudgetItem(item.id)}
                               >
@@ -759,8 +760,8 @@ const BudgetCreation: React.FC = () => {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
+                    <Button 
+                      variant="outline" 
                       onClick={handleSaveDraft}
                       className="flex items-center gap-1"
                     >

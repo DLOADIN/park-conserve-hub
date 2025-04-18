@@ -184,10 +184,10 @@ const EmergencyRequests = () => {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => navigate('/finance/emergency-requests/new')} className="bg-amber-600 hover:bg-amber-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Emergency Request
-                    </Button>
+                  <Button onClick={() => navigate('/finance/emergency-requests/new')} className="bg-amber-600 hover:bg-amber-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Emergency Request
+                  </Button>
                     <PrintDownloadTable
                       tableId="emergency-requests-table"
                       title="Emergency Requests Report"
@@ -252,58 +252,58 @@ const EmergencyRequests = () => {
                   <TabsContent value="all" className="mt-6">
                     <div className="rounded-md border">
                       <div id="emergency-requests-table">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Request ID</TableHead>
-                              <TableHead>Title</TableHead>
-                              <TableHead>Park</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Emergency Type</TableHead>
-                              <TableHead>Timeframe</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead>Date</TableHead>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Request ID</TableHead>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Park</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Emergency Type</TableHead>
+                            <TableHead>Timeframe</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Date</TableHead>
                               <TableHead className="no-print">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {loading ? (
+                            <TableRow>
+                              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                                Loading...
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {loading ? (
-                              <TableRow>
-                                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                                  Loading...
-                                </TableCell>
-                              </TableRow>
-                            ) : filteredRequests.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                                  No emergency requests found
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              filteredRequests.map((request) => (
-                                <TableRow key={request.id}>
-                                  <TableCell>{request.id}</TableCell>
-                                  <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
-                                  <TableCell>{request.parkName}</TableCell>
-                                  <TableCell>${request.amount.toLocaleString()}</TableCell>
-                                  <TableCell>{request.emergencyType}</TableCell>
-                                  <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
-                                  <TableCell>{getStatusBadge(request.status)}</TableCell>
-                                  <TableCell>{request.submittedDate || '-'}</TableCell>
+                          ) : filteredRequests.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                                No emergency requests found
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            filteredRequests.map((request) => (
+                              <TableRow key={request.id}>
+                                <TableCell>{request.id}</TableCell>
+                                <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
+                                <TableCell>{request.parkName}</TableCell>
+                                <TableCell>${request.amount.toLocaleString()}</TableCell>
+                                <TableCell>{request.emergencyType}</TableCell>
+                                <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
+                                <TableCell>{getStatusBadge(request.status)}</TableCell>
+                                <TableCell>{request.submittedDate || '-'}</TableCell>
                                   <TableCell className="no-print">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openViewDialog(request)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openViewDialog(request)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                       </div>
                     </div>
                   </TabsContent>
@@ -311,56 +311,56 @@ const EmergencyRequests = () => {
                   <TabsContent value="pending" className="mt-6">
                     <div className="rounded-md border">
                       <div id="emergency-requests-table">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Request ID</TableHead>
-                              <TableHead>Title</TableHead>
-                              <TableHead>Park</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Emergency Type</TableHead>
-                              <TableHead>Timeframe</TableHead>
-                              <TableHead>Submitted Date</TableHead>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Request ID</TableHead>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Park</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Emergency Type</TableHead>
+                            <TableHead>Timeframe</TableHead>
+                            <TableHead>Submitted Date</TableHead>
                               <TableHead className="no-print">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {loading ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                Loading...
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {loading ? (
-                              <TableRow>
-                                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                  Loading...
-                                </TableCell>
-                              </TableRow>
-                            ) : filteredRequests.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                  No pending requests found
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              filteredRequests.map((request) => (
-                                <TableRow key={request.id}>
-                                  <TableCell>{request.id}</TableCell>
-                                  <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
-                                  <TableCell>{request.parkName}</TableCell>
-                                  <TableCell>${request.amount.toLocaleString()}</TableCell>
-                                  <TableCell>{request.emergencyType}</TableCell>
-                                  <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
-                                  <TableCell>{request.submittedDate}</TableCell>
+                          ) : filteredRequests.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                No pending requests found
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            filteredRequests.map((request) => (
+                              <TableRow key={request.id}>
+                                <TableCell>{request.id}</TableCell>
+                                <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
+                                <TableCell>{request.parkName}</TableCell>
+                                <TableCell>${request.amount.toLocaleString()}</TableCell>
+                                <TableCell>{request.emergencyType}</TableCell>
+                                <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
+                                <TableCell>{request.submittedDate}</TableCell>
                                   <TableCell className="no-print">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openViewDialog(request)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openViewDialog(request)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                       </div>
                     </div>
                   </TabsContent>
@@ -368,56 +368,56 @@ const EmergencyRequests = () => {
                   <TabsContent value="approved" className="mt-6">
                     <div className="rounded-md border">
                       <div id="emergency-requests-table">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Request ID</TableHead>
-                              <TableHead>Title</TableHead>
-                              <TableHead>Park</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Emergency Type</TableHead>
-                              <TableHead>Timeframe</TableHead>
-                              <TableHead>Submitted Date</TableHead>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Request ID</TableHead>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Park</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Emergency Type</TableHead>
+                            <TableHead>Timeframe</TableHead>
+                            <TableHead>Submitted Date</TableHead>
                               <TableHead className="no-print">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {loading ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                Loading...
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {loading ? (
-                              <TableRow>
-                                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                  Loading...
-                                </TableCell>
-                              </TableRow>
-                            ) : filteredRequests.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                  No approved requests found
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              filteredRequests.map((request) => (
-                                <TableRow key={request.id}>
-                                  <TableCell>{request.id}</TableCell>
-                                  <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
-                                  <TableCell>{request.parkName}</TableCell>
-                                  <TableCell>${request.amount.toLocaleString()}</TableCell>
-                                  <TableCell>{request.emergencyType}</TableCell>
-                                  <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
-                                  <TableCell>{request.submittedDate}</TableCell>
+                          ) : filteredRequests.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                                No approved requests found
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            filteredRequests.map((request) => (
+                              <TableRow key={request.id}>
+                                <TableCell>{request.id}</TableCell>
+                                <TableCell className="font-medium max-w-xs truncate">{request.title}</TableCell>
+                                <TableCell>{request.parkName}</TableCell>
+                                <TableCell>${request.amount.toLocaleString()}</TableCell>
+                                <TableCell>{request.emergencyType}</TableCell>
+                                <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
+                                <TableCell>{request.submittedDate}</TableCell>
                                   <TableCell className="no-print">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openViewDialog(request)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openViewDialog(request)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                       </div>
                     </div>
                   </TabsContent>
@@ -479,9 +479,9 @@ const EmergencyRequests = () => {
               <h4 className="text-sm font-medium text-gray-500 mb-1">Justification</h4>
               <p className="text-sm w-[100px]">{selectedRequest?.justification}</p>
             </div>
+            </div>
           </div>
-          </div>
-
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
               Close

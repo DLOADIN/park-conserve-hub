@@ -198,10 +198,10 @@ const ExtraFunds = () => {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>Extra Funds Requests</CardTitle>
-                    <CardDescription>
-                      Showing {filteredRequests.length} requests
-                    </CardDescription>
+                <CardTitle>Extra Funds Requests</CardTitle>
+                <CardDescription>
+                  Showing {filteredRequests.length} requests
+                </CardDescription>
                   </div>
                   <PrintDownloadTable
                     tableId="extra-funds-table"
@@ -231,27 +231,27 @@ const ExtraFunds = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredRequests.map((request: any) => (
+                    {filteredRequests.map((request: any) => (
                           <TableRow key={request.id}>
                             <TableCell>{request.id}</TableCell>
                             <TableCell>{request.title}</TableCell>
                             <TableCell>{request.park}</TableCell>
                             <TableCell>${request.amount.toLocaleString()}</TableCell>
                             <TableCell>
-                              <Badge className={getStatusBadgeColor(request.status)}>
-                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                              </Badge>
+                            <Badge className={getStatusBadgeColor(request.status)}>
+                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                            </Badge>
                             </TableCell>
                             <TableCell>{request.dateSubmitted}</TableCell>
                             <TableCell>{request.submittedBy}</TableCell>
                             <TableCell className="no-print">
-                              <Button variant="outline" size="sm" className="gap-2">
-                                <FileText className="h-4 w-4" />
-                                View Details
-                              </Button>
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <FileText className="h-4 w-4" />
+                            View Details
+                          </Button>
                             </TableCell>
                           </TableRow>
-                        ))}
+                    ))}
                       </TableBody>
                     </Table>
                   </div>
