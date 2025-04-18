@@ -1128,45 +1128,45 @@ def create_fund_request(current_user_id):
 
 
 
-@app.route('/api/fund-requests', methods=['GET'])
+@app.route('/api/finance/fund-requests', methods=['GET'])
 @token_required
 def get_fund_requests(current_user_id):
-    """Retrieve fund requests for the user's park."""
+    """Retrieve all fund requests for finance officer, filtered by their park."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
     
     try:
         cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT park_name FROM finance_officers WHERE id = %s", (current_user_id,))
+        officer = cursor.fetchone()
+        if not officer or not officer['park_name']:
+            return jsonify({"error": "Finance officer or park not found"}), 404
         
-        # First, get the user's park_name
-        cursor.execute("SELECT park_name FROM parkstaff WHERE id = %s", (current_user_id,))
-        user = cursor.fetchone()
-        if not user or not user['park_name']:
-            return jsonify({"error": "User or park not found"}), 404
+        park_name = officer['park_name']
         
-        park_name = user['park_name']
-        
-        # Query fund requests for the user's park
         cursor.execute("""
             SELECT 
-                id, title, description, amount, category, parkname, urgency, status,
-                created_at
-            FROM fund_requests
-            WHERE parkname = %s
+                fr.id, fr.title, fr.description, fr.amount, fr.category,
+                fr.parkname, fr.urgency, fr.status, fr.created_at,
+                fr.created_by, ps.first_name, ps.last_name, ps.email AS staff_email,
+                ps.park_name AS staff_park
+            FROM fund_requests fr
+            JOIN parkstaff ps ON fr.created_by = ps.id
+            WHERE fr.parkname = %s
+            ORDER BY fr.created_at DESC
         """, (park_name,))
         requests = cursor.fetchall()
         
-        # Format dates for frontend
         for req in requests:
-            req['createdAt'] = req['created_at'].strftime('%Y-%m-%d')
-            del req['created_at']  # Remove raw timestamp
-        
+            req['created_at'] = req['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            req['amount'] = float(req['amount'])
+            
         return jsonify(requests), 200
-    
+        
     except Exception as e:
         print(f"Database error: {e}")
-        return jsonify({"error": "Failed to retrieve fund requests"}), 500
+        return jsonify({"error": f"Failed to retrieve fund requests: {str(e)}"}), 500
     finally:
         if connection.is_connected():
             cursor.close()
@@ -1318,29 +1318,36 @@ def get_fund_request_stats(current_user_id):
 @app.route('/api/finance/tours', methods=['GET'])
 @token_required
 def get_all_tours(current_user_id):
-    """Retrieve all booked tours for finance officer"""
+    """Retrieve all booked tours for finance officer, filtered by their park."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
     
     try:
         cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT park_name FROM finance_officers WHERE id = %s", (current_user_id,))
+        officer = cursor.fetchone()
+        if not officer or not officer['park_name']:
+            return jsonify({"error": "Finance officer or park not found"}), 404
+        
+        park_name = officer['park_name']
+        
         cursor.execute("""
             SELECT 
                 id, park_name, tour_name, date, time, guests, amount,
                 first_name, last_name, email, phone, special_requests,
                 created_at
             FROM tours
+            WHERE park_name = %s
             ORDER BY created_at DESC
-        """)
+        """, (park_name,))
         tours = cursor.fetchall()
         
         for tour in tours:
-            # Format dates and times
             tour['created_at'] = tour['created_at'].strftime('%Y-%m-%d %H:%M:%S')
             tour['date'] = tour['date'].strftime('%Y-%m-%d')
-            tour['time'] = str(tour['time'])  # TIME field is already in HH:MM:SS format
-            tour['amount'] = float(tour['amount'])  # Ensure amount is numeric for frontend
+            tour['time'] = str(tour['time'])
+            tour['amount'] = float(tour['amount'])
             
         return jsonify(tours), 200
         
@@ -1358,25 +1365,34 @@ def get_all_tours(current_user_id):
 @app.route('/api/finance/donations', methods=['GET'])
 @token_required
 def get_all_donations(current_user_id):
-    """Retrieve all donations for finance officer"""
+    """Retrieve all donations for finance officer, filtered by their park."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
     
     try:
         cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT park_name FROM finance_officers WHERE id = %s", (current_user_id,))
+        officer = cursor.fetchone()
+        if not officer or not officer['park_name']:
+            return jsonify({"error": "Finance officer or park not found"}), 404
+        
+        park_name = officer['park_name']
+        
         cursor.execute("""
             SELECT 
                 id, donation_type, amount, park_name,
                 first_name, last_name, email, message,
                 is_anonymous, created_at
             FROM donations
+            WHERE park_name = %s
             ORDER BY created_at DESC
-        """)
+        """, (park_name,))
         donations = cursor.fetchall()
         
         for donation in donations:
             donation['created_at'] = donation['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            donation['amount'] = float(donation['amount'])
             
         return jsonify(donations), 200
         
@@ -1387,6 +1403,9 @@ def get_all_donations(current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+
 
 @app.route('/api/finance/services', methods=['GET'])
 @token_required
@@ -1509,46 +1528,41 @@ def get_all_fund_requests(current_user_id):
 
 
 
-@app.route('/api/finance/fund-requests/<int:request_id>/status', methods=['PUT'])
+@app.route('/api/finance/fund-requests/<id>/status', methods=['PUT'])
 @token_required
-def update_fund_request_status(current_user_id, request_id):
-    """Approve or deny fund request"""
+def update_fund_request_status(current_user_id, id):
+    """Update the status of a fund request."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
     
     try:
-        data = request.json
-        status = data.get('status')  # 'approved' or 'rejected'
-        
-        if status not in ['approved', 'rejected']:
-            return jsonify({"error": "Invalid status"}), 400
-            
         cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT park_name FROM finance_officers WHERE id = %s", (current_user_id,))
+        officer = cursor.fetchone()
+        if not officer or not officer['park_name']:
+            return jsonify({"error": "Finance officer or park not found"}), 404
         
-        # Fetch the fund request details
+        park_name = officer['park_name']
+        
         cursor.execute("""
-            SELECT amount
-            FROM fund_requests
-            WHERE id = %s
-        """, (request_id,))
-        request_data = cursor.fetchone()
+            SELECT id FROM fund_requests 
+            WHERE id = %s AND parkname = %s
+        """, (id, park_name))
+        fund_request = cursor.fetchone()
+        if not fund_request:
+            return jsonify({"error": "Fund request not found or not associated with your park"}), 404
         
-        if not request_data:
-            return jsonify({"error": "Fund request not found"}), 404
+        data = request.json
+        status = data.get('status')
+        if status not in ['approved', 'rejected']:
+            return jsonify({"error": "Invalid status. Must be 'approved' or 'rejected'"}), 400
         
-        # Check if amount exceeds $2000 when approving
-        if status == 'approved' and float(request_data['amount']) > 2000:
-            return jsonify({
-                "error": "Cannot approve fund requests exceeding our fiscal year budget"
-            }), 403
-        
-        # Update the fund request status
         cursor.execute("""
             UPDATE fund_requests 
-            SET status = %s
+            SET status = %s 
             WHERE id = %s
-        """, (status, request_id))
+        """, (status, id))
         connection.commit()
         
         return jsonify({"message": f"Fund request {status} successfully"}), 200
@@ -1560,6 +1574,7 @@ def update_fund_request_status(current_user_id, request_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
 
 
 
@@ -2052,30 +2067,42 @@ def get_approved_budgets(current_user_id):
 #             cursor.close()
 #             connection.close()
 
-# Get rejected budgets
+
+
+
+
 @app.route('/api/finance/budgets/pending', methods=['GET'])
 @token_required
 def get_pending_budgets(current_user_id):
-    """Retrieve pending (submitted) budgets"""
+    """Retrieve pending (submitted) budgets for the finance officer's park."""
     connection = get_db_connection()
     if isinstance(connection, tuple):
         return connection
     
     try:
         cursor = connection.cursor(dictionary=True)
+        # Get the finance officer's park name
+        cursor.execute("SELECT park_name FROM finance_officers WHERE id = %s", (current_user_id,))
+        officer = cursor.fetchone()
+        if not officer or not officer['park_name']:
+            return jsonify({"error": "Finance officer or park not found"}), 404
+        
+        park_name = officer['park_name']
+        
+        # Retrieve budgets filtered by park_name and status
         cursor.execute("""
             SELECT 
                 id, title, fiscal_year AS fiscalYear, total_amount AS totalAmount,
                 park_name AS parkName, status, created_at AS createdAt
             FROM budgets
-            WHERE created_by = %s AND status = 'submitted'
+            WHERE park_name = %s AND status = 'submitted'
             ORDER BY created_at DESC
-        """, (current_user_id,))
+        """, (park_name,))
         budgets = cursor.fetchall()
         
         for budget in budgets:
             cursor.execute("""
-                SELECT id, category, description, amount
+                SELECT id, category, description, amount, type
                 FROM budget_items
                 WHERE budget_id = %s
             """, (budget['id'],))
@@ -2097,6 +2124,11 @@ def get_pending_budgets(current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+
+
+
 
 @app.route('/api/finance/budgets/newlyapproved', methods=['GET'])
 @token_required
@@ -2526,25 +2558,36 @@ def create_emergency_request(current_user_id):
             cursor.close()
             connection.close()
 
+
+
 @app.route('/api/finance/emergency-requests', methods=['GET'])
 @token_required
 def get_emergency_requests(current_user_id):
-    """Retrieve all emergency fund requests for the finance officer."""
+    """Retrieve all emergency fund requests for the finance officer, filtered by their park."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
     
     try:
         cursor = connection.cursor(dictionary=True)
+        # Get the finance officer's park name
+        cursor.execute("SELECT park_name FROM finance_officers WHERE id = %s", (current_user_id,))
+        officer = cursor.fetchone()
+        if not officer or not officer['park_name']:
+            return jsonify({"error": "Finance officer or park not found"}), 404
+        
+        park_name = officer['park_name']
+        
+        # Retrieve emergency requests for the officer's park
         cursor.execute("""
             SELECT 
                 id, title, description, amount, park_name as parkName,
                 emergency_type as emergencyType, justification, timeframe,
                 status, created_at
             FROM emergency_requests
-            WHERE created_by = %s
+            WHERE created_by = %s AND park_name = %s
             ORDER BY created_at DESC
-        """, (current_user_id,))
+        """, (current_user_id, park_name))
         requests = cursor.fetchall()
         
         # Format dates for frontend
@@ -2563,6 +2606,10 @@ def get_emergency_requests(current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+
+
 
 @app.route('/api/finance/extra-funds', methods=['POST'])
 @token_required
@@ -2627,22 +2674,31 @@ def create_extra_funds_request(current_user_id):
 @app.route('/api/finance/extra-funds', methods=['GET'])
 @token_required
 def get_extra_funds_requests(current_user_id):
-    """Retrieve all extra funds requests for the finance officer."""
+    """Retrieve all extra funds requests for the finance officer, filtered by their park."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
     
     try:
         cursor = connection.cursor(dictionary=True)
+        # Get the finance officer's park name
+        cursor.execute("SELECT park_name FROM finance_officers WHERE id = %s", (current_user_id,))
+        officer = cursor.fetchone()
+        if not officer or not officer['park_name']:
+            return jsonify({"error": "Finance officer or park not found"}), 404
+        
+        park_name = officer['park_name']
+        
+        # Retrieve extra funds requests for the officer's park
         cursor.execute("""
             SELECT 
                 id, title, description, amount, park_name as parkName,
                 category, justification, expected_duration as expectedDuration,
                 status, created_at, created_by as submittedById
             FROM extra_funds_requests
-            WHERE created_by = %s
+            WHERE created_by = %s AND park_name = %s
             ORDER BY created_at DESC
-        """, (current_user_id,))
+        """, (current_user_id, park_name))
         requests = cursor.fetchall()
         
         # Get finance officer details for submittedBy
@@ -2658,7 +2714,6 @@ def get_extra_funds_requests(current_user_id):
         for req in requests:
             req['amount'] = float(req['amount'])  # Convert Decimal to float
             req['dateSubmitted'] = req['created_at'].strftime('%Y-%m-%d') if req['created_at'] else None
-            # Ensure id is an integer before formatting
             req_id = int(req['id'])  # Convert to int explicitly
             req['id'] = f"ef-{req_id:03d}"  # Format as ef-001
             req['parkId'] = f"park-{req_id:03d}"  # Format as park-001
@@ -2678,6 +2733,9 @@ def get_extra_funds_requests(current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+
 
 @app.route('/api/finance/all-approved-data', methods=['GET'])
 @token_required

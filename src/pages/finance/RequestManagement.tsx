@@ -91,7 +91,7 @@ const RequestManagement = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
         <div className="flex-1">
           <DashboardHeader
