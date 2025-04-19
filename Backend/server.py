@@ -1124,13 +1124,66 @@ def create_fund_request(current_user_id):
             cursor.close()
             connection.close()
 
-
-
-
+@app.route('/api/fund-requests', methods=['GET'])
+@token_required
+def get_fund_requests(current_user_id):
+    """Retrieve fund requests for the staff member's park."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # First get the staff member's park
+        cursor.execute("""
+            SELECT park_name 
+            FROM parkstaff 
+            WHERE id = %s
+        """, (current_user_id,))
+        staff_result = cursor.fetchone()
+        
+        if not staff_result:
+            return jsonify({"error": "Staff member not found"}), 404
+            
+        staff_park = staff_result['park_name']
+        
+        # Get fund requests for the staff's park
+        cursor.execute("""
+            SELECT 
+                fr.*, 
+                ps.first_name,
+                ps.last_name,
+                ps.email as staff_email,
+                ps.park_name as staff_park
+            FROM fund_requests fr
+            LEFT JOIN parkstaff ps ON fr.created_by = ps.id
+            WHERE fr.parkname = %s
+            ORDER BY fr.created_at DESC
+        """, (staff_park,))
+        
+        requests = cursor.fetchall()
+        
+        # Format dates and amounts
+        for request in requests:
+            if request['created_at']:
+                request['created_at'] = request['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if request['amount']:
+                request['amount'] = float(request['amount'])
+        
+        return jsonify(requests), 200
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        return jsonify({"error": "Failed to retrieve fund requests"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 @app.route('/api/finance/fund-requests', methods=['GET'])
 @token_required
-def get_fund_requests(current_user_id):
+def get_all_fund_requests(current_user_id):
     """Retrieve all fund requests for finance officer, filtered by their park."""
     connection = get_db_connection()
     if not connection:
@@ -1478,7 +1531,7 @@ def update_service_status(current_user_id, service_id):
             cursor.close()
             connection.close()
 
-@app.route('/api/finance/fund-requests', methods=['GET'])
+@app.route('/api/finance/fund-requests', methods=['GET'], endpoint='get_all_fund_requests_1')
 @token_required
 def get_all_fund_requests(current_user_id):
     """Retrieve all fund requests with park staff details, optionally filtered by status"""
@@ -1574,8 +1627,6 @@ def update_fund_request_status(current_user_id, id):
         if connection.is_connected():
             cursor.close()
             connection.close()
-
-
 
 
 
