@@ -366,6 +366,8 @@ def services():
 
 
 
+
+
 @app.route('/api/process_payment', methods=['POST'])
 def process_payment():
     """Handle payment processing for donations and tour bookings."""
@@ -376,11 +378,15 @@ def process_payment():
     try:
         data = request.json
         required_fields = ['paymentType', 'amount', 'cardName', 'cardNumber', 
-                         'expiryDate', 'cvv', 'parkName', 'customerEmail']
+                         'expiryDate', 'cvv', 'customerEmail']
         
         # Validate all required fields
         if not all(field in data for field in required_fields):
-            return jsonify({"error": "Missing required payment fields"}), 400
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({
+                "error": "Missing required payment fields",
+                "missing": missing_fields
+            }), 400
 
         # Validate amount
         try:
@@ -390,6 +396,30 @@ def process_payment():
         except ValueError:
             return jsonify({"error": "Invalid payment amount"}), 400
 
+        cursor = connection.cursor()
+
+        # First, ensure the necessary columns exist
+        try:
+            # Add status column to donations if it doesn't exist
+            cursor.execute("""
+                ALTER TABLE donations 
+                ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending',
+                ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(50)
+            """)
+            
+            # Add status column to tours if it doesn't exist
+            cursor.execute("""
+                ALTER TABLE tours 
+                ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending',
+                ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(50)
+            """)
+            
+            connection.commit()
+        except Exception as e:
+            print(f"Table alteration error: {e}")
+            # Continue even if alteration fails (columns might already exist)
+            pass
+
         # Generate a unique transaction ID
         timestamp = datetime.now().strftime('%y%m%d%H%M%S')
         random_num = str(random.randint(100, 999))
@@ -398,22 +428,13 @@ def process_payment():
         # Process card details securely
         card_number = data['cardNumber'].replace(' ', '')
         last_four_digits = card_number[-4:] if len(card_number) >= 4 else "0000"
-        status = "completed"
         
-        # Format expiry date as MM/YYYY
-        expiry_date = data['expiryDate']
-        if '/' in expiry_date:
-            month, year = expiry_date.split('/')
-            if len(year) == 2:
-                year = f"20{year}"
-            expiry_date = f"{month}/{year}"
-        
-        cursor = connection.cursor()
+        # Insert payment record
         cursor.execute('''
             INSERT INTO payments (
                 transaction_id, payment_type, amount, 
-                card_name, card_number_last4, expiry_date, status,
-                park_name, customer_email
+                card_name, card_number_last4, expiry_date, 
+                status, park_name, customer_email
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             transaction_id,
@@ -421,11 +442,43 @@ def process_payment():
             payment_amount,
             data['cardName'],
             last_four_digits,
-            expiry_date,
-            status,
-            data['parkName'],
+            data['expiryDate'],
+            'completed',
+            data.get('parkName', ''),
             data['customerEmail']
         ))
+        
+        # Update the corresponding record based on payment type
+        if data['paymentType'] == 'donation':
+            cursor.execute('''
+                UPDATE donations 
+                SET status = %s, 
+                    transaction_id = %s 
+                WHERE email = %s 
+                AND amount = %s 
+                AND created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                ORDER BY created_at DESC 
+                LIMIT 1
+            ''', ('completed', transaction_id, data['customerEmail'], payment_amount))
+            
+            if cursor.rowcount == 0:
+                raise Exception("No matching donation record found")
+                
+        elif data['paymentType'] == 'tour':
+            cursor.execute('''
+                UPDATE tours 
+                SET status = %s, 
+                    transaction_id = %s 
+                WHERE email = %s 
+                AND amount = %s 
+                AND created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                ORDER BY created_at DESC 
+                LIMIT 1
+            ''', ('completed', transaction_id, data['customerEmail'], payment_amount))
+            
+            if cursor.rowcount == 0:
+                raise Exception("No matching tour record found")
+        
         connection.commit()
         
         return jsonify({
@@ -437,7 +490,18 @@ def process_payment():
 
     except Exception as e:
         print(f"Payment processing error: {e}")
-        return jsonify({"error": "Payment processing failed"}), 500
+        connection.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+
 
 
 

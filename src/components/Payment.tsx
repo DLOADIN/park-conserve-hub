@@ -82,38 +82,64 @@ const Payment = () => {
     setIsSubmitting(true);
     
     try {
-      // Get the entity ID from the details object based on payment type
-      const relatedEntityId = details.id || 0; // This needs to be passed from the previous page
-      
+      const paymentData = {
+        paymentType: type, // 'donation' or 'tour'
+        amount: amount,
+        cardName: cardName,
+        cardNumber: cardNumber,
+        expiryDate: expiryDate,
+        cvv: cvv,
+        customerEmail: details.email || '',
+        parkName: details.park || details.parkName // Handle both formats
+      };
+
+      console.log('Sending payment data:', paymentData);
+
       const response = await fetch('http://localhost:5000/api/process_payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paymentType: type, // 'donation' or 'tour'
-          amount: amount,
-          cardName: cardName,
-          cardNumber: cardNumber,
-          expiryDate: expiryDate,
-          cvv: cvv,
-          parkName: details.park,
-          customerEmail: details.email || '',
-        }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(paymentData),
       });
       
       const result = await response.json();
       
-      if (response.ok) {
-        setIsComplete(true);
-        toast({
-          title: "Payment successful!",
-          description: `Your ${type} has been processed successfully.`,
-        });
-        
-        // Store transaction ID for display
-        sessionStorage.setItem('lastTransactionId', result.transactionId);
-      } else {
+      if (!response.ok) {
         throw new Error(result.error || 'Payment processing failed');
       }
+
+      setIsComplete(true);
+      toast({
+        title: "Payment successful!",
+        description: `Your ${type} has been processed successfully.`,
+      });
+      
+      // Store transaction ID for display
+      sessionStorage.setItem('lastTransactionId', result.transactionId);
+
+      // Redirect based on payment type
+      setTimeout(() => {
+        if (type === 'donation') {
+          navigate('/donate', { 
+            state: { 
+              transactionId: result.transactionId,
+              amount: amount,
+              date: result.date
+            }
+          });
+        } else {
+          navigate('/tour/success', { 
+            state: { 
+              transactionId: result.transactionId,
+              amount: amount,
+              date: result.date
+            }
+          });
+        }
+      }, 2000);
+      
     } catch (error) {
       console.error('Payment error:', error);
       toast({
