@@ -518,14 +518,14 @@ const InvoiceView = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
         <div className="flex-1">
-          <DashboardHeader title="Finance Dashboard" subtitle="View and manage financial data" />
+          <DashboardHeader title="Auditor Invoices" subtitle="View and manage financial data" />
           <main className="p-6">
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>Financial Overview</CardTitle>
+                <CardTitle>Invoice Overview</CardTitle>
               </CardHeader>
               <CardContent>
                 {loading && <div>Loading...</div>}

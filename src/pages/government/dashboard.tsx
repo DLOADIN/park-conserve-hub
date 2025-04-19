@@ -97,7 +97,7 @@ const GovernmentDashboard = () => {
         <DashboardSidebar />
         <div className="flex-1">
           <DashboardHeader
-            title="Finance Officer Dashboard"
+            title="Government Officer Dashboard"
             subtitle="Overview of financial activities and budgets"
           />
           

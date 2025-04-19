@@ -37,7 +37,11 @@ How to run the Backend:
 1. The visitors should be able to update their passwords
 2. For the Booked tours, We should have a reason to book a tour
 3. Every user should have a profile page where they can see their details and update them
-4. For the funds requets we should have a reason to request funds see that the funds are above 1000; we should a request notification that we have money exceeding 1000.
-5. 
-6.
+4. For the funds request we should have a reason to request funds see that the funds are above 1000; we should a request notification that we have money exceeding 1000.
+5. The admin should send an email to all the new user when he/she has created a new user.
+6. For the government he/she should be able to see all the approved budgets.
+7. Reupdate the government dashboard
+8. Add the reason to the booked tours 
+9. Make sure that we can update funds requests using a dialog form
+10. Make sure that we can update emergency requests using a dialog form
 
