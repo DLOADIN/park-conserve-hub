@@ -57,8 +57,12 @@ const VisitorsDashboard: React.FC = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    email: ''
+    email: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
   const [formError, setFormError] = useState('');
   const navigate = useNavigate();
 
@@ -83,7 +87,14 @@ const VisitorsDashboard: React.FC = () => {
         });
         const { firstName, lastName, email } = profileResponse.data.user;
         setVisitorName(`${firstName} ${lastName}`);
-        setFormData({ firstName, lastName, email });
+        setFormData({
+          firstName,
+          lastName,
+          email,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
       } catch (err: any) {
         setError(err.response?.data?.error || 'Failed to load data');
         if (err.response?.status === 401) {
@@ -123,11 +134,44 @@ const VisitorsDashboard: React.FC = () => {
         navigate('/Visitors');
         return;
       }
-      await axios.put('http://localhost:5000/api/visitor/profile', formData, {
+
+      // Validate passwords if updating password
+      if (showPasswordFields) {
+        if (!formData.currentPassword) {
+          setFormError('Current password is required to update password');
+          return;
+        }
+        if (formData.newPassword !== formData.confirmPassword) {
+          setFormError('New passwords do not match');
+          return;
+        }
+        if (formData.newPassword && formData.newPassword.length < 8) {
+          setFormError('New password must be at least 8 characters long');
+          return;
+        }
+      }
+
+      // Prepare update data
+      const updateData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        ...(showPasswordFields && formData.newPassword ? {
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword
+        } : {})
+      };
+
+      await axios.put('http://localhost:5000/api/visitor/profile', updateData, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setVisitorName(`${formData.firstName} ${formData.lastName}`);
+      setShowPasswordFields(false);
       closeDialog();
+      
+      // Show success message
+      alert('Profile updated successfully');
     } catch (err: any) {
       setFormError(err.response?.data?.error || 'Failed to update profile');
     }
@@ -232,6 +276,61 @@ const VisitorsDashboard: React.FC = () => {
                         required
                       />
                     </div>
+
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordFields(!showPasswordFields)}
+                        className="text-conservation-600 hover:text-conservation-800 text-sm font-medium"
+                      >
+                        {showPasswordFields ? '- Hide Password Fields' : '+ Update Password'}
+                      </button>
+                    </div>
+
+                    {showPasswordFields && (
+                      <>
+                        <div>
+                          <label htmlFor="currentPassword" className="block text-lg font-medium text-gray-700">
+                            Current Password
+                          </label>
+                          <input
+                            type="password"
+                            name="currentPassword"
+                            id="currentPassword"
+                            value={formData.currentPassword}
+                            onChange={handleInputChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="newPassword" className="block text-lg font-medium text-gray-700">
+                            New Password
+                          </label>
+                          <input
+                            type="password"
+                            name="newPassword"
+                            id="newPassword"
+                            value={formData.newPassword}
+                            onChange={handleInputChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="confirmPassword" className="block text-lg font-medium text-gray-700">
+                            Confirm New Password
+                          </label>
+                          <input
+                            type="password"
+                            name="confirmPassword"
+                            id="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={handleInputChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                          />
+                        </div>
+                      </>
+                    )}
+
                     {formError && (
                       <p className="text-red-500 text-sm">{formError}</p>
                     )}
