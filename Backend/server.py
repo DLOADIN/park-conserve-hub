@@ -2,9 +2,8 @@ from flask import Flask, request, jsonify
 import mysql.connector
 from mysql.connector import Error
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, date, time
 from flask import jsonify
-from datetime import timedelta
 from flask_cors import CORS
 import random
 import hashlib
@@ -952,29 +951,70 @@ def get_tour_bookings(current_user_id):
             cursor.close()
             connection.close()
 
+
+
+
 @app.route('/api/admin/donations', methods=['GET'])
 @token_required
-def get_donations(current_user_id):
-    connection = get_db_connection()
-    if isinstance(connection, dict):
-        return connection, 500
-    
+def get_admin_donations(current_user_id):
     try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute(
-            "SELECT DATE_FORMAT(created_at, '%b') as month, SUM(amount) as amount "
-            "FROM donations GROUP BY YEAR(created_at), MONTH(created_at) "
-            "ORDER BY id"
-        )
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        query = """
+        SELECT d.*, p.transaction_id, p.status as payment_status
+        FROM donations d
+        LEFT JOIN payments p ON p.customer_email = d.email 
+            AND p.park_name = d.park_name 
+            AND p.payment_type = 'donation'
+        ORDER BY d.created_at DESC
+        """
+        
+        cursor.execute(query)
         donations = cursor.fetchall()
-        return jsonify({"donations": donations}), 200
+        
+        # Format dates
+        for donation in donations:
+            donation['created_at'] = donation['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            donation['amount'] = float(donation['amount'])
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(donations)
     except Exception as e:
-        print(f"Error fetching donations: {e}")
+        print(f"Database error: {str(e)}")
         return jsonify({"error": "Failed to fetch donations"}), 500
-    finally:
-        if connection.is_connected():
-            cursor.close()
-            connection.close()
+
+@app.route('/api/admin/services', methods=['GET'])
+@token_required
+def get_admin_services(current_user_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        query = """
+        SELECT id, first_name, last_name, email, phone, 
+               company_type, provided_service, company_name,
+               created_at, status, tax_id
+        FROM services
+        ORDER BY created_at DESC
+        """
+        
+        cursor.execute(query)
+        services = cursor.fetchall()
+        
+        # Format dates
+        for service in services:
+            service['created_at'] = service['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(services)
+    except Exception as e:
+        print(f"Database error: {str(e)}")
+        return jsonify({"error": "Failed to fetch services"}), 500
 
 @app.route('/api/admin/recent-logins', methods=['GET'])
 @token_required
@@ -3627,7 +3667,7 @@ def visitor_login():
                 salt = generate_salt()
                 new_hash = hash_password(password, salt)
                 new_stored_password = f"{salt}:{new_hash}"
-                cursor.execute("UPDATE visitors SET password_hash = %s WHERE id = %s", 
+                cursor.execute("UPDATE  visitors SET password_hash = %s WHERE id = %s", 
                               (new_stored_password, visitor['id']))
                 connection.commit()
 
@@ -3666,10 +3706,6 @@ def visitor_login():
         if connection.is_connected():
             cursor.close()
             connection.close()
-
-
-
-
 
 
 
