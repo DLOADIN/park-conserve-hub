@@ -130,7 +130,7 @@ const Payment = () => {
             }
           });
         } else {
-          navigate('/tour/success', { 
+          navigate('/book-tour', { 
             state: { 
               transactionId: result.transactionId,
               amount: amount,

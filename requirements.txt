@@ -14,15 +14,14 @@ The auditors credentials are:
 1. Email: sarah.williams@auditgov.org Password: password  
 2. Email: james.rodriguez@auditgov.org Password: password  
 
-The finance officers credentials are:
-1. Email: emily.johnson@parkfinance.org Password: password  
-2. Email: michael.chen@parkfinance.org Password: password  
-
 The parkstaff credentials are:
 1. Email: Ganza.dany@yahoo.com Password: password
 2. Email: bob.audit@park.com Password: password
 3. Email: carol.gov@park.com Password: password
 
+The finance officers credentials are:
+1. Email: emily.johnson@parkfinance.org Password: password  
+2. Email: michael.chen@parkfinance.org Password: password  
 
 How to run the frontend:
  npm run dev
