@@ -278,7 +278,7 @@ def book_tour():
             INSERT INTO tours (
                 park_name, tour_name, date, time, guests, amount,
                 first_name, last_name, email, special_requests
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             data['parkName'],
             data['tourName'],
@@ -303,6 +303,11 @@ def book_tour():
             cursor.close()
         if connection.is_connected():
             connection.close()
+
+
+
+
+
 
 
 @app.route('/api/services', methods=['POST'])
@@ -331,8 +336,8 @@ def services():
                 first_name, last_name, email, phone, company_type, 
                 provided_service, company_name, tax_id, 
                 company_registration, application_letter
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
             data['firstName'],
             data['lastName'],
             data['email'],
@@ -342,8 +347,8 @@ def services():
             data['companyName'],
             data['taxId'],
             company_registration,
-            application_letter)
-        )
+            application_letter
+        ))
 
         connection.commit()
         return jsonify({"message": "Service application submitted successfully"}), 201
@@ -356,6 +361,8 @@ def services():
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
 
 
 

@@ -205,11 +205,11 @@ const BookTour = () => {
                         id="guests"
                         type="number"
                         min="1"
-                        max="20"
+                        max="1000"
                         value={guests}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value === '' || (/^\d+$/.test(value) && parseInt(value) >= 1 && parseInt(value) <= 20)) {
+                          if (value === '' || (/^\d+$/.test(value) && parseInt(value) >= 1 && parseInt(value) <= 1000)) {
                             setGuests(value);
                           }
                         }}
