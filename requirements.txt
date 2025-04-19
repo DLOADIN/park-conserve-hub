@@ -33,12 +33,11 @@ How to run the Backend:
 
 
 
-
-
-
-4. Make sure that there are the expenses and income of the individual parks mentioned by the finance officer to the government when creating the budget
-   This means that the finance officer has to only see his/her expenses and incomes from their individual parks
-6. Allow the finance officer & government officer to get the a notification about the budget and if the expenses are above the budget
-   he/she should be notified about the budget and the expenses & not allowed to do anything about it
-7. If possible fix the reloading problem
+# Requirements for the project
+1. The visitors should be able to update their passwords
+2. For the Booked tours, We should have a reason to book a tour
+3. Every user should have a profile page where they can see their details and update them
+4. For the funds requets we should have a reason to request funds see that the funds are above 1000; we should a request notification that we have money exceeding 1000.
+5. 
+6.
 

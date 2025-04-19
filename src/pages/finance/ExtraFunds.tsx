@@ -14,7 +14,14 @@ import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { toast } from 'sonner';
 import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 const ExtraFunds = () => {
   const parkTours = [
@@ -41,6 +48,8 @@ const ExtraFunds = () => {
   const [dateRange, setDateRange] = useState<any>(undefined);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -50,11 +59,11 @@ const ExtraFunds = () => {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch extra funds requests');
         }
-        
+
         const data = await response.json();
         setRequests(data);
       } catch (error: any) {
@@ -63,7 +72,7 @@ const ExtraFunds = () => {
         setLoading(false);
       }
     };
-    
+
     fetchRequests();
   }, []);
 
@@ -72,30 +81,34 @@ const ExtraFunds = () => {
   };
 
   const filteredRequests = requests.filter((request: any) => {
-    const matchesSearch = 
+    const matchesSearch =
       request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.parkName.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    
+
     const matchesPark = parkFilter === 'all' || request.parkName === parkFilter;
-    
+
     let matchesDate = true;
     if (dateRange && dateRange.from && dateRange.to) {
       const requestDate = new Date(request.dateSubmitted);
       matchesDate = requestDate >= dateRange.from && requestDate <= dateRange.to;
     }
-    
+
     return matchesSearch && matchesStatus && matchesPark && matchesDate;
   });
 
   const getStatusBadgeColor = (status: string) => {
-    switch(status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-      case 'approved': return 'bg-green-100 text-green-800 hover:bg-green-200';
-      case 'rejected': return 'bg-red-100 text-red-800 hover:bg-red-200';
-      default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      case 'approved':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
   };
 
@@ -103,17 +116,22 @@ const ExtraFunds = () => {
     navigate('/finance/extra-funds/new');
   };
 
+  const handleViewDetails = (request: any) => {
+    setSelectedRequest(request);
+    setIsDialogOpen(true);
+  };
+
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
-        
+
         <div className="flex-1">
-          <DashboardHeader 
+          <DashboardHeader
             title="Extra Funds Requests"
             subtitle="Manage additional funding requests"
           />
-          
+
           <main className="p-6">
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-2">
@@ -122,7 +140,7 @@ const ExtraFunds = () => {
                   Create New Request
                 </Button>
               </div>
-              
+
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -133,7 +151,7 @@ const ExtraFunds = () => {
                 />
               </div>
             </div>
-            
+
             <Card className="mb-6">
               <CardHeader className="pb-3">
                 <CardTitle>Filters</CardTitle>
@@ -155,7 +173,7 @@ const ExtraFunds = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <label className="text-sm font-medium mb-2 block">Park</label>
                     <Select value={parkFilter} onValueChange={setParkFilter}>
@@ -163,29 +181,22 @@ const ExtraFunds = () => {
                         <SelectValue placeholder="Select park" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Akanda National Park">Akanda National Park</SelectItem>
-                        <SelectItem value="Moukalaba-Doudou National Park">Moukalaba-Doudou National Park</SelectItem>
-                        <SelectItem value="Ivindo National Park">Ivindo National Park</SelectItem>
-                        <SelectItem value="Loango National Park">Loango National Park</SelectItem>
-                        <SelectItem value="Lopé National Park">Lopé National Park</SelectItem>
-                        <SelectItem value="Mayumba National Park">Mayumba National Park</SelectItem>
-                        <SelectItem value="Pongara National Park">Pongara National Park</SelectItem>
-                        <SelectItem value="Waka National Park">Waka National Park</SelectItem>
-                        <SelectItem value="Birougou National Park">Birougou National Park</SelectItem>
-                        <SelectItem value="Bateke Plateau National Park">Bateke Plateau National Park</SelectItem>
-                        <SelectItem value="Crystal Mountains National Park">Crystal Mountains National Park</SelectItem>
-                        <SelectItem value="Minkébé National Park">Minkébé National Park</SelectItem>
-                        <SelectItem value="Mwagne National Park">Mwagne National Park</SelectItem>
+                        <SelectItem value="all">All Parks</SelectItem>
+                        {parkTours.map((park) => (
+                          <SelectItem key={park.id} value={park.name}>
+                            {park.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div>
                     <label className="text-sm font-medium mb-2 block">Date Range</label>
                     <div className="mb-6">
-                      <DateRangePicker 
-                        date={dateRange} 
-                        onSelect={handleDateRangeSelect} 
+                      <DateRangePicker
+                        date={dateRange}
+                        onSelect={handleDateRangeSelect}
                         className="w-full sm:w-auto"
                       />
                     </div>
@@ -193,15 +204,13 @@ const ExtraFunds = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                <CardTitle>Extra Funds Requests</CardTitle>
-                <CardDescription>
-                  Showing {filteredRequests.length} requests
-                </CardDescription>
+                    <CardTitle>Extra Funds Requests</CardTitle>
+                    <CardDescription>Showing {filteredRequests.length} requests</CardDescription>
                   </div>
                   <PrintDownloadTable
                     tableId="extra-funds-table"
@@ -231,27 +240,89 @@ const ExtraFunds = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                    {filteredRequests.map((request: any) => (
+                        {filteredRequests.map((request: any) => (
                           <TableRow key={request.id}>
                             <TableCell>{request.id}</TableCell>
                             <TableCell>{request.title}</TableCell>
-                            <TableCell>{request.park}</TableCell>
+                            <TableCell>{request.parkName}</TableCell>
                             <TableCell>${request.amount.toLocaleString()}</TableCell>
                             <TableCell>
-                            <Badge className={getStatusBadgeColor(request.status)}>
-                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                            </Badge>
+                              <Badge className={getStatusBadgeColor(request.status)}>
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </Badge>
                             </TableCell>
-                            <TableCell>{request.dateSubmitted}</TableCell>
+                            <TableCell>{new Date(request.dateSubmitted).toLocaleDateString()}</TableCell>
                             <TableCell>{request.submittedBy}</TableCell>
                             <TableCell className="no-print">
-                          <Button variant="outline" size="sm" className="gap-2">
-                            <FileText className="h-4 w-4" />
-                            View Details
-                          </Button>
+                              <Dialog open={isDialogOpen && selectedRequest?.id === request.id} onOpenChange={setIsDialogOpen}>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={() => handleViewDetails(request)}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    View Details
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Request Details</DialogTitle>
+                                    <DialogDescription>
+                                      Detailed information about the extra funds request.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  {selectedRequest && (
+                                    <div className="grid gap-4 py-4">
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium">ID:</span>
+                                        <span className="col-span-3">{selectedRequest.id}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium">Title:</span>
+                                        <span className="col-span-3">{selectedRequest.title}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium">Park:</span>
+                                        <span className="col-span-3">{selectedRequest.parkName}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium">Amount:</span>
+                                        <span className="col-span-3">
+                                          ${selectedRequest.amount.toLocaleString()}
+                                        </span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium">Status:</span>
+                                        <span className="col-span-3">
+                                          <Badge className={getStatusBadgeColor(selectedRequest.status)}>
+                                            {selectedRequest.status.charAt(0).toUpperCase() +
+                                              selectedRequest.status.slice(1)}
+                                          </Badge>
+                                        </span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium">Submitted Date:</span>
+                                        <span className="col-span-3">
+                                          {new Date(selectedRequest.dateSubmitted).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium">Submitted By:</span>
+                                        <span className="col-span-3">{selectedRequest.submittedBy}</span>
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <span className="font-medium">Description:</span>
+                                        <span className="col-span-3">{selectedRequest.description || 'N/A'}</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </DialogContent>
+                              </Dialog>
                             </TableCell>
                           </TableRow>
-                    ))}
+                        ))}
                       </TableBody>
                     </Table>
                   </div>
@@ -264,9 +335,7 @@ const ExtraFunds = () => {
                 )}
               </CardContent>
               <CardFooter className="flex justify-between border-t pt-4">
-                <div className="text-sm text-gray-500">
-                  Showing {filteredRequests.length} requests
-                </div>
+                <div className="text-sm text-gray-500">Showing {filteredRequests.length} requests</div>
               </CardFooter>
             </Card>
           </main>
