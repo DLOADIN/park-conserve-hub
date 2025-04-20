@@ -11,20 +11,38 @@ import { Textarea } from '@/components/ui/textarea';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 
+const tourReasons = [
+  'Wildlife Photography',
+  'Bird Watching',
+  'Hiking Adventure',
+  'Nature Trail Walking',
+  'Canopy Walk',
+  'Forest Exploration',
+  'Educational Tour',
+  'Research Visit',
+  'Cultural Experience',
+  'Waterfall Visit',
+  'Mountain Climbing',
+  'Camping',
+  'Animal Observation',
+  'Conservation Learning',
+  'School Field Trip'
+];
+
 const parkTours = [
-  { id: 1, name: 'Akanda National Park', tours: ['Wildlife Safari', 'Forest Hike', 'Bird Watching'] },
-  { id: 2, name: 'Moukalaba-Doudou National Park', tours: ['Kayaking Adventure', 'Fishing Tour', 'Lake Cruise'] },
-  { id: 3, name: 'Ivindo National Park', tours: ['Rock Climbing', 'Mountain Trail', 'Scenic Drive'] },
-  { id: 4, name: 'Loango National Park', tours: ['Whale Watching', 'Beach Safari', 'Rainforest Walk'] },
-  { id: 5, name: 'Lopé National Park', tours: ['Cultural Tour', 'Gorilla Trek', 'Ancient Rock Art Walk'] },
-  { id: 6, name: 'Mayumba National Park', tours: ['Turtle Nesting Tour', 'Coastal Walk', 'Marine Life Excursion'] },
-  { id: 7, name: 'Pongara National Park', tours: ['Mangrove Exploration', 'Sunset Boat Ride', 'Eco-Lodge Retreat'] },
-  { id: 8, name: 'Waka National Park', tours: ['Canopy Walk', 'Jungle Hike', 'Bird Photography Tour'] },
-  { id: 9, name: 'Birougou National Park', tours: ['Forest Trekking', 'Waterfall Visit', 'Cultural Immersion'] },
-  { id: 10, name: 'Bateke Plateau National Park', tours: ['Grassland Safari', 'Volcano Crater Walk', 'Camping Experience'] },
-  { id: 11, name: 'Crystal Mountains National Park', tours: ['Mountain Climbing', 'River Rafting', 'Nature Observation'] },
-  { id: 12, name: 'Minkébé National Park', tours: ['Elephant Tracking', 'Deep Forest Camping', 'Research Station Visit'] },
-  { id: 13, name: 'Mwagne National Park', tours: ['River Safari', 'Botanical Tour', 'Silent Meditation Trail'] },
+  { id: 1, name: 'Akanda National Park', features: ['Mangroves', 'Coastal Forest', 'Marine Life'] },
+  { id: 2, name: 'Moukalaba-Doudou National Park', features: ['Mountains', 'Rivers', 'Wildlife'] },
+  { id: 3, name: 'Ivindo National Park', features: ['Waterfalls', 'Rainforest', 'Research Station'] },
+  { id: 4, name: 'Loango National Park', features: ['Beach', 'Forest', 'Wildlife'] },
+  { id: 5, name: 'Lopé National Park', features: ['Savanna', 'Ancient Rock Art', 'Primates'] },
+  { id: 6, name: 'Mayumba National Park', features: ['Marine Life', 'Beaches', 'Turtles'] },
+  { id: 7, name: 'Pongara National Park', features: ['Mangroves', 'Beach', 'Forest'] },
+  { id: 8, name: 'Waka National Park', features: ['Mountains', 'Forest', 'Rivers'] },
+  { id: 9, name: 'Birougou National Park', features: ['Waterfalls', 'Mountains', 'Cultural Sites'] },
+  { id: 10, name: 'Bateke Plateau National Park', features: ['Savanna', 'Rivers', 'Wildlife'] },
+  { id: 11, name: 'Crystal Mountains National Park', features: ['Mountains', 'Caves', 'Waterfalls'] },
+  { id: 12, name: 'Minkébé National Park', features: ['Dense Forest', 'Elephants', 'Research Sites'] },
+  { id: 13, name: 'Mwagne National Park', features: ['Forest', 'Rivers', 'Wildlife'] },
 ];
 
 const BookTour = () => {
@@ -48,6 +66,16 @@ const BookTour = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedTour) {
+      toast({
+        title: "Tour selection required",
+        description: "Please select a tour type before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     const guestsNum = parseInt(guests);
@@ -129,10 +157,13 @@ const BookTour = () => {
               <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div className="sm:col-span-2">
-                    <Label htmlFor="park">Select Park</Label>
+                    <Label htmlFor="park">Select Park *</Label>
                     <Select 
                       value={selectedPark} 
-                      onValueChange={setSelectedPark}
+                      onValueChange={(value) => {
+                        setSelectedPark(value);
+                        setSelectedTour(''); // Reset tour selection when park changes
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a park" />
@@ -146,29 +177,30 @@ const BookTour = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  
 
-                  {/* <div className="sm:col-span-2">
-                    <Label htmlFor="tour">Select Tour</Label>
+                  <div className="sm:col-span-2">
+                    <Label htmlFor="tour">Tour Purpose/Activity *</Label>
                     <Select 
                       value={selectedTour} 
                       onValueChange={setSelectedTour}
                       disabled={!selectedPark}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a tour" />
+                        <SelectValue placeholder="Select your tour purpose" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedPark &&
-                          parkTours
-                            .find(p => p.id.toString() === selectedPark)
-                            ?.tours.map(tour => (
-                              <SelectItem key={tour} value={tour}>
-                                {tour}
-                              </SelectItem>
-                            ))}
+                        {tourReasons.map(reason => (
+                          <SelectItem key={reason} value={reason}>
+                            {reason}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                  </div> */}
+                    {!selectedTour && selectedPark && (
+                      <p className="text-sm text-red-500 mt-1">Please select your tour purpose</p>
+                    )}
+                  </div>
                   
                   <div>
                     <Label htmlFor="date">Date</Label>

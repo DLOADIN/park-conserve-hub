@@ -242,46 +242,74 @@ def login():
 
 @app.route('/api/book-tour', methods=['POST'])
 def book_tour():
+    """Handle tour booking with specific tour purpose validation."""
     connection = get_db_connection()
     cursor = None
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
 
+    # Define valid tour purposes
+    VALID_TOUR_PURPOSES = {
+        'Wildlife Photography', 'Bird Watching', 'Hiking Adventure',
+        'Nature Trail Walking', 'Canopy Walk', 'Forest Exploration',
+        'Educational Tour', 'Research Visit', 'Cultural Experience',
+        'Waterfall Visit', 'Mountain Climbing', 'Camping',
+        'Animal Observation', 'Conservation Learning', 'School Field Trip'
+    }
+
     try:
         data = request.json
-        required_fields = ['parkName', 'tourName', 'date', 'time', 'guests', 'amount']
+        required_fields = ['parkName', 'tourName', 'date', 'time', 'guests', 'amount', 'firstName', 'lastName', 'email']
 
+        # Validate required fields
         if not all(field in data for field in required_fields):
-            return jsonify({"error": "Missing required fields"}), 400
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({
+                "error": "Missing required fields",
+                "missing": missing_fields
+            }), 400
 
+        # Validate tour purpose
+        tour_purpose = data['tourName'].strip()
+        if not tour_purpose or tour_purpose not in VALID_TOUR_PURPOSES:
+            return jsonify({
+                "error": "Invalid tour purpose",
+                "message": "Please select a valid tour purpose",
+                "valid_purposes": sorted(list(VALID_TOUR_PURPOSES))
+            }), 400
+
+        # Validate guests and amount
         try:
             guests = int(data['guests'])
             amount = int(data['amount'])
+            if guests < 1 or guests > 20:
+                return jsonify({"error": "Number of guests must be between 1 and 20"}), 400
+            if amount != guests * 75:
+                return jsonify({"error": "Invalid amount: must be $75 per guest"}), 400
         except (ValueError, TypeError):
-            return jsonify({"error": "Guests and amount must be valid integers"}), 400
+            return jsonify({"error": "Invalid guests or amount value"}), 400
 
-        if guests < 1 or guests > 20:
-            return jsonify({"error": "Guests must be between 1 and 20"}), 400
-
-        if amount != guests * 75:
-            return jsonify({"error": "Invalid amount: must be $75 per guest"}), 400
-
-        # Validate date and time formats
+        # Validate date and time
         try:
-            datetime.strptime(data['date'], '%Y-%m-%d')
-            datetime.strptime(data['time'], '%H:%M')
+            tour_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            tour_time = datetime.strptime(data['time'], '%H:%M').time()
+            
+            if tour_date < datetime.now().date():
+                return jsonify({"error": "Tour date must be in the future"}), 400
         except ValueError:
             return jsonify({"error": "Invalid date or time format"}), 400
 
+        # Insert the tour booking
         cursor = connection.cursor()
         cursor.execute('''
             INSERT INTO tours (
                 park_name, tour_name, date, time, guests, amount,
-                first_name, last_name, email, special_requests
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                first_name, last_name, email, special_requests,
+                status, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
         ''', (
             data['parkName'],
-            data['tourName'],
+            tour_purpose,
             data['date'],
             data['time'],
             guests,
@@ -289,15 +317,27 @@ def book_tour():
             data['firstName'],
             data['lastName'],
             data['email'],
-            data.get('specialRequests', '')
+            data.get('specialRequests', ''),
+            'pending'
         ))
         connection.commit()
-        return jsonify({"message": "Tour booked successfully"}), 201
+        
+        return jsonify({
+            "message": "Tour booked successfully",
+            "details": {
+                "park": data['parkName'],
+                "purpose": tour_purpose,
+                "date": data['date'],
+                "time": data['time'],
+                "guests": guests,
+                "amount": amount,
+                "status": "pending"
+            }
+        }), 201
 
     except Error as e:
         print(f"Database error: {e}")
         return jsonify({"error": f"Database operation failed: {str(e)}"}), 500
-
     finally:
         if cursor:
             cursor.close()
