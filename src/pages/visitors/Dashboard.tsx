@@ -47,6 +47,26 @@ interface Service {
   createdAt: string;
 }
 
+// Add password validation helper
+const validatePassword = (password: string) => {
+  const hasMinLength = password.length >= 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  return {
+    isValid: hasMinLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar,
+    errors: {
+      minLength: !hasMinLength,
+      upperCase: !hasUpperCase,
+      lowerCase: !hasLowerCase,
+      number: !hasNumber,
+      specialChar: !hasSpecialChar,
+    }
+  };
+};
+
 const VisitorsDashboard: React.FC = () => {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [tours, setTours] = useState<Tour[]>([]);
@@ -64,6 +84,34 @@ const VisitorsDashboard: React.FC = () => {
   });
   const [showPasswordFields, setShowPasswordFields] = useState(false);
   const [formError, setFormError] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<{
+    currentPassword: boolean;
+    newPassword: boolean;
+    confirmPassword: boolean;
+  }>({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  });
+  const [passwordValidation, setPasswordValidation] = useState<{
+    isValid: boolean;
+    errors: {
+      minLength: boolean;
+      upperCase: boolean;
+      lowerCase: boolean;
+      number: boolean;
+      specialChar: boolean;
+    }
+  }>({
+    isValid: false,
+    errors: {
+      minLength: false,
+      upperCase: false,
+      lowerCase: false,
+      number: false,
+      specialChar: false,
+    }
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -124,6 +172,21 @@ const VisitorsDashboard: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Reset error state when user starts typing
+    setPasswordErrors(prev => ({ ...prev, [name]: false }));
+
+    // Validate new password
+    if (name === 'newPassword') {
+      const validation = validatePassword(value);
+      setPasswordValidation(validation);
+    }
+
+    // Check confirm password match
+    if (name === 'confirmPassword') {
+      const match = value === formData.newPassword;
+      setPasswordErrors(prev => ({ ...prev, confirmPassword: !match }));
+    }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -137,16 +200,28 @@ const VisitorsDashboard: React.FC = () => {
 
       // Validate passwords if updating password
       if (showPasswordFields) {
+        let hasError = false;
+        const newErrors = { ...passwordErrors };
+
         if (!formData.currentPassword) {
-          setFormError('Current password is required to update password');
-          return;
+          newErrors.currentPassword = true;
+          hasError = true;
         }
+
+        if (!passwordValidation.isValid) {
+          newErrors.newPassword = true;
+          hasError = true;
+        }
+
         if (formData.newPassword !== formData.confirmPassword) {
-          setFormError('New passwords do not match');
-          return;
+          newErrors.confirmPassword = true;
+          hasError = true;
         }
-        if (formData.newPassword && formData.newPassword.length < 8) {
-          setFormError('New password must be at least 8 characters long');
+
+        setPasswordErrors(newErrors);
+
+        if (hasError) {
+          setFormError('Please fix the password errors before submitting');
           return;
         }
       }
@@ -244,7 +319,7 @@ const VisitorsDashboard: React.FC = () => {
                         id="firstName"
                         value={formData.firstName}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                        className="mt-1 block w-full border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg border-2 border-conservation-600 rounded-md p-2"
                         required
                       />
                     </div>
@@ -258,7 +333,7 @@ const VisitorsDashboard: React.FC = () => {
                         id="lastName"
                         value={formData.lastName}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                        className="mt-1 block w-full border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg border-2 border-conservation-600 rounded-md p-2"
                         required
                       />
                     </div>
@@ -272,7 +347,7 @@ const VisitorsDashboard: React.FC = () => {
                         id="email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                        className="mt-1 block w-full border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg border-2 border-conservation-600 rounded-md p-2"
                         required
                       />
                     </div>
@@ -299,8 +374,15 @@ const VisitorsDashboard: React.FC = () => {
                             id="currentPassword"
                             value={formData.currentPassword}
                             onChange={handleInputChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                            className={`mt-1 block w-full shadow-sm sm:text-lg border-2 border-conservation-600 rounded-md p-2
+                              ${passwordErrors.currentPassword 
+                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                                : 'border-gray-300 focus:border-conservation-500 focus:ring-conservation-500'
+                              }`}
                           />
+                          {passwordErrors.currentPassword && (
+                            <p className="mt-1 text-sm text-red-600">Current password is required</p>
+                          )}
                         </div>
                         <div>
                           <label htmlFor="newPassword" className="block text-lg font-medium text-gray-700">
@@ -312,8 +394,34 @@ const VisitorsDashboard: React.FC = () => {
                             id="newPassword"
                             value={formData.newPassword}
                             onChange={handleInputChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                            className={`mt-1 block w-full shadow-sm sm:text-lg border-2 border-conservation-600 rounded-md p-2
+                              ${passwordErrors.newPassword || !passwordValidation.isValid
+                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                                : 'border-gray-300 focus:border-conservation-500 focus:ring-conservation-500'
+                              }`}
                           />
+                          {(!passwordValidation.isValid && formData.newPassword) && (
+                            <div className="mt-1 text-sm">
+                              <p className="font-medium text-gray-700">Password must contain:</p>
+                              <ul className="list-disc pl-5 space-y-1">
+                                <li className={passwordValidation.errors.minLength ? 'text-red-600' : 'text-green-600'}>
+                                  At least 8 characters
+                                </li>
+                                <li className={passwordValidation.errors.upperCase ? 'text-red-600' : 'text-green-600'}>
+                                  At least one uppercase letter
+                                </li>
+                                <li className={passwordValidation.errors.lowerCase ? 'text-red-600' : 'text-green-600'}>
+                                  At least one lowercase letter
+                                </li>
+                                <li className={passwordValidation.errors.number ? 'text-red-600' : 'text-green-600'}>
+                                  At least one number
+                                </li>
+                                <li className={passwordValidation.errors.specialChar ? 'text-red-600' : 'text-green-600'}>
+                                  At least one special character (!@#$%^&*(),.?":{}|~)
+                                </li>
+                              </ul>
+                            </div>
+                          )}
                         </div>
                         <div>
                           <label htmlFor="confirmPassword" className="block text-lg font-medium text-gray-700">
@@ -325,8 +433,15 @@ const VisitorsDashboard: React.FC = () => {
                             id="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={handleInputChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-conservation-500 focus:ring-conservation-500 sm:text-lg"
+                            className={`mt-1 block w-full shadow-sm sm:text-lg border-2 border-conservation-600 rounded-md p-2
+                              ${passwordErrors.confirmPassword
+                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                                : 'border-gray-300 focus:border-conservation-500 focus:ring-conservation-500'
+                              }`}
                           />
+                          {passwordErrors.confirmPassword && (
+                            <p className="mt-1 text-sm text-red-600">Passwords do not match</p>
+                          )}
                         </div>
                       </>
                     )}

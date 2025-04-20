@@ -35,7 +35,7 @@ How to run the Backend:
 
 # Requirements for the project
 # 1. The visitors should be able to update their passwords 
-2. For the Booked tours, We should have a reason to book a tour 
+#2. For the Booked tours, We should have a reason to book a tour 
 3. Every user should have a profile page where they can see their details and update them
 4. For the funds request we should have a reason to request funds see that the funds are above 1000; we should a request notification that we have money exceeding 1000.
 5. The admin should send an email to all the new user when he/she has created a new user.
@@ -44,6 +44,7 @@ How to run the Backend:
 8. Make sure that the addparkstuff displays an error message everytime this includes the addparkstuff and the park stuff password, it is empty
 9. Make sure that we can update funds requests using a dialog form
 10. Make sure that we can update emergency requests using a dialog form
+11. Make sure that when updating the password, the visitor must see the old password, new password and confirm password and update with a strong password
 
 
 
