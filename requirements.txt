@@ -42,8 +42,8 @@ How to run the Backend:
 6. For the government he/she should be able to see all the approved budgets.
 7. Reupdate the government dashboard
 8. Make sure that the addparkstuff displays an error message everytime this includes the addparkstuff and the park stuff password, it is empty
-9. Make sure that we can update funds requests using a dialog form
-10. Make sure that we can update emergency requests using a dialog form
+#9. Make sure that we can update funds requests using a dialog form
+#10. Make sure that we can update emergency requests using a dialog form
 #11. Make sure that when updating the password, the visitor must see the old password, new password and confirm password and update with a strong password
 
 

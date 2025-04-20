@@ -29,15 +29,17 @@ interface AddParkStaffModalProps {
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
 const formSchema = z.object({
-  firstName: z.string().min(2, 'First name must be at least 2 characters.'),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters.'),
-  email: z.string().email('Please enter a valid email address.'),
-  role: z.enum(['park-staff', 'auditor', 'government', 'finance'], { required_error: 'Please select a role.' }),
+  firstName: z.string().min(2, 'First name must be at least 2 characters.').nonempty('First name is required.'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters.').nonempty('Last name is required.'),
+  email: z.string().email('Please enter a valid email address.').nonempty('Email is required.'),
+  role: z.enum(['park-staff', 'auditor', 'government', 'finance'], { 
+    required_error: 'Please select a role.' 
+  }),
   park_name: z.string().optional(),
   password: z.string().refine(
     (value) => !value || passwordRegex.test(value),
     'Password must be 8+ characters with uppercase, lowercase, number, and special character.'
-  ),
+  ).refine((value) => value !== '', { message: 'Password is required for new staff.' }).or(z.literal('')),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -82,12 +84,18 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
       const API_URL = 'http://localhost:5000/api';
       // Ensure park_name is required for park-staff, auditor, and government roles
       if (['park-staff', 'auditor', 'government'].includes(values.role) && !values.park_name) {
-        toast.error(`Park is required for ${values.role} role.`);
+        form.setError('park_name', { 
+          type: 'manual', 
+          message: `Park is required for ${values.role} role.` 
+        });
         return;
       }
       // Ensure password is provided for new staff
       if (!values.password && !userToEdit) {
-        toast.error('Password is required for new staff.');
+        form.setError('password', { 
+          type: 'manual', 
+          message: 'Password is required for new staff.' 
+        });
         return;
       }
 
