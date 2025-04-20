@@ -364,7 +364,12 @@ const VisitorsDashboard: React.FC = () => {
 
           {/* Donations Table */}
           <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Donations</h2>
+            <div className="flex justify-content:space-between flex-1">
+              <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Donations</h2>
+              <h2 className="text-2xl font-semibold mb-4 text-conservation-600 ml-auto">
+                <Link to="/donate" className="text-conservation-600 hover:text-conservation-800">Donate</Link>
+              </h2>
+            </div>
             {donations.length === 0 ? (
               <p className="text-gray-600">No donations found.</p>
             ) : (
@@ -397,7 +402,12 @@ const VisitorsDashboard: React.FC = () => {
 
           {/* Tours Table */}
           <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-content:space-between flex-1">
             <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Booked Tours</h2>
+              <h2 className="text-2xl font-semibold mb-4 text-conservation-600 ml-auto">
+                <Link to="/book-tour" className="text-conservation-600 hover:text-conservation-800">Book A Tour</Link>
+              </h2>
+            </div>
             {tours.length === 0 ? (
               <p className="text-gray-600">No tours booked.</p>
             ) : (
@@ -432,7 +442,12 @@ const VisitorsDashboard: React.FC = () => {
 
           {/* Services Table */}
           <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-content:space-between flex-1">
             <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Service Applications</h2>
+              <h2 className="text-2xl font-semibold mb-4 text-conservation-600 ml-auto">
+                <Link to="/services" className="text-conservation-600 hover:text-conservation-800">Partner With Us</Link>
+              </h2>
+            </div>
             {services.length === 0 ? (
               <p className="text-gray-600">No service applications found.</p>
             ) : (
