@@ -2222,55 +2222,6 @@ def get_approved_budgets(current_user_id):
             connection.close()  
 
 
-# # Get pending budgets
-# @app.route('/api/finance/budgets/pending', methods=['GET'])
-# @token_required
-# def get_pending_budgets(current_user_id):
-#     """Retrieve pending (submitted) budgets."""
-#     connection = get_db_connection()
-#     if not connection:
-#         return jsonify({"error": "Database connection failed"}), 500
-    
-#     try:
-#         cursor = connection.cursor(dictionary=True)
-#         cursor.execute("""
-#             SELECT 
-#                 id, title, fiscal_year AS fiscalYear, total_amount AS totalAmount,
-#                 status, created_at AS createdAt
-#             FROM budgets
-#             WHERE created_by = %s AND status = 'submitted'
-#             ORDER BY created_at DESC
-#         """, (current_user_id,))
-#         budgets = cursor.fetchall()
-        
-#         for budget in budgets:
-#             cursor.execute("""
-#                 SELECT 
-#                     id, category, description, amount
-#                 FROM budget_items
-#                 WHERE budget_id = %s
-#             """, (budget['id'],))
-#             items = cursor.fetchall()
-#             for item in items:
-#                 item['amount'] = float(item['amount'])
-#                 item['id'] = str(item['id'])
-#             budget['items'] = items
-#             budget['id'] = str(budget['id'])
-#             budget['totalAmount'] = float(budget['totalAmount'])
-#             budget['createdAt'] = budget['createdAt'].isoformat()
-        
-#         return jsonify(budgets), 200
-    
-#     except Exception as e:
-#         print(f"Database error: {e}")
-#         return jsonify({"error": "Failed to retrieve pending budgets"}), 500
-#     finally:
-#         if connection.is_connected():
-#             cursor.close()
-#             connection.close()
-
-
-
 
 @app.route('/api/finance/budgets/pending', methods=['GET'])
 @token_required
@@ -3902,6 +3853,291 @@ def update_emergency_request(current_user_id, request_id):
         print(f"Database error: {e}")
         connection.rollback()
         return jsonify({"error": f"Failed to update emergency request: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/government/stats', methods=['GET'])
+@token_required
+def get_government_dashboard_stats(current_user_id):
+    """Get statistics for government dashboard."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # Get total donations
+        cursor.execute("SELECT SUM(amount) as total_donations FROM donations")
+        total_donations = cursor.fetchone()['total_donations'] or 0
+        
+        # Get total tour bookings
+        cursor.execute("SELECT SUM(amount) as total_bookings FROM tours")
+        total_bookings = cursor.fetchone()['total_bookings']
+        
+        # Get total approved budgets
+        cursor.execute("SELECT SUM(total_amount) as total_approved FROM budgets WHERE status = 'approved'")
+        total_approved = cursor.fetchone()['total_approved'] or 0
+        
+        # Get total emergency requests
+        cursor.execute("SELECT COUNT(*) as total_emergency FROM emergency_requests")
+        total_emergency = cursor.fetchone()['total_emergency']
+
+        stats = [
+            {"title": "Total Revenue From Donations", "value": float(total_donations), "icon": "DollarSign", "trend": "up"},
+            {"title": "Total Revenue From  Tours", "value": total_bookings, "icon": "Calendar", "trend": "up"},
+            {"title": "Total Approved Budgets", "value": float(total_approved), "icon": "PiggyBank", "trend": "up"},
+            {"title": "Emergency Requests", "value": total_emergency, "icon": "AlertTriangle", "trend": "up"}
+        ]
+        
+        return jsonify({"stats": stats}), 200
+        
+    except Exception as e:
+        print(f"Error fetching government stats: {e}")
+        return jsonify({"error": "Failed to fetch statistics"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/government/tour-bookings', methods=['GET'])
+@token_required
+def get_government_tour_bookings(current_user_id):
+    """Get all tour bookings for government dashboard."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                DATE_FORMAT(date, '%b') as month,
+                COUNT(*) as bookings,
+                SUM(amount) as revenue
+            FROM tours
+            GROUP BY YEAR(date), MONTH(date)
+            ORDER BY YEAR(date), MONTH(date)
+        """)
+        bookings = cursor.fetchall()
+        
+        for booking in bookings:
+            booking['revenue'] = float(booking['revenue']) if booking['revenue'] else 0
+            
+        return jsonify(bookings), 200
+        
+    except Exception as e:
+        print(f"Error fetching government tour bookings: {e}")
+        return jsonify({"error": "Failed to fetch tour bookings"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/government/allbudgets', methods=['GET'])
+@token_required
+def get_all_government_budgets(current_user_id):
+    """Get all budgets regardless of status."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                b.id, b.title, b.fiscal_year, b.total_amount, b.park_name,
+                b.description, b.status, b.created_at, b.created_by,
+                b.approved_by, b.approved_at, b.reason,
+                fo.first_name as created_by_name,
+                go.first_name as approved_by_name
+            FROM budgets b
+            LEFT JOIN finance_officers fo ON b.created_by = fo.id
+            LEFT JOIN government_officers go ON b.approved_by = go.id
+            ORDER BY b.created_at DESC
+        """)
+        budgets = cursor.fetchall()
+        
+        for budget in budgets:
+            budget['total_amount'] = float(budget['total_amount'])
+            budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if budget['approved_at']:
+                budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+                
+            # Fetch budget items
+            cursor.execute("""
+                SELECT id, category, description, amount, type
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            for item in items:
+                item['amount'] = float(item['amount'])
+            budget['items'] = items
+            
+        return jsonify(budgets), 200
+        
+    except Exception as e:
+        print(f"Error fetching all government budgets: {e}")
+        return jsonify({"error": "Failed to fetch budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/government/budgets/allapproved', methods=['GET'])
+@token_required
+def get_all_approved_budgets(current_user_id):
+    """Get all approved budgets across all parks."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                b.id, b.title, b.fiscal_year, b.total_amount, b.park_name,
+                b.description, b.status, b.created_at, b.approved_at,
+                fo.first_name as created_by_name,
+                go.first_name as approved_by_name
+            FROM budgets b
+            LEFT JOIN finance_officers fo ON b.created_by = fo.id
+            LEFT JOIN government_officers go ON b.approved_by = go.id
+            WHERE b.status = 'approved'
+            ORDER BY b.approved_at DESC
+        """)
+        budgets = cursor.fetchall()
+        
+        for budget in budgets:
+            budget['total_amount'] = float(budget['total_amount'])
+            budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if budget['approved_at']:
+                budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+                
+            # Fetch budget items
+            cursor.execute("""
+                SELECT id, category, description, amount, type
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            for item in items:
+                item['amount'] = float(item['amount'])
+            budget['items'] = items
+            
+        return jsonify(budgets), 200
+        
+    except Exception as e:
+        print(f"Error fetching all approved budgets: {e}")
+        return jsonify({"error": "Failed to fetch approved budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/government/allemergency-requests', methods=['GET'])
+@token_required
+def get_all_emergency_requests_gov(current_user_id):
+    """Get all emergency requests across all parks."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                er.id, er.title, er.description, er.amount,
+                er.park_name as parkName, er.emergency_type as emergencyType,
+                er.justification, er.timeframe, er.status,
+                er.created_at, er.created_by, er.reviewed_by,
+                er.reviewed_date, er.reason,
+                fo.first_name as submitted_by_name,
+                go.first_name as reviewed_by_name
+            FROM emergency_requests er
+            LEFT JOIN finance_officers fo ON er.created_by = fo.id
+            LEFT JOIN government_officers go ON er.reviewed_by = go.id
+            ORDER BY er.created_at DESC
+        """)
+        requests = cursor.fetchall()
+        
+        for req in requests:
+            req['amount'] = float(req['amount'])
+            req['created_at'] = req['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if req['reviewed_date']:
+                req['reviewed_date'] = req['reviewed_date'].strftime('%Y-%m-%d %H:%M:%S')
+            req['id'] = str(req['id'])
+            
+        return jsonify(requests), 200
+        
+    except Exception as e:
+        print(f"Error fetching all emergency requests: {e}")
+        return jsonify({"error": "Failed to fetch emergency requests"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/government/services', methods=['GET'])
+@token_required
+def get_government_services(current_user_id):
+    """Get all service applications with detailed status information."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                id,
+                first_name,
+                last_name,
+                email,
+                phone,
+                company_type,
+                provided_service,
+                company_name,
+                tax_id,
+                status,
+                created_at
+            FROM services
+            ORDER BY created_at DESC
+        """)
+        services = cursor.fetchall()
+        
+        # Process services to get counts by status
+        status_counts = {
+            'pending': 0,
+            'approved': 0,
+            'rejected': 0
+        }
+        
+        for service in services:
+            service['created_at'] = service['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            status = service['status'] or 'pending'  # Default to pending if status is NULL
+            status_counts[status] = status_counts.get(status, 0) + 1
+        
+        # Format data for chart
+        chart_data = [
+            {'status': 'Pending', 'count': status_counts['pending']},
+            {'status': 'Approved', 'count': status_counts['approved']},
+            {'status': 'Rejected', 'count': status_counts['rejected']}
+        ]
+        
+        return jsonify({
+            'services': services,
+            'chartData': chart_data,
+            'totalApplications': len(services),
+            'statusCounts': status_counts
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching government services: {e}")
+        return jsonify({"error": "Failed to fetch services"}), 500
     finally:
         if connection.is_connected():
             cursor.close()

@@ -25,7 +25,7 @@ interface Tour {
   first_name: string;
   last_name: string;
   email: string;
-  phone: string;
+  // phone: string;
   special_requests: string;
   created_at: string;
 }
@@ -265,7 +265,7 @@ const InvoiceView = () => {
         { label: 'First Name', key: 'first_name' },
         { label: 'Last Name', key: 'last_name' },
         { label: 'Email', key: 'email' },
-        { label: 'Phone', key: 'phone' },
+        // { label: 'Phone', key: 'phone' },
         { label: 'Special Requests', key: 'special_requests' },
         { label: 'Created At', key: 'created_at' },
       ],

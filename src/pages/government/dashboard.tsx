@@ -50,29 +50,41 @@ const GovernmentDashboard = () => {
     
         const headers = { Authorization: `Bearer ${token}` };
         const [
-          donationsResponse,
+          statsResponse,
           toursResponse,
           servicesResponse,
           budgetsResponse,
           approvedBudgetsResponse,
-          fundRequestsResponse,
+          emergencyRequestsResponse,
         ] = await Promise.all([
-          axios.get(`${API_URL}/admin/stats`, { headers }).catch(err => ({ data: { stats: [] } })),
-          axios.get(`${API_URL}/admin/tour-bookings`, { headers }).catch(err => ({ data: [] })),
-          axios.get(`${API_URL}/admin/services`, { headers }).catch(err => ({ data: [] })),
-          axios.get(`${API_URL}/government/budgets`, { headers }).catch(err => ({ data: [] })),
-          axios.get(`${API_URL}/government/budgets/approved`, { headers }).catch(err => ({ data: [] })),
-          axios.get(`${API_URL}/government/emergency-requests`, { headers }).catch(err => ({ data: [] })),
+          axios.get(`${API_URL}/government/stats`, { headers }),
+          axios.get(`${API_URL}/government/tour-bookings`, { headers }),
+          axios.get(`${API_URL}/government/services`, { headers }),
+          axios.get(`${API_URL}/government/allbudgets`, { headers }),
+          axios.get(`${API_URL}/government/budgets/allapproved`, { headers }),
+          axios.get(`${API_URL}/government/allemergency-requests`, { headers }),
         ]);
-    
-        // Process data as before, handling empty responses
-        const donationsData = donationsResponse.data.stats.find(
-          (stat: any) => stat.title === "Total Donations"
-        ) || { value: 0 };
-        setDonations([{ month: 'Total', amount: donationsData.value }]);
-    
-        // ... rest of the processing ...
-    
+
+        // Set stats directly from the response
+        setStats(statsResponse.data.stats);
+
+        // Process tours data
+        setTours(toursResponse.data);
+
+        // Process services data - use the chart data directly
+        setServices(servicesResponse.data.chartData);
+
+        // Process budgets data - group by status
+        const budgetsByStatus = budgetsResponse.data.reduce((acc: any, budget: any) => {
+          const status = budget.status || 'pending';
+          if (!acc[status]) {
+            acc[status] = { status, amount: 0 };
+          }
+          acc[status].amount += parseFloat(budget.total_amount);
+          return acc;
+        }, {});
+        setBudgets(Object.values(budgetsByStatus));
+
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
         if (error.response?.status === 401) {
