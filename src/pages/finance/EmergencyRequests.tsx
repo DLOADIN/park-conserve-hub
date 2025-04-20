@@ -9,13 +9,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Plus, Search, Filter, Eye } from 'lucide-react';
+import { AlertTriangle, Plus, Search, Filter, Eye, Edit2, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { toast } from 'sonner';
 import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const EmergencyRequests = () => {
@@ -33,6 +35,18 @@ const EmergencyRequests = () => {
     to: undefined,
   });
   const [loading, setLoading] = useState(true);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateFormData, setUpdateFormData] = useState({
+    title: '',
+    description: '',
+    amount: '',
+    parkName: '',
+    emergencyType: '',
+    justification: '',
+    timeframe: ''
+  });
+  const [updateFormErrors, setUpdateFormErrors] = useState({});
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -130,6 +144,90 @@ const EmergencyRequests = () => {
   const openViewDialog = (request: any) => {
     setSelectedRequest(request);
     setIsViewDialogOpen(true);
+  };
+  
+  // Open update dialog
+  const openUpdateDialog = (request: any) => {
+    setSelectedRequest(request);
+    setUpdateFormData({
+      title: request.title,
+      description: request.description,
+      amount: request.amount.toString(),
+      parkName: request.parkName,
+      emergencyType: request.emergencyType,
+      justification: request.justification,
+      timeframe: request.timeframe
+    });
+    setIsUpdateDialogOpen(true);
+  };
+  
+  // Handle update form input changes
+  const handleUpdateFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | string,
+    field?: string
+  ) => {
+    if (typeof e === 'string' && field) {
+      // Handle Select component changes
+      setUpdateFormData(prev => ({
+        ...prev,
+        [field]: e
+      }));
+    } else if (typeof e === 'object' && e !== null && 'target' in e) {
+      // Handle regular input changes
+      const { name, value } = e.target;
+      setUpdateFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+  
+  // Handle update form submission
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdating(true);
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/finance/emergency-requests/${selectedRequest.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(updateFormData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update emergency request');
+      }
+
+      const data = await response.json();
+      
+      // Update the requests list with the updated request
+      setRequests(prevRequests =>
+        prevRequests.map(req =>
+          req.id === selectedRequest.id ? data.request : req
+        )
+      );
+
+      // Update filtered requests
+      setFilteredRequests(prevFiltered =>
+        prevFiltered.map(req =>
+          req.id === selectedRequest.id ? data.request : req
+        )
+      );
+
+      setIsUpdateDialogOpen(false);
+      toast.success('Emergency request updated successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update emergency request');
+    } finally {
+      setIsUpdating(false);
+    }
   };
   
   // Get status badge
@@ -291,13 +389,22 @@ const EmergencyRequests = () => {
                                 <TableCell>{getStatusBadge(request.status)}</TableCell>
                                 <TableCell>{request.submittedDate || '-'}</TableCell>
                                   <TableCell className="no-print">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => openViewDialog(request)}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openViewDialog(request)}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openUpdateDialog(request)}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))
@@ -348,13 +455,22 @@ const EmergencyRequests = () => {
                                 <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
                                 <TableCell>{request.submittedDate}</TableCell>
                                   <TableCell className="no-print">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => openViewDialog(request)}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openViewDialog(request)}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openUpdateDialog(request)}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))
@@ -405,13 +521,22 @@ const EmergencyRequests = () => {
                                 <TableCell>{getTimeframeBadge(request.timeframe)}</TableCell>
                                 <TableCell>{request.submittedDate}</TableCell>
                                   <TableCell className="no-print">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => openViewDialog(request)}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openViewDialog(request)}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => openUpdateDialog(request)}
+                                    >
+                                      <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))
@@ -487,6 +612,137 @@ const EmergencyRequests = () => {
               Close
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Dialog */}
+      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3 text-amber-500 mb-1">
+              <Edit2 className="h-5 w-5" />
+              <span className="text-sm font-medium">Update Emergency Request</span>
+            </div>
+            <DialogTitle>Update Request Details</DialogTitle>
+            <DialogDescription>
+              Make changes to your emergency request here
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={updateFormData.title}
+                  onChange={handleUpdateFormChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount ($)</Label>
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={updateFormData.amount}
+                  onChange={handleUpdateFormChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="emergencyType">Emergency Type</Label>
+                <Select
+                  value={updateFormData.emergencyType}
+                  onValueChange={(value) => handleUpdateFormChange(value, 'emergencyType')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="natural-disaster">Natural Disaster</SelectItem>
+                    <SelectItem value="equipment-failure">Equipment Failure</SelectItem>
+                    <SelectItem value="infrastructure">Infrastructure</SelectItem>
+                    <SelectItem value="wildlife-emergency">Wildlife Emergency</SelectItem>
+                    <SelectItem value="security-threat">Security Threat</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="timeframe">Timeframe</Label>
+                <Select
+                  value={updateFormData.timeframe}
+                  onValueChange={(value) => handleUpdateFormChange(value, 'timeframe')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timeframe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="immediate">Immediate</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="high">High Priority</SelectItem>
+                    <SelectItem value="standard">Standard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={updateFormData.description}
+                  onChange={handleUpdateFormChange}
+                  required
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="justification">Justification</Label>
+                <Textarea
+                  id="justification"
+                  name="justification"
+                  value={updateFormData.justification}
+                  onChange={handleUpdateFormChange}
+                  required
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsUpdateDialogOpen(false)}
+                disabled={isUpdating}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-amber-600 hover:bg-amber-700"
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Request'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </SidebarProvider>

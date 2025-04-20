@@ -3702,10 +3702,110 @@ def visitor_login():
 
 
 
-# if __name__ == '__main__':
-#     if not os.path.exists(app.config['UPLOAD_FOLDER']):
-#         os.makedirs(app.config['UPLOAD_FOLDER'])
-#     app.run(debug=True, port=5000)
+@app.route('/api/finance/extra-funds/<int:request_id>', methods=['PUT'])
+@token_required
+def update_extra_funds_request(current_user_id, request_id):
+    """Update an existing extra funds request."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['title', 'description', 'amount', 'parkName', 'category', 'justification', 'expectedDuration']
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        # Validate amount
+        try:
+            amount = float(data['amount'])
+            if amount <= 0:
+                return jsonify({"error": "Amount must be positive"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid amount"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        
+        # Verify the request exists and belongs to the user
+        cursor.execute("""
+            SELECT id FROM extra_funds_requests 
+            WHERE id = %s AND created_by = %s
+        """, (request_id, current_user_id))
+        
+        if not cursor.fetchone():
+            return jsonify({"error": "Extra funds request not found or unauthorized"}), 404
+
+        # Update the request
+        cursor.execute("""
+            UPDATE extra_funds_requests SET
+                title = %s,
+                description = %s,
+                amount = %s,
+                park_name = %s,
+                category = %s,
+                justification = %s,
+                expected_duration = %s
+            WHERE id = %s AND created_by = %s
+        """, (
+            data['title'],
+            data['description'],
+            amount,
+            data['parkName'],
+            data['category'],
+            data['justification'],
+            data['expectedDuration'],
+            request_id,
+            current_user_id
+        ))
+        
+        connection.commit()
+        
+        # Fetch the updated request
+        cursor.execute("""
+            SELECT 
+                id, title, description, amount, park_name as parkName,
+                category, justification, expected_duration as expectedDuration,
+                status, created_at, created_by as submittedById
+            FROM extra_funds_requests
+            WHERE id = %s
+        """, (request_id,))
+        
+        updated_request = cursor.fetchone()
+        if updated_request:
+            # Format the response data
+            formatted_request = {
+                'id': f"ef-{updated_request['id']:03d}",
+                'title': updated_request['title'],
+                'description': updated_request['description'],
+                'amount': float(updated_request['amount']),
+                'parkName': updated_request['parkName'],
+                'category': updated_request['category'],
+                'justification': updated_request['justification'],
+                'expectedDuration': updated_request['expectedDuration'],
+                'status': updated_request['status'],
+                'dateSubmitted': updated_request['created_at'].strftime('%Y-%m-%d'),
+                'submittedById': updated_request['submittedById']
+            }
+            
+            return jsonify({
+                "message": "Extra funds request updated successfully",
+                "request": formatted_request
+            }), 200
+        else:
+            return jsonify({"error": "Failed to retrieve updated request"}), 500
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        connection.rollback()
+        return jsonify({"error": f"Failed to update extra funds request: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# ... existing code ...
 
 if __name__ == '__main__':
     if os.getenv('FLASK_ENV') == 'production':

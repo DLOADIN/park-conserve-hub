@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate } from 'react-router-dom';
-import { Search, FileText, Plus } from 'lucide-react';
+import { Search, FileText, Plus, Edit2, Loader2 } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { toast } from 'sonner';
 import { PrintDownloadTable } from '@/components/ui/PrintDownloadTable';
@@ -22,6 +22,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const ExtraFunds = () => {
   const parkTours = [
@@ -50,6 +52,17 @@ const ExtraFunds = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateFormData, setUpdateFormData] = useState({
+    title: '',
+    description: '',
+    amount: '',
+    parkName: '',
+    category: '',
+    justification: '',
+    expectedDuration: ''
+  });
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -119,6 +132,83 @@ const ExtraFunds = () => {
   const handleViewDetails = (request: any) => {
     setSelectedRequest(request);
     setIsDialogOpen(true);
+  };
+
+  const handleUpdateClick = (request: any) => {
+    setSelectedRequest(request);
+    setUpdateFormData({
+      title: request.title,
+      description: request.description,
+      amount: request.amount.toString(),
+      parkName: request.parkName,
+      category: request.category,
+      justification: request.justification,
+      expectedDuration: request.expectedDuration
+    });
+    setIsUpdateDialogOpen(true);
+  };
+
+  const handleUpdateFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string } } | string,
+    field?: string
+  ) => {
+    if (typeof e === 'string' && field) {
+      // Handle Select component changes
+      setUpdateFormData(prev => ({
+        ...prev,
+        [field]: e
+      }));
+    } else if (typeof e === 'object' && e !== null && 'target' in e) {
+      // Handle regular input changes
+      const { name, value } = e.target;
+      setUpdateFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdating(true);
+
+    try {
+      // Extract only the numeric part and convert to number
+      const requestId = parseInt(selectedRequest.id.replace(/\D/g, ''), 10);
+      
+      const response = await fetch(
+        `http://localhost:5000/api/finance/extra-funds/${requestId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify(updateFormData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update request');
+      }
+
+      const data = await response.json();
+      
+      // Update the requests list
+      setRequests(prevRequests =>
+        prevRequests.map(req =>
+          req.id === selectedRequest.id ? data.request : req
+        )
+      );
+
+      setIsUpdateDialogOpen(false);
+      toast.success('Extra funds request updated successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update request');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -235,7 +325,7 @@ const ExtraFunds = () => {
                           <TableHead>Amount</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Submitted Date</TableHead>
-                          <TableHead>Submitted By</TableHead>
+                          {/* <TableHead>Submitted By</TableHead> */}
                           <TableHead className="no-print">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -252,74 +342,28 @@ const ExtraFunds = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>{new Date(request.dateSubmitted).toLocaleDateString()}</TableCell>
-                            <TableCell>{request.submittedBy}</TableCell>
+                            {/* <TableCell>{request.submittedBy}</TableCell> */}
                             <TableCell className="no-print">
-                              <Dialog open={isDialogOpen && selectedRequest?.id === request.id} onOpenChange={setIsDialogOpen}>
-                                <DialogTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="gap-2"
-                                    onClick={() => handleViewDetails(request)}
-                                  >
-                                    <FileText className="h-4 w-4" />
-                                    View Details
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Request Details</DialogTitle>
-                                    <DialogDescription>
-                                      Detailed information about the extra funds request.
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  {selectedRequest && (
-                                    <div className="grid gap-4 py-4">
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="font-medium">ID:</span>
-                                        <span className="col-span-3">{selectedRequest.id}</span>
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="font-medium">Title:</span>
-                                        <span className="col-span-3">{selectedRequest.title}</span>
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="font-medium">Park:</span>
-                                        <span className="col-span-3">{selectedRequest.parkName}</span>
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="font-medium">Amount:</span>
-                                        <span className="col-span-3">
-                                          ${selectedRequest.amount.toLocaleString()}
-                                        </span>
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="font-medium">Status:</span>
-                                        <span className="col-span-3">
-                                          <Badge className={getStatusBadgeColor(selectedRequest.status)}>
-                                            {selectedRequest.status.charAt(0).toUpperCase() +
-                                              selectedRequest.status.slice(1)}
-                                          </Badge>
-                                        </span>
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="font-medium">Submitted Date:</span>
-                                        <span className="col-span-3">
-                                          {new Date(selectedRequest.dateSubmitted).toLocaleDateString()}
-                                        </span>
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="font-medium">Submitted By:</span>
-                                        <span className="col-span-3">{selectedRequest.submittedBy}</span>
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <span className="font-medium">Description:</span>
-                                        <span className="col-span-3">{selectedRequest.description || 'N/A'}</span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </DialogContent>
-                              </Dialog>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2"
+                                  onClick={() => handleViewDetails(request)}
+                                >
+                                  <FileText className="h-4 w-4" />
+                                  View
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2"
+                                  onClick={() => handleUpdateClick(request)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                  Update
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -341,6 +385,136 @@ const ExtraFunds = () => {
           </main>
         </div>
       </div>
+
+      {/* Update Dialog */}
+      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Update Extra Funds Request</DialogTitle>
+            <DialogDescription>
+              Make changes to your extra funds request here
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateSubmit} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={updateFormData.title}
+                  onChange={handleUpdateFormChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount ($)</Label>
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={updateFormData.amount}
+                  onChange={handleUpdateFormChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Category</Label>
+                <Select
+                  value={updateFormData.category}
+                  onValueChange={(value) => handleUpdateFormChange(value, 'category')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="infrastructure">Infrastructure</SelectItem>
+                    <SelectItem value="equipment">Equipment</SelectItem>
+                    <SelectItem value="staffing">Staffing</SelectItem>
+                    <SelectItem value="research">Research</SelectItem>
+                    <SelectItem value="conservation">Conservation</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="expectedDuration">Expected Duration</Label>
+                <Select
+                  value={updateFormData.expectedDuration}
+                  onValueChange={(value) => handleUpdateFormChange(value, 'expectedDuration')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-3 months">1-3 months</SelectItem>
+                    <SelectItem value="3-6 months">3-6 months</SelectItem>
+                    <SelectItem value="6-12 months">6-12 months</SelectItem>
+                    <SelectItem value="1-2 years">1-2 years</SelectItem>
+                    <SelectItem value="2+ years">2+ years</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  name="description"
+                  value={updateFormData.description}
+                  onChange={handleUpdateFormChange}
+                  required
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="justification">Justification</Label>
+                <Textarea
+                  id="justification"
+                  name="justification"
+                  value={updateFormData.justification}
+                  onChange={handleUpdateFormChange}
+                  required
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsUpdateDialogOpen(false)}
+                disabled={isUpdating}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-primary"
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Request'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
