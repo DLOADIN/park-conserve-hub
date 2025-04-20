@@ -3805,6 +3805,108 @@ def update_extra_funds_request(current_user_id, request_id):
             cursor.close()
             connection.close()
 
+@app.route('/api/finance/emergency-requests/<int:request_id>', methods=['PUT'])
+@token_required
+def update_emergency_request(current_user_id, request_id):
+    """Update an existing emergency request."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['title', 'description', 'amount', 'parkName', 'emergencyType', 'justification', 'timeframe']
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        # Validate amount
+        try:
+            amount = float(data['amount'])
+            if amount <= 0:
+                return jsonify({"error": "Amount must be positive"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid amount"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        
+        # Verify the request exists and belongs to the user
+        cursor.execute("""
+            SELECT id FROM emergency_requests 
+            WHERE id = %s AND created_by = %s
+        """, (request_id, current_user_id))
+        
+        if not cursor.fetchone():
+            return jsonify({"error": "Emergency request not found or unauthorized"}), 404
+
+        # Update the request
+        cursor.execute("""
+            UPDATE emergency_requests SET
+                title = %s,
+                description = %s,
+                amount = %s,
+                park_name = %s,
+                emergency_type = %s,
+                justification = %s,
+                timeframe = %s
+            WHERE id = %s AND created_by = %s
+        """, (
+            data['title'],
+            data['description'],
+            amount,
+            data['parkName'],
+            data['emergencyType'],
+            data['justification'],
+            data['timeframe'],
+            request_id,
+            current_user_id
+        ))
+        
+        connection.commit()
+        
+        # Fetch the updated request
+        cursor.execute("""
+            SELECT 
+                id, title, description, amount, park_name as parkName,
+                emergency_type as emergencyType, justification, timeframe,
+                status, created_at
+            FROM emergency_requests
+            WHERE id = %s
+        """, (request_id,))
+        
+        updated_request = cursor.fetchone()
+        if updated_request:
+            # Format the response data
+            formatted_request = {
+                'id': str(updated_request['id']),
+                'title': updated_request['title'],
+                'description': updated_request['description'],
+                'amount': float(updated_request['amount']),
+                'parkName': updated_request['parkName'],
+                'emergencyType': updated_request['emergencyType'],
+                'justification': updated_request['justification'],
+                'timeframe': updated_request['timeframe'],
+                'status': updated_request['status'],
+                'submittedDate': updated_request['created_at'].strftime('%Y-%m-%d')
+            }
+            
+            return jsonify({
+                "message": "Emergency request updated successfully",
+                "request": formatted_request
+            }), 200
+        else:
+            return jsonify({"error": "Failed to retrieve updated request"}), 500
+        
+    except Exception as e:
+        print(f"Database error: {e}")
+        connection.rollback()
+        return jsonify({"error": f"Failed to update emergency request: {str(e)}"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
 # ... existing code ...
 
 if __name__ == '__main__':
