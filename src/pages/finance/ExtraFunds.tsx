@@ -79,6 +79,7 @@ const ExtraFunds = () => {
     expectedDuration: '',
   });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof typeof updateFormData, string>>>({});
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -163,8 +164,7 @@ const ExtraFunds = () => {
 
   const handleViewDetails = (request: ExtraFundRequest) => {
     setSelectedRequest(request);
-    // Note: Original code had a view dialog, but it was not implemented. You can add it if needed.
-    toast.info(`Viewing details for ${request.title}`);
+    setIsViewDialogOpen(true);
   };
 
   const handleUpdateClick = (request: ExtraFundRequest) => {
@@ -445,6 +445,79 @@ const ExtraFunds = () => {
           </main>
         </div>
       </div>
+
+      {/* View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Extra Funds Request Details</DialogTitle>
+            <DialogDescription>
+              View the details of the extra funds request
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedRequest && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">ID</Label>
+                <div className="col-span-3">{selectedRequest.id}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Title</Label>
+                <div className="col-span-3">{selectedRequest.title}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Description</Label>
+                <div className="col-span-3">{selectedRequest.description}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Amount</Label>
+                <div className="col-span-3">${selectedRequest.amount.toLocaleString()}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Park</Label>
+                <div className="col-span-3">{selectedRequest.parkName}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Category</Label>
+                <div className="col-span-3">{selectedRequest.category}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Justification</Label>
+                <div className="col-span-3">{selectedRequest.justification}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Expected Duration</Label>
+                <div className="col-span-3">{selectedRequest.expectedDuration}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Status</Label>
+                <div className="col-span-3">
+                  <Badge className={getStatusBadgeColor(selectedRequest.status)}>
+                    {selectedRequest.status.charAt(0).toUpperCase() + selectedRequest.status.slice(1)}
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Submitted Date</Label>
+                <div className="col-span-3">
+                  {new Date(selectedRequest.dateSubmitted).toLocaleDateString()}
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Submitted By</Label>
+                <div className="col-span-3">{selectedRequest.submittedBy}</div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Update Dialog */}
       <Dialog open={isUpdateDialogOpen} onOpenChange={(open) => {
