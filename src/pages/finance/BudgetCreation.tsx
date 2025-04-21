@@ -450,7 +450,7 @@ const BudgetCreation: React.FC = () => {
                 {/* <TableHead>Created By</TableHead> */}
                 <TableHead>Status</TableHead>
                 <TableHead>Created Date</TableHead>
-                <TableHead className="no-print">Actions</TableHead>
+                <TableHead className="no-print">Update Current Budgets</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -482,7 +482,7 @@ const BudgetCreation: React.FC = () => {
                           setActiveTab('new');
                         }}
                       >
-                Create Similar
+                Update Budget
               </Button>
               {budget.status === 'draft' && (
                         <Button
