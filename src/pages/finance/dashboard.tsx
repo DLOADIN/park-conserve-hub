@@ -32,9 +32,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Calendar, PiggyBank, CheckCircle, DollarSign, LucideIcon } from 'lucide-react';
+import { Calendar, PiggyBank, CheckCircle, DollarSign, LucideIcon, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 import { toast } from '@/components/ui/use-toast';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -74,9 +76,9 @@ const FinanceDashboard = () => {
   const [approvedFundRequests, setApprovedFundRequests] = useState<FundRequest[]>([]);
   const [stats, setStats] = useState<Stat[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [highValueRequests, setHighValueRequests] = useState<FundRequest[]>([]);
 
   useEffect(() => {
-
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/login');
@@ -107,15 +109,15 @@ const FinanceDashboard = () => {
         // Process Donations
         const donationsData = donationsResponse.data.reduce(
           (acc: ChartData[], curr: any) => {
-          const date = new Date(curr.created_at);
-          const month = date.toLocaleString('default', { month: 'short' });
+            const date = new Date(curr.created_at);
+            const month = date.toLocaleString('default', { month: 'short' });
             const existing = acc.find((d) => d.month === month);
-          if (existing) {
+            if (existing) {
               existing.amount = (existing.amount || 0) + Number(curr.amount);
-          } else {
-            acc.push({ month, amount: Number(curr.amount) });
-          }
-          return acc;
+            } else {
+              acc.push({ month, amount: Number(curr.amount) });
+            }
+            return acc;
           },
           []
         );
@@ -240,6 +242,26 @@ const FinanceDashboard = () => {
             trend: 'up',
           },
         ]);
+
+        // Calculate total income and check for high value requests
+        const donationTotal = donationsResponse.data.reduce(
+          (sum: number, d: any) => sum + Number(d.amount),
+          0
+        );
+        const tourTotal = toursResponse.data.reduce(
+          (sum: number, t: any) => sum + Number(t.amount),
+          0
+        );
+        const baseIncome = donationTotal + tourTotal;
+        const govSupport = baseIncome * 0.15 / (1 - 0.15);
+        const totalIncome = baseIncome + govSupport;
+        
+        // Filter requests exceeding 40% threshold
+        const threshold = totalIncome * 0.4;
+        const highValue = fundRequestsResponse.data.filter(
+          (request: any) => request.status === 'pending' && request.amount > threshold
+        );
+        setHighValueRequests(highValue);
       } catch (error: any) {
         if (error.response?.data?.error === 'Token has expired') {
           localStorage.removeItem('token');
@@ -278,6 +300,28 @@ const FinanceDashboard = () => {
             subtitle="Overview of financial activities and budgets"
           />
           <main className="p-6">
+            {/* High Value Requests Alert */}
+            {highValueRequests.length > 0 && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  High Value Fund Requests Requiring Attention
+                </AlertTitle>
+                <AlertDescription>
+                  <p className="mb-2">
+                    {highValueRequests.length} fund request{highValueRequests.length > 1 ? 's' : ''} exceeding 40% of total park income require{highValueRequests.length === 1 ? 's' : ''} immediate review.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/finance/request-management')}
+                  >
+                    Review Requests
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {stats.map((stat, index) => (
