@@ -88,11 +88,11 @@ const ExtraFunds = () => {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
         });
-
+        
         if (!response.ok) {
           throw new Error('Failed to fetch extra funds requests');
         }
-
+        
         const data = await response.json();
         setRequests(data);
       } catch (error: any) {
@@ -101,7 +101,7 @@ const ExtraFunds = () => {
         setLoading(false);
       }
     };
-
+    
     fetchRequests();
   }, []);
 
@@ -126,21 +126,21 @@ const ExtraFunds = () => {
   }, []);
 
   const filteredRequests = requests.filter((request: ExtraFundRequest) => {
-    const matchesSearch =
+    const matchesSearch = 
       request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.parkName.toLowerCase().includes(searchTerm.toLowerCase());
-
+    
     const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-
+    
     const matchesPark = parkFilter === 'all' || request.parkName === parkFilter;
-
+    
     let matchesDate = true;
     if (dateRange && dateRange.from && dateRange.to) {
       const requestDate = new Date(request.dateSubmitted);
       matchesDate = requestDate >= dateRange.from && requestDate <= dateRange.to;
     }
-
+    
     return matchesSearch && matchesStatus && matchesPark && matchesDate;
   });
 
@@ -275,13 +275,13 @@ const ExtraFunds = () => {
     <SidebarProvider>
       <div className="flex min-h-screen bg-gray-50 w-full">
         <DashboardSidebar />
-
+        
         <div className="flex-1">
-          <DashboardHeader
+          <DashboardHeader 
             title="Extra Funds Requests"
             subtitle="Manage additional funding requests"
           />
-
+          
           <main className="p-6">
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-2">
@@ -290,7 +290,7 @@ const ExtraFunds = () => {
                   Create New Request
                 </Button>
               </div>
-
+              
               <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -301,7 +301,7 @@ const ExtraFunds = () => {
                 />
               </div>
             </div>
-
+            
             <Card className="mb-6">
               <CardHeader className="pb-3">
                 <CardTitle>Filters</CardTitle>
@@ -323,7 +323,7 @@ const ExtraFunds = () => {
                       </SelectContent>
                     </Select>
                   </div>
-
+                  
                   <div>
                     <label className="text-sm font-medium mb-2 block">Park</label>
                     <Select value={parkFilter} onValueChange={setParkFilter}>
@@ -340,24 +340,24 @@ const ExtraFunds = () => {
                       </SelectContent>
                     </Select>
                   </div>
-
+                  
                   <div>
                     <label className="text-sm font-medium mb-2 block">Date Range</label>
-                    <DateRangePicker
-                      date={dateRange}
-                      onSelect={handleDateRangeSelect}
-                      className="w-full sm:w-auto"
-                    />
+                      <DateRangePicker 
+                        date={dateRange} 
+                        onSelect={handleDateRangeSelect} 
+                        className="w-full sm:w-auto"
+                      />
                   </div>
                 </div>
               </CardContent>
             </Card>
-
+            
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle>Extra Funds Requests</CardTitle>
+                <CardTitle>Extra Funds Requests</CardTitle>
                     <CardDescription>Showing {filteredRequests.length} requests</CardDescription>
                   </div>
                   <PrintDownloadTable
@@ -396,9 +396,9 @@ const ExtraFunds = () => {
                             <TableCell>{request.parkName}</TableCell>
                             <TableCell>${request.amount.toLocaleString()}</TableCell>
                             <TableCell>
-                              <Badge className={getStatusBadgeColor(request.status)}>
-                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                              </Badge>
+                            <Badge className={getStatusBadgeColor(request.status)}>
+                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                            </Badge>
                             </TableCell>
                             <TableCell>{new Date(request.dateSubmitted).toLocaleDateString()}</TableCell>
                             <TableCell>{request.submittedBy}</TableCell>
@@ -410,7 +410,7 @@ const ExtraFunds = () => {
                                   className="gap-2"
                                   onClick={() => handleViewDetails(request)}
                                 >
-                                  <FileText className="h-4 w-4" />
+                            <FileText className="h-4 w-4" />
                                   View
                                 </Button>
                                 <Button
@@ -422,11 +422,11 @@ const ExtraFunds = () => {
                                 >
                                   <Edit2 className="h-4 w-4" />
                                   Update
-                                </Button>
+                          </Button>
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))}
+                    ))}
                       </TableBody>
                     </Table>
                   </div>

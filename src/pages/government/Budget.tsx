@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BudgetItem {
   id: string;
@@ -74,9 +75,13 @@ const Budget = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [approvedBudgets, setApprovedBudgets] = useState<BudgetData[]>([]);
+  const [rejectedBudgets, setRejectedBudgets] = useState<BudgetData[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     fetchBudgets();
+    fetchBudgetHistory();
   }, []);
 
   const fetchBudgets = async () => {
@@ -98,6 +103,42 @@ const Budget = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchBudgetHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const [approvedResponse, rejectedResponse] = await Promise.all([
+        fetch('http://localhost:5000/api/government/budgets/approved', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        }),
+        fetch('http://localhost:5000/api/government/budgets/rejected', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        })
+      ]);
+
+      if (!approvedResponse.ok || !rejectedResponse.ok) {
+        throw new Error('Failed to fetch budget history');
+      }
+
+      const approvedData = await approvedResponse.json();
+      const rejectedData = await rejectedResponse.json();
+
+      setApprovedBudgets(approvedData);
+      setRejectedBudgets(rejectedData);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load budget history',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -228,7 +269,7 @@ const Budget = () => {
         description: `Budget "${selectedBudget?.title}" has been ${status}`,
       });
       resetForm();
-      await fetchBudgets();
+      await Promise.all([fetchBudgets(), fetchBudgetHistory()]);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -250,6 +291,45 @@ const Budget = () => {
     setBudgetItems([]);
   };
 
+  const renderBudgetTable = (budgets: BudgetData[], loading: boolean, title: string) => {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Fiscal Year</TableHead>
+              <TableHead>Park Name</TableHead>
+              <TableHead>Total Amount</TableHead>
+              <TableHead>Status Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+              </TableRow>
+            ) : budgets.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">No {title.toLowerCase()} budgets found.</TableCell>
+              </TableRow>
+            ) : (
+              budgets.map((budget) => (
+                <TableRow key={budget.id}>
+                  <TableCell>{budget.title}</TableCell>
+                  <TableCell>{budget.fiscal_year}</TableCell>
+                  <TableCell>{budget.park_name}</TableCell>
+                  <TableCell>${budget.total_amount.toLocaleString()}</TableCell>
+                  <TableCell>{new Date(budget.created_at).toLocaleDateString()}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-gray-50 w-full">
@@ -259,7 +339,7 @@ const Budget = () => {
             title="Budget Review"
             subtitle="Review and manage park budgets"
           />
-          <main className="p-6">
+          <main className="p-6 space-y-6">
             {selectedBudget ? (
               <Card>
                 <CardHeader>
@@ -406,46 +486,69 @@ const Budget = () => {
                 </CardFooter>
               </Card>
             ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Submitted Budgets</CardTitle>
-                  <CardDescription>Review budgets submitted by finance officers</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <p>Loading budgets...</p>
-                  ) : budgets.length === 0 ? (
-                    <p>No submitted budgets found.</p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Title</TableHead>
-                          <TableHead>Fiscal Year</TableHead>
-                          <TableHead>Park Name</TableHead>
-                          <TableHead>Total Amount</TableHead>
-                          <TableHead>Created Date</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {budgets.map((budget) => (
-                          <TableRow key={budget.id}>
-                            <TableCell>{budget.title}</TableCell>
-                            <TableCell>{budget.fiscal_year}</TableCell>
-                            <TableCell>{budget.park_name}</TableCell>
-                            <TableCell>${budget.total_amount.toLocaleString()}</TableCell>
-                            <TableCell>{new Date(budget.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                              <Button onClick={() => selectBudget(budget)}>Review</Button>
-                            </TableCell>
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Submitted Budgets</CardTitle>
+                    <CardDescription>Review budgets submitted by finance officers</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <p>Loading budgets...</p>
+                    ) : budgets.length === 0 ? (
+                      <p>No submitted budgets found.</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Title</TableHead>
+                            <TableHead>Fiscal Year</TableHead>
+                            <TableHead>Park Name</TableHead>
+                            <TableHead>Total Amount</TableHead>
+                            <TableHead>Created Date</TableHead>
+                            <TableHead>Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
+                        </TableHeader>
+                        <TableBody>
+                          {budgets.map((budget) => (
+                            <TableRow key={budget.id}>
+                              <TableCell>{budget.title}</TableCell>
+                              <TableCell>{budget.fiscal_year}</TableCell>
+                              <TableCell>{budget.park_name}</TableCell>
+                              <TableCell>${budget.total_amount.toLocaleString()}</TableCell>
+                              <TableCell>{new Date(budget.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell>
+                                <Button onClick={() => selectBudget(budget)}>Review</Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Budget History</CardTitle>
+                    <CardDescription>View approved and rejected budgets</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Tabs defaultValue="approved" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="approved">Approved Budgets</TabsTrigger>
+                        <TabsTrigger value="rejected">Rejected Budgets</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="approved" className="mt-4">
+                        {renderBudgetTable(approvedBudgets, loadingHistory, "Approved")}
+                      </TabsContent>
+                      <TabsContent value="rejected" className="mt-4">
+                        {renderBudgetTable(rejectedBudgets, loadingHistory, "Rejected")}
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              </>
             )}
           </main>
         </div>
