@@ -299,7 +299,7 @@ const ParkStaffProfile = () => {
                             </div>
                           </div>
 
-                          <div>
+                          {/* <div>
                             <Label htmlFor="phone">Phone</Label>
                             <div className="mt-1 relative">
                               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -311,7 +311,7 @@ const ParkStaffProfile = () => {
                                 onChange={handleProfileChange}
                               />
                             </div>
-                          </div>
+                          </div> */}
 
                           <div>
                             <Label htmlFor="jobTitle">Job Title</Label>
