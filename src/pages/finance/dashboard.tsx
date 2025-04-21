@@ -107,15 +107,15 @@ const FinanceDashboard = () => {
         // Process Donations
         const donationsData = donationsResponse.data.reduce(
           (acc: ChartData[], curr: any) => {
-            const date = new Date(curr.created_at);
-            const month = date.toLocaleString('default', { month: 'short' });
+          const date = new Date(curr.created_at);
+          const month = date.toLocaleString('default', { month: 'short' });
             const existing = acc.find((d) => d.month === month);
-            if (existing) {
+          if (existing) {
               existing.amount = (existing.amount || 0) + Number(curr.amount);
-            } else {
-              acc.push({ month, amount: Number(curr.amount) });
-            }
-            return acc;
+          } else {
+            acc.push({ month, amount: Number(curr.amount) });
+          }
+          return acc;
           },
           []
         );

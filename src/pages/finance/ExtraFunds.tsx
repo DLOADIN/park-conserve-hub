@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -21,9 +21,25 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+
+interface ExtraFundRequest {
+  id: string;
+  title: string;
+  description: string;
+  amount: number;
+  parkName: string;
+  category: string;
+  justification: string;
+  expectedDuration: string;
+  status: string;
+  dateSubmitted: string;
+  submittedBy: string;
+  parkId?: string;
+}
 
 const ExtraFunds = () => {
   const parkTours = [
@@ -43,15 +59,14 @@ const ExtraFunds = () => {
   ];
 
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('all');
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [parkFilter, setParkFilter] = useState('all');
   const [dateRange, setDateRange] = useState<any>(undefined);
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState<ExtraFundRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<ExtraFundRequest | null>(null);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateFormData, setUpdateFormData] = useState({
@@ -61,8 +76,9 @@ const ExtraFunds = () => {
     parkName: '',
     category: '',
     justification: '',
-    expectedDuration: ''
+    expectedDuration: '',
   });
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof typeof updateFormData, string>>>({});
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -89,11 +105,27 @@ const ExtraFunds = () => {
     fetchRequests();
   }, []);
 
-  const handleDateRangeSelect = (range: any | undefined) => {
-    setDateRange(range);
+  const validateForm = () => {
+    const errors: Partial<Record<keyof typeof updateFormData, string>> = {};
+    if (!updateFormData.title.trim()) errors.title = 'Title is required';
+    if (!updateFormData.description.trim()) errors.description = 'Description is required';
+    if (!updateFormData.amount || isNaN(Number(updateFormData.amount)) || Number(updateFormData.amount) <= 0) {
+      errors.amount = 'Valid amount is required';
+    }
+    if (!updateFormData.parkName) errors.parkName = 'Park selection is required';
+    if (!updateFormData.category) errors.category = 'Category is required';
+    if (!updateFormData.justification.trim()) errors.justification = 'Justification is required';
+    if (!updateFormData.expectedDuration) errors.expectedDuration = 'Expected duration is required';
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const filteredRequests = requests.filter((request: any) => {
+  const handleDateRangeSelect = useCallback((range: any | undefined) => {
+    setDateRange(range);
+  }, []);
+
+  const filteredRequests = requests.filter((request: ExtraFundRequest) => {
     const matchesSearch =
       request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,12 +161,13 @@ const ExtraFunds = () => {
     navigate('/finance/extra-funds/new');
   };
 
-  const handleViewDetails = (request: any) => {
+  const handleViewDetails = (request: ExtraFundRequest) => {
     setSelectedRequest(request);
-    setIsDialogOpen(true);
+    // Note: Original code had a view dialog, but it was not implemented. You can add it if needed.
+    toast.info(`Viewing details for ${request.title}`);
   };
 
-  const handleUpdateClick = (request: any) => {
+  const handleUpdateClick = (request: ExtraFundRequest) => {
     setSelectedRequest(request);
     setUpdateFormData({
       title: request.title,
@@ -143,39 +176,56 @@ const ExtraFunds = () => {
       parkName: request.parkName,
       category: request.category,
       justification: request.justification,
-      expectedDuration: request.expectedDuration
+      expectedDuration: request.expectedDuration,
     });
+    setFormErrors({});
     setIsUpdateDialogOpen(true);
   };
 
   const handleUpdateFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { name: string; value: string } } | string,
-    field?: string
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { name: string; value: string }
   ) => {
-    if (typeof e === 'string' && field) {
-      // Handle Select component changes
-      setUpdateFormData(prev => ({
-        ...prev,
-        [field]: e
-      }));
-    } else if (typeof e === 'object' && e !== null && 'target' in e) {
-      // Handle regular input changes
-      const { name, value } = e.target;
-      setUpdateFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+    let name: string;
+    let value: string;
+
+    if ('target' in e) {
+      name = e.target.name;
+      value = e.target.value;
+    } else {
+      name = e.name;
+      value = e.value;
     }
+
+    setUpdateFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear error for this field
+    setFormErrors((prev) => ({
+      ...prev,
+      [name]: undefined,
+    }));
   };
 
   const handleUpdateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      toast.error('Please fix the form errors before submitting');
+      return;
+    }
+
+    if (!selectedRequest) {
+      toast.error('No request selected for update');
+      return;
+    }
+
     setIsUpdating(true);
 
     try {
-      // Extract only the numeric part and convert to number
       const requestId = parseInt(selectedRequest.id.replace(/\D/g, ''), 10);
-      
+
       const response = await fetch(
         `http://localhost:5000/api/finance/extra-funds/${requestId}`,
         {
@@ -194,15 +244,25 @@ const ExtraFunds = () => {
       }
 
       const data = await response.json();
-      
+
       // Update the requests list
-      setRequests(prevRequests =>
-        prevRequests.map(req =>
-          req.id === selectedRequest.id ? data.request : req
+      setRequests((prevRequests) =>
+        prevRequests.map((req) =>
+          req.id === selectedRequest.id ? { ...data.request, submittedBy: req.submittedBy } : req
         )
       );
 
       setIsUpdateDialogOpen(false);
+      setSelectedRequest(null);
+      setUpdateFormData({
+        title: '',
+        description: '',
+        amount: '',
+        parkName: '',
+        category: '',
+        justification: '',
+        expectedDuration: '',
+      });
       toast.success('Extra funds request updated successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to update request');
@@ -283,13 +343,11 @@ const ExtraFunds = () => {
 
                   <div>
                     <label className="text-sm font-medium mb-2 block">Date Range</label>
-                    <div className="mb-6">
-                      <DateRangePicker
-                        date={dateRange}
-                        onSelect={handleDateRangeSelect}
-                        className="w-full sm:w-auto"
-                      />
-                    </div>
+                    <DateRangePicker
+                      date={dateRange}
+                      onSelect={handleDateRangeSelect}
+                      className="w-full sm:w-auto"
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -312,7 +370,8 @@ const ExtraFunds = () => {
               <CardContent>
                 {loading ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">Loading...</p>
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-500" />
+                    <p className="text-gray-500 mt-2">Loading...</p>
                   </div>
                 ) : filteredRequests.length > 0 ? (
                   <div id="extra-funds-table">
@@ -325,12 +384,12 @@ const ExtraFunds = () => {
                           <TableHead>Amount</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Submitted Date</TableHead>
-                          {/* <TableHead>Submitted By</TableHead> */}
+                          <TableHead>Submitted By</TableHead>
                           <TableHead className="no-print">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredRequests.map((request: any) => (
+                        {filteredRequests.map((request) => (
                           <TableRow key={request.id}>
                             <TableCell>{request.id}</TableCell>
                             <TableCell>{request.title}</TableCell>
@@ -342,7 +401,7 @@ const ExtraFunds = () => {
                               </Badge>
                             </TableCell>
                             <TableCell>{new Date(request.dateSubmitted).toLocaleDateString()}</TableCell>
-                            {/* <TableCell>{request.submittedBy}</TableCell> */}
+                            <TableCell>{request.submittedBy}</TableCell>
                             <TableCell className="no-print">
                               <div className="flex gap-2">
                                 <Button
@@ -359,6 +418,7 @@ const ExtraFunds = () => {
                                   size="sm"
                                   className="gap-2"
                                   onClick={() => handleUpdateClick(request)}
+                                  disabled={request.status !== 'pending'}
                                 >
                                   <Edit2 className="h-4 w-4" />
                                   Update
@@ -387,12 +447,27 @@ const ExtraFunds = () => {
       </div>
 
       {/* Update Dialog */}
-      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+      <Dialog open={isUpdateDialogOpen} onOpenChange={(open) => {
+        setIsUpdateDialogOpen(open);
+        if (!open) {
+          setSelectedRequest(null);
+          setUpdateFormData({
+            title: '',
+            description: '',
+            amount: '',
+            parkName: '',
+            category: '',
+            justification: '',
+            expectedDuration: '',
+          });
+          setFormErrors({});
+        }
+      }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Update Extra Funds Request</DialogTitle>
             <DialogDescription>
-              Make changes to your extra funds request here
+              Make changes to your extra funds request. All fields are required.
             </DialogDescription>
           </DialogHeader>
 
@@ -406,7 +481,14 @@ const ExtraFunds = () => {
                   value={updateFormData.title}
                   onChange={handleUpdateFormChange}
                   required
+                  aria-invalid={!!formErrors.title}
+                  aria-describedby={formErrors.title ? 'title-error' : undefined}
                 />
+                {formErrors.title && (
+                  <p id="title-error" className="text-sm text-red-600">
+                    {formErrors.title}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -420,16 +502,47 @@ const ExtraFunds = () => {
                   value={updateFormData.amount}
                   onChange={handleUpdateFormChange}
                   required
+                  aria-invalid={!!formErrors.amount}
+                  aria-describedby={formErrors.amount ? 'amount-error' : undefined}
                 />
+                {formErrors.amount && (
+                  <p id="amount-error" className="text-sm text-red-600">
+                    {formErrors.amount}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="parkName">Park</Label>
+                <Select
+                  value={updateFormData.parkName}
+                  onValueChange={(value) => handleUpdateFormChange({ name: 'parkName', value })}
+                >
+                  <SelectTrigger aria-invalid={!!formErrors.parkName}>
+                    <SelectValue placeholder="Select park" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {parkTours.map((park) => (
+                      <SelectItem key={park.id} value={park.name}>
+                        {park.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.parkName && (
+                  <p id="parkName-error" className="text-sm text-red-600">
+                    {formErrors.parkName}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select
                   value={updateFormData.category}
-                  onValueChange={(value) => handleUpdateFormChange(value, 'category')}
+                  onValueChange={(value) => handleUpdateFormChange({ name: 'category', value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={!!formErrors.category}>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -442,15 +555,20 @@ const ExtraFunds = () => {
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+                {formErrors.category && (
+                  <p id="category-error" className="text-sm text-red-600">
+                    {formErrors.category}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="expectedDuration">Expected Duration</Label>
                 <Select
                   value={updateFormData.expectedDuration}
-                  onValueChange={(value) => handleUpdateFormChange(value, 'expectedDuration')}
+                  onValueChange={(value) => handleUpdateFormChange({ name: 'expectedDuration', value })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={!!formErrors.expectedDuration}>
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
                   <SelectContent>
@@ -461,6 +579,11 @@ const ExtraFunds = () => {
                     <SelectItem value="2+ years">2+ years</SelectItem>
                   </SelectContent>
                 </Select>
+                {formErrors.expectedDuration && (
+                  <p id="expectedDuration-error" className="text-sm text-red-600">
+                    {formErrors.expectedDuration}
+                  </p>
+                )}
               </div>
 
               <div className="col-span-2 space-y-2">
@@ -472,7 +595,14 @@ const ExtraFunds = () => {
                   onChange={handleUpdateFormChange}
                   required
                   className="min-h-[100px]"
+                  aria-invalid={!!formErrors.description}
+                  aria-describedby={formErrors.description ? 'description-error' : undefined}
                 />
+                {formErrors.description && (
+                  <p id="description-error" className="text-sm text-red-600">
+                    {formErrors.description}
+                  </p>
+                )}
               </div>
 
               <div className="col-span-2 space-y-2">
@@ -484,11 +614,18 @@ const ExtraFunds = () => {
                   onChange={handleUpdateFormChange}
                   required
                   className="min-h-[100px]"
+                  aria-invalid={!!formErrors.justification}
+                  aria-describedby={formErrors.justification ? 'justification-error' : undefined}
                 />
+                {formErrors.justification && (
+                  <p id="justification-error" className="text-sm text-red-600">
+                    {formErrors.justification}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -499,7 +636,6 @@ const ExtraFunds = () => {
               </Button>
               <Button
                 type="submit"
-                className="bg-primary"
                 disabled={isUpdating}
               >
                 {isUpdating ? (
@@ -511,7 +647,7 @@ const ExtraFunds = () => {
                   'Update Request'
                 )}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

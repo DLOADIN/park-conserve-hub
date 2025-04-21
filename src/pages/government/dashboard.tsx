@@ -51,6 +51,7 @@ const GovernmentDashboard = () => {
         const headers = { Authorization: `Bearer ${token}` };
         const [
           statsResponse,
+          donationsResponse,
           toursResponse,
           servicesResponse,
           budgetsResponse,
@@ -58,6 +59,7 @@ const GovernmentDashboard = () => {
           emergencyRequestsResponse,
         ] = await Promise.all([
           axios.get(`${API_URL}/government/stats`, { headers }),
+          axios.get(`${API_URL}/government/donations`, { headers }),
           axios.get(`${API_URL}/government/tour-bookings`, { headers }),
           axios.get(`${API_URL}/government/services`, { headers }),
           axios.get(`${API_URL}/government/allbudgets`, { headers }),
@@ -67,6 +69,9 @@ const GovernmentDashboard = () => {
 
         // Set stats directly from the response
         setStats(statsResponse.data.stats);
+
+        // Set donations data
+        setDonations(donationsResponse.data);
 
         // Process tours data
         setTours(toursResponse.data);

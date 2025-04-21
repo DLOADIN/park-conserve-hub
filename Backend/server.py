@@ -381,9 +381,9 @@ def services():
             data['firstName'],
             data['lastName'],
             data['email'],
-            data.get('phone', ''),
+            data.get('phone', ''),  
             data['companyType'],
-            data.get('providedService', ''),
+            data.get('providedService', ''),  
             data['companyName'],
             data['taxId'],
             company_registration,
@@ -4138,6 +4138,41 @@ def get_government_services(current_user_id):
     except Exception as e:
         print(f"Error fetching government services: {e}")
         return jsonify({"error": "Failed to fetch services"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/government/donations', methods=['GET'])
+@token_required
+def get_government_donations(current_user_id):
+    """Get all donations grouped by month for government dashboard."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                DATE_FORMAT(created_at, '%b') as month,
+                COUNT(*) as count,
+                SUM(amount) as amount
+            FROM donations
+            GROUP BY YEAR(created_at), MONTH(created_at)
+            ORDER BY YEAR(created_at), MONTH(created_at)
+        """)
+        donations = cursor.fetchall()
+        
+        # Format amounts as float
+        for donation in donations:
+            donation['amount'] = float(donation['amount']) if donation['amount'] else 0
+            
+        return jsonify(donations), 200
+        
+    except Exception as e:
+        print(f"Error fetching government donations: {e}")
+        return jsonify({"error": "Failed to fetch donations"}), 500
     finally:
         if connection.is_connected():
             cursor.close()
