@@ -4312,6 +4312,790 @@ def get_government_rejected_budgets(current_user_id):
             cursor.close()
             connection.close()
 
+
+@app.route('/api/auditor/profile', methods=['PUT'])
+@token_required
+def update_auditor_profile(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email']
+        
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        cursor = connection.cursor()
+        cursor.execute('''
+            UPDATE auditors SET
+                first_name = %s,
+                last_name = %s,
+                email = %s
+            WHERE id = %s
+        ''', (
+            data['firstName'],
+            data['lastName'],
+            data['email'],
+            current_user_id
+        ))
+        connection.commit()
+
+        return jsonify({"message": "Profile updated successfully"}), 200
+
+    except Exception as e:
+        print(f"Profile update error: {e}")
+        return jsonify({"error": "Failed to update profile"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/auditor/avatar', methods=['POST'])
+@token_required
+def update_auditor_avatar(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        if 'avatar' not in request.files:
+            return jsonify({"error": "No avatar file provided"}), 400
+
+        avatar = request.files['avatar']
+        if avatar.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+
+        # Save the file
+        filename = f"avatar_{current_user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        avatar.save(filepath)
+
+        cursor = connection.cursor()
+        cursor.execute(
+            "UPDATE auditors SET avatar_url = %s WHERE id = %s",
+            (f"/uploads/{filename}", current_user_id)
+        )
+        connection.commit()
+
+        return jsonify({
+            "message": "Avatar updated successfully",
+            "avatarUrl": f"/uploads/{filename}"
+        }), 200
+
+    except Exception as e:
+        print(f"Avatar update error: {e}")
+        return jsonify({"error": "Failed to update avatar"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/auditor/password', methods=['PUT'])
+@token_required
+def update_auditor_password(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        data = request.json
+        current_password = data.get('currentPassword')
+        new_password = data.get('newPassword')
+        confirm_password = data.get('confirmPassword')
+
+        if not all([current_password, new_password, confirm_password]):
+            return jsonify({"error": "All password fields are required"}), 400
+
+        if new_password != confirm_password:
+            return jsonify({"error": "New passwords don't match"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT password_hash FROM auditors WHERE id = %s", (current_user_id,))
+        auditor = cursor.fetchone()
+
+        if hashlib.sha256(current_password.encode()).hexdigest() != auditor['password_hash']:
+            return jsonify({"error": "Current password is incorrect"}), 401
+
+        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        cursor.execute(
+            "UPDATE auditors SET password_hash = %s WHERE id = %s",
+            (new_password_hash, current_user_id)
+        )
+        connection.commit()
+
+        return jsonify({"message": "Password updated successfully"}), 200
+
+    except Exception as e:
+        print(f"Password update error: {e}")
+        return jsonify({"error": "Failed to update password"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/auditor/account', methods=['DELETE'])
+@token_required
+def delete_auditor_account(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM auditors WHERE id = %s", (current_user_id,))
+        connection.commit()
+        return jsonify({"message": "Account deleted successfully"}), 200
+    except Exception as e:
+        print(f"Account deletion error: {e}")
+        return jsonify({"error": "Failed to delete account"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+@app.route('/api/finance/profile', methods=['PUT'])
+@token_required
+def update_finance_profile(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email']
+        
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        cursor = connection.cursor()
+        cursor.execute('''
+            UPDATE finance_officers SET
+                first_name = %s,
+                last_name = %s,
+                email = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        ''', (
+            data['firstName'],
+            data['lastName'],
+            data['email'],
+            current_user_id
+        ))
+        connection.commit()
+
+        return jsonify({"message": "Profile updated successfully"}), 200
+
+    except Exception as e:
+        print(f"Profile update error: {e}")
+        return jsonify({"error": "Failed to update profile"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/finance/avatar', methods=['POST'])
+@token_required
+def update_finance_avatar(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        if 'avatar' not in request.files:
+            return jsonify({"error": "No avatar file provided"}), 400
+
+        avatar = request.files['avatar']
+        if avatar.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+
+        # Save the file
+        filename = f"avatar_{current_user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        avatar.save(filepath)
+
+        cursor = connection.cursor()
+        cursor.execute(
+            "UPDATE finance_officers SET avatar_url = %s WHERE id = %s",
+            (f"/uploads/{filename}", current_user_id)
+        )
+        connection.commit()
+
+        return jsonify({
+            "message": "Avatar updated successfully",
+            "avatarUrl": f"/Uploads/{filename}"
+        }), 200
+
+    except Exception as e:
+        print(f"Avatar update error: {e}")
+        return jsonify({"error": "Failed to update avatar"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/finance/password', methods=['PUT'])
+@token_required
+def update_finance_password(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        data = request.json
+        current_password = data.get('currentPassword')
+        new_password = data.get('newPassword')
+        confirm_password = data.get('confirmPassword')
+
+        if not all([current_password, new_password, confirm_password]):
+            return jsonify({"error": "All password fields are required"}), 400
+
+        if new_password != confirm_password:
+            return jsonify({"error": "New passwords don't match"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT password_hash FROM finance_officers WHERE id = %s", (current_user_id,))
+        officer = cursor.fetchone()
+
+        if hashlib.sha256(current_password.encode()).hexdigest() != officer['password_hash']:
+            return jsonify({"error": "Current password is incorrect"}), 401
+
+        new_password_hash = hashlib.sha256(new_password.encode()).hexdigest()
+        cursor.execute(
+            "UPDATE finance_officers SET password_hash = %s WHERE id = %s",
+            (new_password_hash, current_user_id)
+        )
+        connection.commit()
+
+        return jsonify({"message": "Password updated successfully"}), 200
+
+    except Exception as e:
+        print(f"Password update error: {e}")
+        return jsonify({"error": "Failed to update password"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/finance/account', methods=['DELETE'])
+@token_required
+def delete_finance_account(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM finance_officers WHERE id = %s", (current_user_id,))
+        connection.commit()
+        return jsonify({"message": "Account deleted successfully"}), 200
+    except Exception as e:
+        print(f"Account deletion error: {e}")
+        return jsonify({"error": "Failed to delete account"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+# Retrieve government officer profile
+@app.route('/api/government/profile', methods=['GET'])
+@token_required
+def get_profile(current_user):
+    try:
+        return jsonify({
+            'id': current_user['id'],
+            'first_name': current_user['first_name'],
+            'last_name': current_user['last_name'],
+            'email': current_user['email'],
+            'role': current_user['role'],
+            'avatar_url': current_user['avatar_url'] or ''
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Update government officer profile
+@app.route('/api/government/profile', methods=['PUT'])
+@token_required
+def update_profile(current_user):
+    data = request.get_json()
+    first_name = data.get('firstName')
+    last_name = data.get('lastName')
+    email = data.get('email')
+    
+    if not all([first_name, last_name, email]):
+        return jsonify({'error': 'All fields are required'}), 400
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if email is already in use by another user
+        cursor.execute("SELECT id FROM government_officers WHERE email = %s AND id != %s", 
+                      (email, current_user['id']))
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return jsonify({'error': 'Email already in use'}), 400
+            
+        # Update profile
+        cursor.execute("""
+            UPDATE government_officers 
+            SET first_name = %s, last_name = %s, email = %s
+            WHERE id = %s
+        """, (first_name, last_name, email, current_user['id']))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'message': 'Profile updated successfully'}), 200
+        
+    except mysql.connector.Error as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Update government officer avatar
+@app.route('/api/government/avatar', methods=['POST'])
+@token_required
+def update_avatar(current_user):
+    if 'avatar' not in request.files:
+        return jsonify({'error': 'No avatar file provided'}), 400
+    
+    file = request.files['avatar']
+    
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+        
+    if file and allowed_file(file.filename):
+        try:
+            filename = secure_filename(f"gov_{current_user['id']}_{file.filename}")
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Update avatar URL in database
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            avatar_url = f"/uploads/{filename}"
+            
+            cursor.execute("""
+                UPDATE government_officers 
+                SET avatar_url = %s 
+                WHERE id = %s
+            """, (avatar_url, current_user['id']))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return jsonify({'message': 'Avatar updated successfully', 'avatarUrl': avatar_url}), 200
+            
+        except mysql.connector.Error as e:
+            return jsonify({'error': f'Database error: {str(e)}'}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    else:
+        return jsonify({'error': 'Invalid file type'}), 400
+
+# Change government officer password
+@app.route('/api/government/password', methods=['PUT'])
+@token_required
+def change_password(current_user):
+    data = request.get_json()
+    current_password = data.get('currentPassword')
+    new_password = data.get('newPassword')
+    confirm_password = data.get('confirmPassword')
+    
+    if not all([current_password, new_password, confirm_password]):
+        return jsonify({'error': 'All password fields are required'}), 400
+    
+    if new_password != confirm_password:
+        return jsonify({'error': 'New passwords do not match'}), 400
+    
+    try:
+        # Verify current password
+        if not check_password_hash(current_user['password_hash'], current_password):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+            
+        # Update password
+        new_password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE government_officers 
+            SET password_hash = %s 
+            WHERE id = %s
+        """, (new_password_hash, current_user['id']))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'message': 'Password changed successfully'}), 200
+        
+    except mysql.connector.Error as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Delete government officer account
+@app.route('/api/government/account', methods=['DELETE'])
+@token_required
+def delete_account(current_user):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM government_officers WHERE id = %s", (current_user['id'],))
+        
+        if cursor.rowcount == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({'error': 'Account not found'}), 404
+            
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'message': 'Account deleted successfully'}), 200
+        
+    except mysql.connector.Error as e:
+        return jsonify({'error': f'Database error: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@app.route('/api/parkstaff/profile', methods=['PUT'])
+@token_required
+def update_parkstaff_profile(current_user_id):
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['firstName', 'lastName', 'email', 'phone']
+        
+        if not all(field in data for field in required_fields):
+            missing_fields = [field for field in required_fields if field not in data]
+            return jsonify({"error": "Missing required fields", "missing": missing_fields}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        
+        # Check for email uniqueness
+        cursor.execute(
+            "SELECT id FROM parkstaff WHERE email = %s AND id != %s",
+            (data['email'], current_user_id)
+        )
+        if cursor.fetchone():
+            return jsonify({"error": "Email already in use by another staff member"}), 409
+
+        # Update profile
+        cursor.execute('''
+            UPDATE parkstaff SET
+                first_name = %s,
+                last_name = %s,
+                email = %s,
+                phone = %s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        ''', (
+            data['firstName'],
+            data['lastName'],
+            data['email'],
+            data['phone'],
+            current_user_id
+        ))
+
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Staff member not found"}), 404
+
+        connection.commit()
+
+        # Retrieve updated profile
+        cursor.execute(
+            "SELECT id, first_name, last_name, email, phone, park_name, avatar_url FROM parkstaff WHERE id = %s",
+            (current_user_id,)
+        )
+        updated_user = cursor.fetchone()
+
+        return jsonify({
+            "message": "Profile updated successfully",
+            "user": {
+                "id": str(updated_user['id']),
+                "firstName": updated_user['first_name'],
+                "lastName": updated_user['last_name'],
+                "email": updated_user['email'],
+                "phone": updated_user['phone'],
+                "park": updated_user['park_name'],
+                "avatarUrl": updated_user['avatar_url']
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"Profile update error: {e}")
+        return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/parkstaff/avatar', methods=['POST'])
+@token_required
+def update_parkstaff_avatar(current_user_id):
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        if 'avatar' not in request.files:
+            return jsonify({"error": "No avatar file provided"}), 400
+
+        avatar = request.files['avatar']
+        if avatar.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+
+        # Validate file type
+        allowed_extensions = {'.jpg', '.jpeg', '.png'}
+        file_ext = os.path.splitext(avatar.filename)[1].lower()
+        if file_ext not in allowed_extensions:
+            return jsonify({"error": "Invalid file type. Only JPG, JPEG, PNG allowed"}), 400
+
+        # Generate unique filename
+        filename = f"avatar_{current_user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{file_ext}"
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        avatar.save(filepath)
+
+        cursor = connection.cursor()
+        cursor.execute(
+            "UPDATE parkstaff SET avatar_url = %s WHERE id = %s",
+            (f"/Uploads/{filename}", current_user_id)
+        )
+
+        if cursor.rowcount == 0:
+            return jsonify({"error": "Staff member not found"}), 404
+
+        connection.commit()
+
+        return jsonify({
+            "message": "Avatar updated successfully",
+            "avatarUrl": f"/Uploads/{filename}"
+        }), 200
+
+    except Exception as e:
+        print(f"Avatar update error: {e}")
+        return jsonify({"error": f"Failed to update avatar: {str(e)}"}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/parkstaff/password', methods=['PUT'])
+@token_required
+def update_parkstaff_password(current_user_id):
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        data = request.json
+        required_fields = ['currentPassword', 'newPassword', 'confirmPassword']
+        
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "All password fields are required"}), 400
+
+        if data['newPassword'] != data['confirmPassword']:
+            return jsonify({"error": "New passwords don't match"}), 400
+
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT password_hash FROM parkstaff WHERE id = %s",
+            (current_user_id,)
+        )
+        staff = cursor.fetchone()
+
+        if not staff:
+            return jsonify({"error": "Staff member not found"}), 404
+
+        # Verify current password
+        if hashlib.sha256(data['currentPassword'].encode()).hexdigest() != staff['password_hash']:
+            return jsonify({"error": "Current password is incorrect"}), 401
+
+        # Update password
+        new_password_hash = hashlib.sha256(data['newPassword'].encode()).hexdigest()
+        cursor.execute(
+            "UPDATE parkstaff SET password_hash = %s WHERE id = %s",
+            (new_password_hash, current_user_id)
+        )
+
+        connection.commit()
+
+        return jsonify({"message": "Password updated successfully"}), 200
+
+    except Exception as e:
+        print(f"Password update error: {e}")
+        return jsonify({"error": f"Failed to update password: {str(e)}"}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/parkstaff/account', methods=['DELETE'])
+@token_required
+def delete_parkstaff_account(current_user_id):
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT id FROM parkstaff WHERE id = %s",
+            (current_user_id,)
+        )
+        if not cursor.fetchone():
+            return jsonify({"error": "Staff member not found"}), 404
+
+        cursor.execute(
+            "DELETE FROM parkstaff WHERE id = %s",
+            (current_user_id,)
+        )
+        connection.commit()
+
+        return jsonify({"message": "Account deleted successfully"}), 200
+
+    except Exception as e:
+        print(f"Account deletion error: {e}")
+        return jsonify({"error": f"Failed to delete account: {str(e)}"}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/parkstaff/profile', methods=['GET'])
+@token_required
+def get_parkstaff_profile(current_user_id):
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT id, first_name, last_name, email, phone, park_name, avatar_url, role FROM parkstaff WHERE id = %s",
+            (current_user_id,)
+        )
+        user = cursor.fetchone()
+
+        if not user:
+            return jsonify({"error": "Staff member not found"}), 404
+
+        return jsonify({
+            "id": str(user['id']),
+            "firstName": user['first_name'],
+            "lastName": user['last_name'],
+            "email": user['email'],
+            "phone": user['phone'],
+            "park": user['park_name'],
+            "avatarUrl": user['avatar_url'],
+            "role": user['role']
+        }), 200
+
+    except Exception as e:
+        print(f"Profile retrieval error: {e}")
+        return jsonify({"error": f"Failed to retrieve profile: {str(e)}"}), 500
+    finally:
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/auditor/profile', methods=['GET'])
+@token_required
+def get_auditor_profile(current_user_id):
+    connection = get_db_connection()
+    if isinstance(connection, tuple):
+        return connection
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id, first_name, last_name, email, avatar_url, park_name
+            FROM auditors
+            WHERE id = %s
+        """, (current_user_id,))
+        auditor = cursor.fetchone()
+        
+        if not auditor:
+            return jsonify({"error": "Auditor not found"}), 404
+        
+        return jsonify({
+            "id": str(auditor['id']),
+            "firstName": auditor['first_name'],
+            "lastName": auditor['last_name'],
+            "email": auditor['email'],
+            "avatarUrl": auditor['avatar_url'],
+            "park": auditor['park_name'],
+            "role": "auditor"
+        }), 200
+        
+    except Exception as e:
+        print(f"Profile retrieval error: {e}")
+        return jsonify({"error": "Failed to retrieve profile"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     if os.getenv('FLASK_ENV') == 'production':
     # Use Gunicorn or similar in production

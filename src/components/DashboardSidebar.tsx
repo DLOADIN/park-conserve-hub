@@ -108,6 +108,9 @@ const DashboardSidebar = () => {
                 <SidebarLink to="/parkstaff/fund-requests" icon={FileText} active={isActive('/park-staff/fund-requests')}>
                   Fund Requests
                 </SidebarLink>
+                <SidebarLink to="/parkstaff/profile" icon={User} active={isActive('/parkstaff/profile')}>
+                  Profile
+                </SidebarLink>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -129,6 +132,9 @@ const DashboardSidebar = () => {
                 </SidebarLink>
                 <SidebarLink to="/government/extra-funds" icon={PiggyBank} active={isActive('/government/extra-funds')}>
                   Extra Funds
+                </SidebarLink>
+                <SidebarLink to="/government/profile" icon={User} active={isActive('/government/profile')}>
+                  Profile
                 </SidebarLink>
               </SidebarMenu>
             </SidebarGroupContent>
@@ -167,6 +173,9 @@ const DashboardSidebar = () => {
                 <SidebarLink to="/finance/budget-creation" icon={DollarSign} active={isActive('/finance/budget-creation')}>
                   Budget Creation
                 </SidebarLink>
+                <SidebarLink to="/finance/profile" icon={User} active={isActive('/finance/profile')}>
+                  Profile
+                </SidebarLink>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -185,6 +194,9 @@ const DashboardSidebar = () => {
                 </SidebarLink>
                 <SidebarLink to="/auditor/invoices" icon={FileText} active={isActive('/auditor/invoices')}>
                   Invoices
+                </SidebarLink>
+                <SidebarLink to="/auditor/profile" icon={User} active={isActive('/auditor/profile')}>
+                  Profile
                 </SidebarLink>
               </SidebarMenu>
             </SidebarGroupContent>
