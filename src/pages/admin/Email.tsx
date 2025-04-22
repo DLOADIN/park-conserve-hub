@@ -47,26 +47,6 @@ const Emails = () => {
   });
   const [lastEmailSent, setLastEmailSent] = useState<number>(0);
 
-  // Mock data for testing if API fails
-  const mockStaffMembers: StaffMember[] = [
-    {
-      id: '1',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'm.david@alustudent.com',
-      role: 'Staff',
-      park: 'Park A',
-    },
-    {
-      id: '2',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: 'm.david@alustudent.com',
-      role: 'Manager',
-      park: 'Park B',
-    },
-  ];
-
   // Initialize EmailJS
   useEffect(() => {
     emailjs.init('I6uUY9YMMP0eOEOUc');
@@ -160,7 +140,7 @@ const Emails = () => {
         
         const templateParams = {
           email: selectedEmail,
-          name: recipient ? `${recipient.firstName} ${recipient.lastName}` : 'User',
+          name: selectedEmail,
           title: emailForm.subject.trim(),
           message: emailForm.message.trim(),
         };
