@@ -2136,8 +2136,8 @@ def create_budget(current_user_id):
 
 @app.route('/api/government/budgets', methods=['GET'])
 @token_required
-def get_government_budgets(current_user_id):
-    """Retrieve all submitted budgets for government officer review with item types."""
+def get_government_all_budgets(current_user_id):  # Renamed from get_all_budgets
+    """Get all budgets with detailed financial data."""
     connection = get_db_connection()
     if not connection:
         return jsonify({"error": "Database connection failed"}), 500
@@ -2148,9 +2148,11 @@ def get_government_budgets(current_user_id):
             SELECT 
                 b.id, b.title, b.fiscal_year, b.total_amount, b.park_name,
                 b.description, b.status, b.created_at, b.created_by,
-                b.approved_by, b.approved_at,
+                b.approved_by, b.approved_at, b.reason,
                 fo.first_name as created_by_name,
-                go.first_name as approved_by_name
+                fo.last_name as created_by_lastname,
+                go.first_name as approved_by_name,
+                go.last_name as approved_by_lastname
             FROM budgets b
             LEFT JOIN finance_officers fo ON b.created_by = fo.id
             LEFT JOIN government_officers go ON b.approved_by = go.id
@@ -2159,17 +2161,21 @@ def get_government_budgets(current_user_id):
         """)
         budgets = cursor.fetchall()
         
-        # Fetch items for each budget
+        # Format and enhance budget data
         for budget in budgets:
+            # Get budget items
             cursor.execute("""
                 SELECT id, category, description, amount, type
                 FROM budget_items
                 WHERE budget_id = %s
             """, (budget['id'],))
             items = cursor.fetchall()
+            
+            # Format items
             for item in items:
                 item['amount'] = float(item['amount'])
                 item['id'] = str(item['id'])
+            
             budget['items'] = items
             budget['id'] = str(budget['id'])
             budget['total_amount'] = float(budget['total_amount'])
@@ -2177,18 +2183,164 @@ def get_government_budgets(current_user_id):
             if budget['approved_at']:
                 budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
             
+            # Add creator and approver full names
+            budget['created_by_full_name'] = f"{budget['created_by_name']} {budget['created_by_lastname']}"
+            budget['approved_by_full_name'] = (f"{budget['approved_by_name']} {budget['approved_by_lastname']}"
+                                             if budget['approved_by_name'] else None)
+            
+            # Clean up response
+            del budget['created_by_name']
+            del budget['created_by_lastname']
+            del budget['approved_by_name']
+            del budget['approved_by_lastname']
+            
         return jsonify(budgets), 200
         
     except Exception as e:
-        print(f"Database error: {e}")
-        return jsonify({"error": "Failed to retrieve budgets"}), 500
+        print(f"Error fetching budgets: {e}")
+        return jsonify({"error": "Failed to fetch budgets"}), 500
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
 
+@app.route('/api/government/budgets/approved', methods=['GET'])
+@token_required
+def get_government_approved_budgets_v2(current_user_id):  # Renamed from get_government_approved_budgets
+    """Get all approved budgets with detailed financial data."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                b.id, b.title, b.fiscal_year, b.total_amount, b.park_name,
+                b.description, b.status, b.created_at, b.approved_at,
+                b.reason, b.created_by, b.approved_by,
+                fo.first_name as created_by_name,
+                fo.last_name as created_by_lastname,
+                go.first_name as approved_by_name,
+                go.last_name as approved_by_lastname
+            FROM budgets b
+            LEFT JOIN finance_officers fo ON b.created_by = fo.id
+            LEFT JOIN government_officers go ON b.approved_by = go.id
+            WHERE b.status = 'approved'
+            ORDER BY b.approved_at DESC
+        """)
+        budgets = cursor.fetchall()
+        
+        # Format and enhance budget data
+        for budget in budgets:
+            # Get budget items
+            cursor.execute("""
+                SELECT id, category, description, amount, type
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            
+            # Format items
+            for item in items:
+                item['amount'] = float(item['amount'])
+                item['id'] = str(item['id'])
+            
+            budget['items'] = items
+            budget['id'] = str(budget['id'])
+            budget['total_amount'] = float(budget['total_amount'])
+            budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if budget['approved_at']:
+                budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Add creator and approver full names
+            budget['created_by_full_name'] = f"{budget['created_by_name']} {budget['created_by_lastname']}"
+            budget['approved_by_full_name'] = f"{budget['approved_by_name']} {budget['approved_by_lastname']}"
+            
+            # Clean up response
+            del budget['created_by_name']
+            del budget['created_by_lastname']
+            del budget['approved_by_name']
+            del budget['approved_by_lastname']
+            
+        return jsonify(budgets), 200
+        
+    except Exception as e:
+        print(f"Error fetching approved budgets: {e}")
+        return jsonify({"error": "Failed to fetch approved budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
-
+@app.route('/api/government/budgets/rejected', methods=['GET'])
+@token_required
+def get_government_rejected_budgets_v2(current_user_id):  # Renamed from get_government_rejected_budgets
+    """Get all rejected budgets with detailed financial data."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                b.id, b.title, b.fiscal_year, b.total_amount, b.park_name,
+                b.description, b.status, b.created_at, b.approved_at,
+                b.reason, b.created_by, b.approved_by,
+                fo.first_name as created_by_name,
+                fo.last_name as created_by_lastname,
+                go.first_name as approved_by_name,
+                go.last_name as approved_by_lastname
+            FROM budgets b
+            LEFT JOIN finance_officers fo ON b.created_by = fo.id
+            LEFT JOIN government_officers go ON b.approved_by = go.id
+            WHERE b.status = 'rejected'
+            ORDER BY b.approved_at DESC
+        """)
+        budgets = cursor.fetchall()
+        
+        # Format and enhance budget data
+        for budget in budgets:
+            # Get budget items
+            cursor.execute("""
+                SELECT id, category, description, amount, type
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            
+            # Format items
+            for item in items:
+                item['amount'] = float(item['amount'])
+                item['id'] = str(item['id'])
+            
+            budget['items'] = items
+            budget['id'] = str(budget['id'])
+            budget['total_amount'] = float(budget['total_amount'])
+            budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if budget['approved_at']:
+                budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Add creator and approver full names
+            budget['created_by_full_name'] = f"{budget['created_by_name']} {budget['created_by_lastname']}"
+            budget['approved_by_full_name'] = f"{budget['approved_by_name']} {budget['approved_by_lastname']}"
+            
+            # Clean up response
+            del budget['created_by_name']
+            del budget['created_by_lastname']
+            del budget['approved_by_name']
+            del budget['approved_by_lastname']
+            
+        return jsonify(budgets), 200
+        
+    except Exception as e:
+        print(f"Error fetching rejected budgets: {e}")
+        return jsonify({"error": "Failed to fetch rejected budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
 
 
 
@@ -5121,6 +5273,337 @@ def get_finance_profile(current_user_id):
         if connection.is_connected():
             cursor.close()
             connection.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@app.route('/api/government/park-income/<park_name>', methods=['GET'])
+@token_required
+def get_park_income(current_user_id, park_name):
+    """Get detailed income data for a specific park."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # Get donations for the park
+        cursor.execute("""
+            SELECT SUM(amount) as total_donations
+            FROM donations
+            WHERE park_name = %s
+        """, (park_name,))
+        donations = cursor.fetchone()
+        
+        # Get tour bookings for the park
+        cursor.execute("""
+            SELECT SUM(amount) as total_tours
+            FROM tours
+            WHERE park_name = %s
+        """, (park_name,))
+        tours = cursor.fetchone()
+        
+        # Calculate totals
+        total_donations = float(donations['total_donations'] or 0)
+        total_tours = float(tours['total_tours'] or 0)
+        base_income = total_donations + total_tours
+        gov_support = base_income * 0.15 / (1 - 0.15)  # Government support is 15% of total income
+        
+        income_data = {
+            "donations": total_donations,
+            "tours": total_tours,
+            "government_support": gov_support,
+            "total_income": base_income + gov_support
+        }
+        
+        return jsonify(income_data), 200
+        
+    except Exception as e:
+        print(f"Error fetching park income: {e}")
+        return jsonify({"error": "Failed to fetch park income data"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+@app.route('/api/government/park-expenses/<park_name>', methods=['GET'])
+@token_required
+def get_park_expenses(current_user_id, park_name):
+    """Get detailed expense data for a specific park."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        
+        # Get approved fund requests
+        cursor.execute("""
+            SELECT SUM(amount) as total_fund_requests
+            FROM fund_requests
+            WHERE parkname = %s AND status = 'approved'
+        """, (park_name,))
+        fund_requests = cursor.fetchone()
+        
+        # Get approved extra funds requests
+        cursor.execute("""
+            SELECT SUM(amount) as total_extra_funds
+            FROM extra_funds_requests
+            WHERE park_name = %s AND status = 'approved'
+        """, (park_name,))
+        extra_funds = cursor.fetchone()
+        
+        # Get approved emergency requests
+        cursor.execute("""
+            SELECT SUM(amount) as total_emergency
+            FROM emergency_requests
+            WHERE park_name = %s AND status = 'approved'
+        """, (park_name,))
+        emergency = cursor.fetchone()
+        
+        expense_data = {
+            "fund_requests": float(fund_requests['total_fund_requests'] or 0),
+            "extra_funds": float(extra_funds['total_extra_funds'] or 0),
+            "emergency": float(emergency['total_emergency'] or 0),
+            "total_expenses": float(fund_requests['total_fund_requests'] or 0) +
+                            float(extra_funds['total_extra_funds'] or 0) +
+                            float(emergency['total_emergency'] or 0)
+        }
+        
+        return jsonify(expense_data), 200
+        
+    except Exception as e:
+        print(f"Error fetching park expenses: {e}")
+        return jsonify({"error": "Failed to fetch park expense data"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# @app.route('/api/government/budgets', methods=['GET'])
+# @token_required
+# def get_government_all_budgets(current_user_id):  # Renamed from get_all_budgets
+    """Get all budgets with detailed financial data."""
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({"error": "Database connection failed"}), 500
+    
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT 
+                b.id, b.title, b.fiscal_year, b.total_amount, b.park_name,
+                b.description, b.status, b.created_at, b.created_by,
+                b.approved_by, b.approved_at, b.reason,
+                fo.first_name as created_by_name,
+                fo.last_name as created_by_lastname,
+                go.first_name as approved_by_name,
+                go.last_name as approved_by_lastname
+            FROM budgets b
+            LEFT JOIN finance_officers fo ON b.created_by = fo.id
+            LEFT JOIN government_officers go ON b.approved_by = go.id
+            WHERE b.status = 'submitted'
+            ORDER BY b.created_at DESC
+        """)
+        budgets = cursor.fetchall()
+        
+        # Format and enhance budget data
+        for budget in budgets:
+            # Get budget items
+            cursor.execute("""
+                SELECT id, category, description, amount, type
+                FROM budget_items
+                WHERE budget_id = %s
+            """, (budget['id'],))
+            items = cursor.fetchall()
+            
+            # Format items
+            for item in items:
+                item['amount'] = float(item['amount'])
+                item['id'] = str(item['id'])
+            
+            budget['items'] = items
+            budget['id'] = str(budget['id'])
+            budget['total_amount'] = float(budget['total_amount'])
+            budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            if budget['approved_at']:
+                budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Add creator and approver full names
+            budget['created_by_full_name'] = f"{budget['created_by_name']} {budget['created_by_lastname']}"
+            budget['approved_by_full_name'] = (f"{budget['approved_by_name']} {budget['approved_by_lastname']}"
+                                             if budget['approved_by_name'] else None)
+            
+            # Clean up response
+            del budget['created_by_name']
+            del budget['created_by_lastname']
+            del budget['approved_by_name']
+            del budget['approved_by_lastname']
+            
+        return jsonify(budgets), 200
+        
+    except Exception as e:
+        print(f"Error fetching budgets: {e}")
+        return jsonify({"error": "Failed to fetch budgets"}), 500
+    finally:
+        if connection.is_connected():
+            cursor.close()
+            connection.close()
+
+# @app.route('/api/government/budgets/approved', methods=['GET'])
+# @token_required
+# def get_government_approved_budgets_v2(current_user_id):  # Renamed from get_government_approved_budgets
+#     """Get all approved budgets with detailed financial data."""
+#     connection = get_db_connection()
+#     if not connection:
+#         return jsonify({"error": "Database connection failed"}), 500
+    
+#     try:
+#         cursor = connection.cursor(dictionary=True)
+#         cursor.execute("""
+#             SELECT 
+#                 b.id, b.title, b.fiscal_year, b.total_amount, b.park_name,
+#                 b.description, b.status, b.created_at, b.approved_at,
+#                 b.reason, b.created_by, b.approved_by,
+#                 fo.first_name as created_by_name,
+#                 fo.last_name as created_by_lastname,
+#                 go.first_name as approved_by_name,
+#                 go.last_name as approved_by_lastname
+#             FROM budgets b
+#             LEFT JOIN finance_officers fo ON b.created_by = fo.id
+#             LEFT JOIN government_officers go ON b.approved_by = go.id
+#             WHERE b.status = 'approved'
+#             ORDER BY b.approved_at DESC
+#         """)
+#         budgets = cursor.fetchall()
+        
+#         # Format and enhance budget data
+#         for budget in budgets:
+#             # Get budget items
+#             cursor.execute("""
+#                 SELECT id, category, description, amount, type
+#                 FROM budget_items
+#                 WHERE budget_id = %s
+#             """, (budget['id'],))
+#             items = cursor.fetchall()
+            
+#             # Format items
+#             for item in items:
+#                 item['amount'] = float(item['amount'])
+#                 item['id'] = str(item['id'])
+            
+#             budget['items'] = items
+#             budget['id'] = str(budget['id'])
+#             budget['total_amount'] = float(budget['total_amount'])
+#             budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+#             if budget['approved_at']:
+#                 budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+#             # Add creator and approver full names
+#             budget['created_by_full_name'] = f"{budget['created_by_name']} {budget['created_by_lastname']}"
+#             budget['approved_by_full_name'] = f"{budget['approved_by_name']} {budget['approved_by_lastname']}"
+            
+#             # Clean up response
+#             del budget['created_by_name']
+#             del budget['created_by_lastname']
+#             del budget['approved_by_name']
+#             del budget['approved_by_lastname']
+            
+#         return jsonify(budgets), 200
+        
+#     except Exception as e:
+#         print(f"Error fetching approved budgets: {e}")
+#         return jsonify({"error": "Failed to fetch approved budgets"}), 500
+#     finally:
+#         if connection.is_connected():
+#             cursor.close()
+#             connection.close()
+
+
+
+
+# @app.route('/api/government/budgets/rejected', methods=['GET'])
+# @token_required
+# def get_government_rejected_budgets_v2(current_user_id):  # Renamed from get_government_rejected_budgets
+#     """Get all rejected budgets with detailed financial data."""
+#     connection = get_db_connection()
+#     if not connection:
+#         return jsonify({"error": "Database connection failed"}), 500
+    
+#     try:
+#         cursor = connection.cursor(dictionary=True)
+#         cursor.execute("""
+#             SELECT 
+#                 b.id, b.title, b.fiscal_year, b.total_amount, b.park_name,
+#                 b.description, b.status, b.created_at, b.approved_at,
+#                 b.reason, b.created_by, b.approved_by,
+#                 fo.first_name as created_by_name,
+#                 fo.last_name as created_by_lastname,
+#                 go.first_name as approved_by_name,
+#                 go.last_name as approved_by_lastname
+#             FROM budgets b
+#             LEFT JOIN finance_officers fo ON b.created_by = fo.id
+#             LEFT JOIN government_officers go ON b.approved_by = go.id
+#             WHERE b.status = 'rejected'
+#             ORDER BY b.approved_at DESC
+#         """)
+#         budgets = cursor.fetchall()
+        
+#         # Format and enhance budget data
+#         for budget in budgets:
+#             # Get budget items
+#             cursor.execute("""
+#                 SELECT id, category, description, amount, type
+#                 FROM budget_items
+#                 WHERE budget_id = %s
+#             """, (budget['id'],))
+#             items = cursor.fetchall()
+            
+#             # Format items
+#             for item in items:
+#                 item['amount'] = float(item['amount'])
+#                 item['id'] = str(item['id'])
+            
+#             budget['items'] = items
+#             budget['id'] = str(budget['id'])
+#             budget['total_amount'] = float(budget['total_amount'])
+#             budget['created_at'] = budget['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+#             if budget['approved_at']:
+#                 budget['approved_at'] = budget['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+#             # Add creator and approver full names
+#             budget['created_by_full_name'] = f"{budget['created_by_name']} {budget['created_by_lastname']}"
+#             budget['approved_by_full_name'] = f"{budget['approved_by_name']} {budget['approved_by_lastname']}"
+            
+#             # Clean up response
+#             del budget['created_by_name']
+#             del budget['created_by_lastname']
+#             del budget['approved_by_name']
+#             del budget['approved_by_lastname']
+            
+#         return jsonify(budgets), 200
+        
+#     except Exception as e:
+#         print(f"Error fetching rejected budgets: {e}")
+#         return jsonify({"error": "Failed to fetch rejected budgets"}), 500
+#     finally:
+#         if connection.is_connected():
+#             cursor.close()
+#             connection.close()
 
 
 
