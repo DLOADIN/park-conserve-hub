@@ -40,7 +40,60 @@ interface StaffMember {
   email: string;
   role: string;
   park: string;
+  password?: string;  // For new staff credentials
 }
+
+interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  message: string;
+}
+
+const EMAIL_TEMPLATES: EmailTemplate[] = [
+  {
+    id: 'welcome',
+    name: 'Welcome Email',
+    subject: 'Welcome to Park Conservation Hub',
+    message: `Dear {{name}},
+
+Welcome to the Park Conservation Hub! We're excited to have you join us as a {{role}} at {{park}}.
+
+Here are your login credentials:
+Email: {{email}}
+Password: {{password}}
+
+Please log in at: http://localhost:8081/login
+
+For security reasons, please change your password after your first login.
+
+Best regards,
+Park Conservation Admin Team`
+  },
+  {
+    id: 'reminder',
+    name: 'Password Reset Reminder',
+    subject: 'Action Required: Password Reset Reminder',
+    message: `Dear {{name}},
+
+This is a reminder to reset your password for your Park Conservation Hub account.
+
+Your current login credentials:
+Email: {{email}}
+Temporary Password: {{password}}
+
+Please log in and change your password as soon as possible.
+
+Best regards,
+Park Conservation Admin Team`
+  },
+  {
+    id: 'custom',
+    name: 'Custom Template',
+    subject: '',
+    message: ''
+  }
+];
 
 const Emails = () => {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
@@ -48,6 +101,7 @@ const Emails = () => {
   const [selectedPark, setSelectedPark] = useState<string>('all');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('custom');
   const [emailForm, setEmailForm] = useState({
     to: '',
     subject: '',
@@ -116,6 +170,27 @@ const Emails = () => {
     }
   };
 
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    const template = EMAIL_TEMPLATES.find(t => t.id === templateId);
+    if (template && templateId !== 'custom') {
+      setEmailForm({
+        to: '',
+        subject: template.subject,
+        message: template.message,
+      });
+    }
+  };
+
+  const replaceTemplateVariables = (text: string, staff: StaffMember) => {
+    return text
+      .replace(/{{name}}/g, `${staff.firstName} ${staff.lastName}`)
+      .replace(/{{role}}/g, staff.role)
+      .replace(/{{park}}/g, staff.park || '')
+      .replace(/{{email}}/g, staff.email)
+      .replace(/{{password}}/g, staff.password || '[PASSWORD]');
+  };
+
   const handleSendEmail = async () => {
     if (!selectedRecipients.length) {
       toast({
@@ -142,17 +217,20 @@ const Emails = () => {
         const recipient = staffMembers.find(staff => staff.email === recipientEmail);
         if (!recipient) return;
 
+        const personalizedSubject = replaceTemplateVariables(emailForm.subject, recipient);
+        const personalizedMessage = replaceTemplateVariables(emailForm.message, recipient);
+
         const templateParams = {
           to_name: `${recipient.firstName} ${recipient.lastName}`,
           to_email: recipientEmail,
-          subject: emailForm.subject,
-          message: emailForm.message,
+          subject: personalizedSubject,
+          message: personalizedMessage,
           from_name: 'Park Conservation Admin',
         };
 
         await emailjs.send(
-          'YOUR_SERVICE_ID', // Replace with your EmailJS service ID
-          'YOUR_TEMPLATE_ID', // Replace with your EmailJS template ID
+          'YOUR_SERVICE_ID',
+          'YOUR_TEMPLATE_ID',
           templateParams
         );
       }));
@@ -163,11 +241,13 @@ const Emails = () => {
       });
 
       // Reset form
-      setEmailForm({
-        to: '',
-        subject: '',
-        message: '',
-      });
+      if (selectedTemplate === 'custom') {
+        setEmailForm({
+          to: '',
+          subject: '',
+          message: '',
+        });
+      }
       setSelectedRecipients([]);
     } catch (error) {
       toast({
@@ -302,6 +382,24 @@ const Emails = () => {
                   <CardDescription>Write your message</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="template">Email Template</Label>
+                    <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
+                      <SelectTrigger id="template">
+                        <SelectValue placeholder="Select template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EMAIL_TEMPLATES.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            {template.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-gray-500">
+                      Available variables: {'{{name}}, {{role}}, {{park}}, {{email}}, {{password}}'}
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject</Label>
                     <Input
