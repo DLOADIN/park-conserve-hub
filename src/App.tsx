@@ -31,7 +31,7 @@ import ExtraFundsForm from "./pages/finance/ExtraFundsForm";
 import ServiceProviders from "./pages/finance/ServiceProviders";
 import BudgetCreation from "./pages/finance/BudgetCreation";
 import FinanceProfile from "./pages/finance/Profile";
-
+import Emails from "./pages/admin/Email";
 
 import AuditorDashboard from "./pages/auditor/dashboard";
 import InvoiceView from "./pages/auditor/InvoiceView";
@@ -71,6 +71,7 @@ const App = () => (
 
             <Route path="/admin/dashboard" element={<AdminDashboard />} />{/* Admin routes */}
             <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/email" element={<Emails />} />
             <Route path="/admin/Profile" element={<AdminProfile />} />
             
             {/* Park Staff routes */}

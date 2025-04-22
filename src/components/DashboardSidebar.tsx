@@ -15,7 +15,7 @@ import {
   SidebarHeader,
   SidebarTrigger
 } from '@/components/ui/sidebar';
-import { LogOut, User, LayoutDashboard, Users, Settings, FileText, DollarSign, PiggyBank, Calendar, Clock, CreditCard, Landmark, AlertTriangle, FileBarChart, Activity, ClipboardCheck, UserCheck } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, Users, Settings, FileText, DollarSign, PiggyBank, Calendar, Clock, CreditCard, Landmark, AlertTriangle, FileBarChart, Activity, ClipboardCheck, UserCheck, Mail } from 'lucide-react';
 
 interface SidebarLinkProps {
   to: string;
@@ -89,9 +89,13 @@ const DashboardSidebar = () => {
                 <SidebarLink to="/admin/users" icon={Settings} active={isActive('/admin/users')}>
                   User Management
                 </SidebarLink>
+                <SidebarLink to="/admin/email" icon={Mail} active={isActive('/admin/email')}>
+                  Email 
+                </SidebarLink>
                 <SidebarLink to="/admin/profile" icon={User} active={isActive('/admin/profile')}>
                   Profile
                 </SidebarLink>
+                
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

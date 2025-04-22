@@ -480,7 +480,7 @@ const VisitorsDashboard: React.FC = () => {
           {/* Donations Table */}
           <div className="mb-8 bg-white rounded-lg shadow-lg p-6">
             <div className="flex justify-content:space-between flex-1">
-              <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Donations</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-conservation-600">Your Donations</h2>
               <h2 className="text-2xl font-semibold mb-4 text-conservation-600 ml-auto">
                 <Link to="/donate" className="text-conservation-600 hover:text-conservation-800">Donate</Link>
               </h2>

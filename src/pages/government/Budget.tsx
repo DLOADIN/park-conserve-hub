@@ -649,46 +649,46 @@ const Budget = () => {
               </Card>
             ) : (
               <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Submitted Budgets</CardTitle>
-                    <CardDescription>Review budgets submitted by finance officers</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <p>Loading budgets...</p>
-                    ) : budgets.length === 0 ? (
-                      <p>No submitted budgets found.</p>
-                    ) : (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Fiscal Year</TableHead>
-                            <TableHead>Park Name</TableHead>
-                            <TableHead>Total Amount</TableHead>
-                            <TableHead>Created Date</TableHead>
-                            <TableHead>Actions</TableHead>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Submitted Budgets</CardTitle>
+                  <CardDescription>Review budgets submitted by finance officers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <p>Loading budgets...</p>
+                  ) : budgets.length === 0 ? (
+                    <p>No submitted budgets found.</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Fiscal Year</TableHead>
+                          <TableHead>Park Name</TableHead>
+                          <TableHead>Total Amount</TableHead>
+                          <TableHead>Created Date</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {budgets.map((budget) => (
+                          <TableRow key={budget.id}>
+                            <TableCell>{budget.title}</TableCell>
+                            <TableCell>{budget.fiscal_year}</TableCell>
+                            <TableCell>{budget.park_name}</TableCell>
+                            <TableCell>${budget.total_amount.toLocaleString()}</TableCell>
+                            <TableCell>{new Date(budget.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <Button onClick={() => selectBudget(budget)}>Review</Button>
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {budgets.map((budget) => (
-                            <TableRow key={budget.id}>
-                              <TableCell>{budget.title}</TableCell>
-                              <TableCell>{budget.fiscal_year}</TableCell>
-                              <TableCell>{budget.park_name}</TableCell>
-                              <TableCell>${budget.total_amount.toLocaleString()}</TableCell>
-                              <TableCell>{new Date(budget.created_at).toLocaleDateString()}</TableCell>
-                              <TableCell>
-                                <Button onClick={() => selectBudget(budget)}>Review</Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    )}
-                  </CardContent>
-                </Card>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
 
                 <Card>
                   <CardHeader>

@@ -42,12 +42,12 @@ const GovernmentDashboard = () => {
 
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          navigate('/login');
-          return;
-        }
-    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
         const headers = { Authorization: `Bearer ${token}` };
         const [
           statsResponse,
