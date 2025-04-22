@@ -21,17 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Send, Users } from 'lucide-react';
+import { Send } from 'lucide-react';
 import emailjs from '@emailjs/browser';
+
 
 interface StaffMember {
   id: string;
@@ -40,78 +32,44 @@ interface StaffMember {
   email: string;
   role: string;
   park: string;
-  password?: string;  // For new staff credentials
 }
 
-interface EmailTemplate {
-  id: string;
-  name: string;
-  subject: string;
-  message: string;
-}
-
-const EMAIL_TEMPLATES: EmailTemplate[] = [
-  {
-    id: 'welcome',
-    name: 'Welcome Email',
-    subject: 'Welcome to Park Conservation Hub',
-    message: `Dear {{name}},
-
-Welcome to the Park Conservation Hub! We're excited to have you join us as a {{role}} at {{park}}.
-
-Here are your login credentials:
-Email: {{email}}
-Password: {{password}}
-
-Please log in at: http://localhost:8081/login
-
-For security reasons, please change your password after your first login.
-
-Best regards,
-Park Conservation Admin Team`
-  },
-  {
-    id: 'reminder',
-    name: 'Password Reset Reminder',
-    subject: 'Action Required: Password Reset Reminder',
-    message: `Dear {{name}},
-
-This is a reminder to reset your password for your Park Conservation Hub account.
-
-Your current login credentials:
-Email: {{email}}
-Temporary Password: {{password}}
-
-Please log in and change your password as soon as possible.
-
-Best regards,
-Park Conservation Admin Team`
-  },
-  {
-    id: 'custom',
-    name: 'Custom Template',
-    subject: '',
-    message: ''
-  }
-];
+const EMAIL_RATE_LIMIT = 5000; // 5 seconds between emails
 
 const Emails = () => {
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
-  const [selectedRole, setSelectedRole] = useState<string>('all');
-  const [selectedPark, setSelectedPark] = useState<string>('all');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('custom');
+  const [selectedEmail, setSelectedEmail] = useState('');
   const [emailForm, setEmailForm] = useState({
-    to: '',
     subject: '',
     message: '',
   });
-  const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
+  const [lastEmailSent, setLastEmailSent] = useState<number>(0);
+
+  // Mock data for testing if API fails
+  const mockStaffMembers: StaffMember[] = [
+    {
+      id: '1',
+      firstName: 'John',
+      lastName: 'Doe',
+      email: 'm.david@alustudent.com',
+      role: 'Staff',
+      park: 'Park A',
+    },
+    {
+      id: '2',
+      firstName: 'Jane',
+      lastName: 'Smith',
+      email: 'm.david@alustudent.com',
+      role: 'Manager',
+      park: 'Park B',
+    },
+  ];
 
   // Initialize EmailJS
   useEffect(() => {
-    emailjs.init("YOUR_PUBLIC_KEY"); 
+    emailjs.init('I6uUY9YMMP0eOEOUc');
   }, []);
 
   // Fetch staff members
@@ -121,16 +79,31 @@ const Emails = () => {
       try {
         const response = await fetch('http://localhost:5000/api/staff', {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        if (!response.ok) throw new Error('Failed to fetch staff members');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch staff members: ${response.status}`);
+        }
+        
         const data = await response.json();
-        setStaffMembers(data);
+        
+        // Remove duplicates based on email
+        const uniqueStaff = data.reduce((acc: StaffMember[], current: StaffMember) => {
+          const exists = acc.find(item => item.email === current.email);
+          if (!exists) {
+            acc.push(current);
+          }
+          return acc;
+        }, []);
+
+        setStaffMembers(uniqueStaff);
       } catch (error) {
+        console.error('Fetch Error:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load staff members',
+          description: 'Failed to load staff members. Please try again.',
           variant: 'destructive',
         });
       } finally {
@@ -141,67 +114,24 @@ const Emails = () => {
     fetchStaffMembers();
   }, []);
 
-  // Get unique parks from staff members
-  const uniqueParks = Array.from(new Set(staffMembers.map(staff => staff.park))).filter(Boolean);
-
-  // Filter staff members based on selected role and park
-  const filteredStaff = staffMembers.filter(staff => {
-    const roleMatch = selectedRole === 'all' || staff.role === selectedRole;
-    const parkMatch = selectedPark === 'all' || staff.park === selectedPark;
-    return roleMatch && parkMatch;
-  });
-
-  const handleRecipientToggle = (email: string) => {
-    setSelectedRecipients(prev => {
-      if (prev.includes(email)) {
-        return prev.filter(e => e !== email);
-      } else {
-        return [...prev, email];
-      }
-    });
-  };
-
-  const handleSelectAll = () => {
-    const allEmails = filteredStaff.map(staff => staff.email);
-    if (selectedRecipients.length === allEmails.length) {
-      setSelectedRecipients([]);
-    } else {
-      setSelectedRecipients(allEmails);
-    }
-  };
-
-  const handleTemplateChange = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    const template = EMAIL_TEMPLATES.find(t => t.id === templateId);
-    if (template && templateId !== 'custom') {
-      setEmailForm({
-        to: '',
-        subject: template.subject,
-        message: template.message,
-      });
-    }
-  };
-
-  const replaceTemplateVariables = (text: string, staff: StaffMember) => {
-    return text
-      .replace(/{{name}}/g, `${staff.firstName} ${staff.lastName}`)
-      .replace(/{{role}}/g, staff.role)
-      .replace(/{{park}}/g, staff.park || '')
-      .replace(/{{email}}/g, staff.email)
-      .replace(/{{password}}/g, staff.password || '[PASSWORD]');
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
   };
 
   const handleSendEmail = async () => {
-    if (!selectedRecipients.length) {
+    // Check rate limiting
+    const now = Date.now();
+    if (now - lastEmailSent < EMAIL_RATE_LIMIT) {
       toast({
-        title: 'Error',
-        description: 'Please select at least one recipient',
+        title: 'Please wait',
+        description: 'Please wait a few seconds before sending another email',
         variant: 'destructive',
       });
       return;
     }
 
-    if (!emailForm.subject || !emailForm.message) {
+    if (!selectedEmail || !emailForm.subject.trim() || !emailForm.message.trim()) {
       toast({
         title: 'Error',
         description: 'Please fill in all fields',
@@ -210,54 +140,73 @@ const Emails = () => {
       return;
     }
 
-    setSending(true);
-    try {
-      // Send email to each recipient
-      await Promise.all(selectedRecipients.map(async (recipientEmail) => {
-        const recipient = staffMembers.find(staff => staff.email === recipientEmail);
-        if (!recipient) return;
-
-        const personalizedSubject = replaceTemplateVariables(emailForm.subject, recipient);
-        const personalizedMessage = replaceTemplateVariables(emailForm.message, recipient);
-
-        const templateParams = {
-          to_name: `${recipient.firstName} ${recipient.lastName}`,
-          to_email: recipientEmail,
-          subject: personalizedSubject,
-          message: personalizedMessage,
-          from_name: 'Park Conservation Admin',
-        };
-
-        await emailjs.send(
-          'YOUR_SERVICE_ID',
-          'YOUR_TEMPLATE_ID',
-          templateParams
-        );
-      }));
-
-      toast({
-        title: 'Success',
-        description: 'Emails sent successfully',
-      });
-
-      // Reset form
-      if (selectedTemplate === 'custom') {
-        setEmailForm({
-          to: '',
-          subject: '',
-          message: '',
-        });
-      }
-      setSelectedRecipients([]);
-    } catch (error) {
+    // Validate email
+    if (!validateEmail(selectedEmail)) {
       toast({
         title: 'Error',
-        description: 'Failed to send emails',
+        description: 'Invalid email address',
         variant: 'destructive',
       });
-    } finally {
-      setSending(false);
+      return;
     }
+
+    setSending(true);
+    let retries = 0;
+    const maxRetries = 2;
+
+    while (retries <= maxRetries) {
+      try {
+        const recipient = staffMembers.find((staff) => staff.email === selectedEmail);
+        
+        const templateParams = {
+          email: selectedEmail,
+          name: recipient ? `${recipient.firstName} ${recipient.lastName}` : 'User',
+          title: emailForm.subject.trim(),
+          message: emailForm.message.trim(),
+        };
+
+        const response = await emailjs.send(
+          'service_igz6o0i',
+          'template_0yx40dq',
+          templateParams,
+          'I6uUY9YMMP0eOEOUc'
+        );
+
+        if (response.status === 200) {
+          setLastEmailSent(Date.now());
+          toast({
+            title: 'Success',
+            description: 'Email sent successfully',
+          });
+
+          // Reset form
+          setEmailForm({
+            subject: '',
+            message: '',
+          });
+          setSelectedEmail('');
+          break; // Success, exit retry loop
+        } else {
+          throw new Error('Failed to send email');
+        }
+      } catch (error: any) {
+        console.error(`EmailJS Error (attempt ${retries + 1}/${maxRetries + 1}):`, error);
+        
+        if (retries === maxRetries) {
+          toast({
+            title: 'Error',
+            description: error.text || 'Failed to send email after multiple attempts',
+            variant: 'destructive',
+          });
+        } else {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          retries++;
+          continue;
+        }
+      }
+    }
+    setSending(false);
   };
 
   return (
@@ -269,167 +218,80 @@ const Emails = () => {
             title="Email Dashboard"
             subtitle="Send emails to staff members"
           />
-          <main className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Staff Members</CardTitle>
-                  <CardDescription>Select recipients for your email</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex flex-wrap gap-4">
-                    <div className="w-full md:w-48">
-                      <Label htmlFor="role-filter">Filter by Role</Label>
-                      <Select value={selectedRole} onValueChange={setSelectedRole}>
-                        <SelectTrigger id="role-filter">
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Roles</SelectItem>
-                          <SelectItem value="park-staff">Park Staff</SelectItem>
-                          <SelectItem value="finance">Finance Officer</SelectItem>
-                          <SelectItem value="auditor">Auditor</SelectItem>
-                          <SelectItem value="government">Government Officer</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-full md:w-48">
-                      <Label htmlFor="park-filter">Filter by Park</Label>
-                      <Select value={selectedPark} onValueChange={setSelectedPark}>
-                        <SelectTrigger id="park-filter">
-                          <SelectValue placeholder="Select park" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Parks</SelectItem>
-                          {uniqueParks.map((park) => (
-                            <SelectItem key={park} value={park}>
-                              {park}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="border rounded-md">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12">
-                            <input
-                              type="checkbox"
-                              checked={selectedRecipients.length === filteredStaff.length && filteredStaff.length > 0}
-                              onChange={handleSelectAll}
-                              className="rounded border-gray-300"
-                            />
-                          </TableHead>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Park</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {loading ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center">
-                              Loading staff members...
-                            </TableCell>
-                          </TableRow>
-                        ) : filteredStaff.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center">
-                              No staff members found
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          filteredStaff.map((staff) => (
-                            <TableRow key={staff.id}>
-                              <TableCell>
-                                <input
-                                  type="checkbox"
-                                  checked={selectedRecipients.includes(staff.email)}
-                                  onChange={() => handleRecipientToggle(staff.email)}
-                                  className="rounded border-gray-300"
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {staff.firstName} {staff.lastName}
-                                <div className="text-sm text-gray-500">{staff.email}</div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="capitalize">
-                                  {staff.role}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>{staff.park}</TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Users className="mr-2 h-4 w-4" />
-                    {selectedRecipients.length} recipient{selectedRecipients.length !== 1 ? 's' : ''} selected
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Compose Email</CardTitle>
-                  <CardDescription>Write your message</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="template">Email Template</Label>
-                    <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
-                      <SelectTrigger id="template">
-                        <SelectValue placeholder="Select template" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {EMAIL_TEMPLATES.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-gray-500">
-                      Available variables: {'{{name}}, {{role}}, {{park}}, {{email}}, {{password}}'}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Input
-                      id="subject"
-                      value={emailForm.subject}
-                      onChange={(e) => setEmailForm(prev => ({ ...prev, subject: e.target.value }))}
-                      placeholder="Enter email subject"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="message">Message</Label>
-                    <Textarea
-                      id="message"
-                      value={emailForm.message}
-                      onChange={(e) => setEmailForm(prev => ({ ...prev, message: e.target.value }))}
-                      placeholder="Write your message here"
-                      rows={8}
-                    />
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={handleSendEmail}
-                    disabled={sending || !selectedRecipients.length}
+          <main className="p-6">
+            <Card className="max-w-2xl mx-auto">
+              <CardHeader>
+                <CardTitle>Send Email</CardTitle>
+                <CardDescription>Compose and send an email to staff members</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="recipient">Recipient Email</Label>
+                  <Select 
+                    value={selectedEmail} 
+                    onValueChange={(value) => {
+                      console.log('Selected email:', value);
+                      setSelectedEmail(value);
+                    }}
                   >
-                    <Send className="mr-2 h-4 w-4" />
-                    {sending ? 'Sending...' : 'Send Email'}
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+                    <SelectTrigger id="recipient">
+                      <SelectValue placeholder="Select recipient email" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {loading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading staff members...
+                        </SelectItem>
+                      ) : staffMembers.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          No staff members found
+                        </SelectItem>
+                      ) : (
+                        staffMembers.map((staff) => (
+                          <SelectItem key={staff.email} value={staff.email}>
+                            {staff.email} ({staff.firstName} {staff.lastName})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="subject">Subject</Label>
+                  <Input
+                    id="subject"
+                    value={emailForm.subject}
+                    onChange={(e) =>
+                      setEmailForm((prev) => ({ ...prev, subject: e.target.value }))
+                    }
+                    placeholder="Enter email subject"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
+                    id="message"
+                    value={emailForm.message}
+                    onChange={(e) =>
+                      setEmailForm((prev) => ({ ...prev, message: e.target.value }))
+                    }
+                    placeholder="Write your message here"
+                    rows={8}
+                  />
+                </div>
+
+                <Button
+                  className="w-full"
+                  onClick={handleSendEmail}
+                  disabled={sending || !selectedEmail}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  {sending ? 'Sending...' : 'Send Email'}
+                </Button>
+              </CardContent>
+            </Card>
           </main>
         </div>
       </div>
