@@ -5,7 +5,7 @@ import Features from '@/components/Features';
 import Footer from '@/components/Footer';
 import Hero from '@/components/Hero';
 import ParkHighlights from '@/components/ParkHighlights';
-import LoangoNationalPark from '@/components/park';
+import NationalPark from '@/components/park';
 
 const Index = () => {
   return (
@@ -14,7 +14,7 @@ const Index = () => {
       <main className="flex-grow">
         <Hero />
         <Features />
-        <LoangoNationalPark />
+        <NationalPark />
         <ParkHighlights />
       </main>
       <Footer />

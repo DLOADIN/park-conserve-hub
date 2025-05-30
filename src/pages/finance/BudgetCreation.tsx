@@ -63,19 +63,10 @@ interface ExpenseItem {
 }
 
 const NATIONAL_PARKS = [
-  'Akanda National Park',
-  'Moukalaba-Doudou National Park',
-  'Ivindo National Park',
-  'Loango National Park',
-  'Lopé National Park',
-  'Mayumba National Park',
-  'Pongara National Park',
-  'Waka National Park',
-  'Birougou National Park',
-  'Bateke Plateau National Park',
-  'Crystal Mountains National Park',
-  'Minkébé National Park',
-  'Mwagne National Park',
+  'Volcanoes National Park',
+  'Nyungwe National Park',
+  'Akagera National Park',
+  'Gishwati-Mukura National Park',
 ];
 
 const BudgetCreation: React.FC = () => {

@@ -210,19 +210,10 @@ const AddParkStaffModal: React.FC<AddParkStaffModalProps> = ({ isOpen, onClose, 
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Akanda National Park">Akanda National Park</SelectItem>
-                      <SelectItem value="Batéké Plateau National Park">Batéké Plateau National Park</SelectItem>
-                      <SelectItem value="Birougou National Park">Birougou National Park</SelectItem>
-                      <SelectItem value="Crystal Mountains National Park">Crystal Mountains National Park</SelectItem>
-                      <SelectItem value="Ivindo National Park">Ivindo National Park</SelectItem>
-                      <SelectItem value="Loango National Park">Loango National Park</SelectItem>
-                      <SelectItem value="Lopé National Park">Lopé National Park</SelectItem>
-                      <SelectItem value="Mayumba National Park">Mayumba National Park</SelectItem>
-                      <SelectItem value="Minkébé National Park">Minkébé National Park</SelectItem>
-                      <SelectItem value="Moukalaba-Doudou National Park">Moukalaba-Doudou National Park</SelectItem>
-                      <SelectItem value="Mvembé National Park">Mvembé National Park</SelectItem>
-                      <SelectItem value="Mwagna National Park">Mwagna National Park</SelectItem>
-                      <SelectItem value="Waka National Park">Waka National Park</SelectItem>
+                      <SelectItem value="Volcanoes National Park">Volcanoes National Park</SelectItem>
+                      <SelectItem value="Nyungwe National Park">Nyungwe National Park</SelectItem>
+                      <SelectItem value="Akagera National Park">Akagera National Park</SelectItem>
+                      <SelectItem value="Gishwati-Mukura National Park">Gishwati-Mukura National Park</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

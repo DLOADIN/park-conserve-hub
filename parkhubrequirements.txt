@@ -1,4 +1,4 @@
-1. We should have a list of all the parks(Park Stuff, Government Officer) Eg: Ivindo National Park, etc
+1. We should have a list of all the parks(Park Stuff, Government Officer) Eg: Volcanoes National Park, etc
 2. (Many FInance Officers) Depending on ParkId ~ ForeignId(Parks) Many to many relationship
 3. Finance Officer: Budget Creation: These should be highlighted when doing an Budget  Income(Donations + Booked Tours + Government Income(Has a fixed % for donating to our cause))
 						     				       Expenses(Fundrequests)

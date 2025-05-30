@@ -13,19 +13,26 @@ import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 
 const parkTours = [
-  { id: 1, name: 'Akanda National Park', tours: ['Wildlife Safari', 'Forest Hike', 'Bird Watching'] },
-  { id: 2, name: 'Moukalaba-Doudou National Park', tours: ['Kayaking Adventure', 'Fishing Tour', 'Lake Cruise'] },
-  { id: 3, name: 'Ivindo National Park', tours: ['Rock Climbing', 'Mountain Trail', 'Scenic Drive'] },
-  { id: 4, name: 'Loango National Park', tours: ['Whale Watching', 'Beach Safari', 'Rainforest Walk'] },
-  { id: 5, name: 'Lopé National Park', tours: ['Cultural Tour', 'Gorilla Trek', 'Ancient Rock Art Walk'] },
-  { id: 6, name: 'Mayumba National Park', tours: ['Turtle Nesting Tour', 'Coastal Walk', 'Marine Life Excursion'] },
-  { id: 7, name: 'Pongara National Park', tours: ['Mangrove Exploration', 'Sunset Boat Ride', 'Eco-Lodge Retreat'] },
-  { id: 8, name: 'Waka National Park', tours: ['Canopy Walk', 'Jungle Hike', 'Bird Photography Tour'] },
-  { id: 9, name: 'Birougou National Park', tours: ['Forest Trekking', 'Waterfall Visit', 'Cultural Immersion'] },
-  { id: 10, name: 'Bateke Plateau National Park', tours: ['Grassland Safari', 'Volcano Crater Walk', 'Camping Experience'] },
-  { id: 11, name: 'Crystal Mountains National Park', tours: ['Mountain Climbing', 'River Rafting', 'Nature Observation'] },
-  { id: 12, name: 'Minkébé National Park', tours: ['Elephant Tracking', 'Deep Forest Camping', 'Research Station Visit'] },
-  { id: 13, name: 'Mwagne National Park', tours: ['River Safari', 'Botanical Tour', 'Silent Meditation Trail'] },
+  {
+    id: 1,
+    name: 'Volcanoes National Park',
+    features: ['Mountain Gorillas', 'Volcanoes', 'Golden Monkeys']
+  },
+  {
+    id: 2,
+    name: 'Nyungwe National Park',
+    features: ['Canopy Walkway', 'Chimpanzees', 'Rainforest']
+  },
+  {
+    id: 3,
+    name: 'Akagera National Park',
+    features: ['Big Five', 'Savannah', 'Lakes']
+  },
+  {
+    id: 4,
+    name: 'Gishwati-Mukura National Park',
+    features: ['Primates', 'Bird Watching', 'Restored Forest']
+  }
 ];
 
 

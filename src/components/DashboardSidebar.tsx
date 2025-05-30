@@ -56,7 +56,7 @@ const DashboardSidebar = () => {
           <div className="rounded-full bg-consevation-600 flex items-center justify-center">
             <span className="text-conservation-600 font-bold text-2xl">Park Pro</span>
           </div>
-          <span className="text-md font-bold text-primary mt-4">{user.park ? user.park : 'Loaungo National Park'}</span>
+          <span className="text-md font-bold text-primary mt-4">{user.park ? user.park : `${user.park} National Park`}</span>
         </Link>
         <div className="mt-4 w-full">
           <SidebarTrigger />

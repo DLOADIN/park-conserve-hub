@@ -5,23 +5,30 @@ import { Button } from '@/components/ui/button';
 const parks = [
   {
     id: 1,
-    name: 'Akanda National Park',
-    description: 'Ancient forests and stunning mountain vistas with diverse wildlife.',
+    name: 'Volcanoes National Park',
+    description: 'Home to mountain gorillas, scenic volcanic landscapes, and rich biodiversity.',
     image: '/lovable-uploads/pexels-elena-blessing-355784-2674050.jpg',
   },
   {
     id: 2,
-    name: 'Moukalaba-Doudou National Park',
-    description: 'Crystal clear waters surrounded by pristine wilderness and rare bird species.',
+    name: 'Nyungwe National Park',
+    description: 'A lush rainforest offering canopy walks, chimpanzee trekking, and birdwatching.',
     image: '/lovable-uploads/pexels-freestockpro-321525.jpg',
   },
   {
     id: 3,
-    name: 'Ivindo National Park',
-    description: 'Dramatic rock formations and high-altitude trails with panoramic views.',
+    name: 'Akagera National Park',
+    description: 'A savannah paradise with the Big Five, vast lakes, and scenic plains.',
     image: '/lovable-uploads/pexels-pixabay-55814.jpg',
   },
+  {
+    id: 4,
+    name: 'Gishwati-Mukura National Park',
+    description: 'A lush rainforest offering canopy walks, chimpanzee trekking, and birdwatching.',
+    image: '/lovable-uploads/pexels-freestockpro-321525.jpg',
+  },
 ];
+
 
 const ParkHighlights = () => {
   return (
