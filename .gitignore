@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+Main-work.md
+Sarah Kasande Proposal & Software Requirements Specification (SRS) Document.txt
 
 # Editor directories and files
 .vscode/*
