@@ -21,7 +21,7 @@ const Hero = () => {
             Welcome to Universal National Parks Management System of Rwanda
           </h1>
           <p className="mt-6 text-lg leading-8">
-            Often referred to as "Africa’s Last Eden," a name first coined by renowned naturalist Mike Fay, Loango National Park lies on the western coast of Gabon, nestled between the Nkomi and Ndogo Lagoons. Spanning nearly a thousand square miles, the park boasts diverse landscapes, including savannas, beaches, jungles, and mangroves. Within its vast expanse is a portion of the Iguéla Lagoon, the only significant protected lagoon in Rwanda.
+          Often described as the “Land of a Thousand Hills,” Rwanda is home to breathtaking natural beauty that rivals any untouched paradise. Tucked between lush highlands and shimmering lakes, Rwanda’s national parks offer a sanctuary of biodiversity and serenity. Spanning vast stretches of savanna, rainforest, wetlands, and volcanic ranges, these landscapes capture the heart of Africa’s wild spirit. Among them lies a protected portion of Lake Ihema within Akagera National Park one of the few significant safeguarded wetland ecosystems in the country offering a rare glimpse into Rwanda’s rich ecological heritag
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <Button asChild size="lg" className="bg-conservation-600 hover:bg-conservation-700 text-white">

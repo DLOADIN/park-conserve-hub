@@ -19,6 +19,9 @@ SET time_zone = "+00:00";
 
 --
 -- Database: `park_conservation`
+
+CREATE DATABASE park_conservation;
+USE park_conservation;
 --
 
 -- --------------------------------------------------------

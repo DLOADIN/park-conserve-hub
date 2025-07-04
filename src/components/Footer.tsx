@@ -59,7 +59,7 @@ const Footer = () => {
             <ul className="space-y-4 text-conservation-200">
               <li className="flex items-start">
                 <MapPin className="mr-2 h-5 w-5 flex-shrink-0 text-conservation-400" />
-                <span>622 Avenue du Colonel Parant, Centre Ville</span>
+                <span>Akagera Motors National Office | CHIC Building</span>
               </li>
               <li className="flex items-center">
                 <Phone className="mr-2 h-5 w-5 flex-shrink-0 text-conservation-400" />
